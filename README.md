@@ -37,6 +37,77 @@ supabase gen types typescript --project-id <project-id> > src/types/database.ts
 Then swap `createClient(...)` in `src/lib/supabase.ts` for
 `createClient<Database>(...)`.
 
+### Google setup (quote emails + Calendar scheduling)
+
+The quote → email → accept/decline → book-a-slot → Google Calendar flow
+needs a Google Cloud OAuth client and four Supabase Edge Functions. This is
+the one part of the app that can't run purely client-side, since it needs
+real secrets (a Gmail-send token, a Google OAuth client secret) that must
+never ship to the browser.
+
+**1. Google Cloud**
+
+1. Create a project at [console.cloud.google.com](https://console.cloud.google.com).
+2. Enable the **Google Calendar API** and **Gmail API** (APIs & Services →
+   Library).
+3. Configure the OAuth consent screen (External is fine for testing with
+   your own account; add the `.../auth/calendar` and `.../auth/gmail.send`
+   scopes).
+4. Create an **OAuth client ID** (Web application). Add this Authorized
+   redirect URI, using your Supabase project ref:
+   `https://<project-ref>.supabase.co/auth/v1/callback`
+5. Note the **Client ID** and **Client secret**.
+
+**2. Supabase Auth**
+
+1. Authentication → Providers → **Google**: paste in the Client ID/secret
+   and enable the provider.
+2. Authentication → Settings: turn on **"Allow manual linking"**. This is
+   what lets a user who's already signed in with email/password *add* a
+   Google identity (for Calendar + Gmail) without it creating a second
+   account or signing them out.
+
+**3. Supabase Edge Functions**
+
+The functions live in `supabase/functions/`. Deploy them with the
+[Supabase CLI](https://supabase.com/docs/guides/cli):
+
+```bash
+supabase login
+supabase link --project-ref <project-ref>
+supabase functions deploy send-quote-email
+supabase functions deploy quote-response
+supabase functions deploy available-slots
+supabase functions deploy book-slot
+```
+
+Then set these as **Edge Function secrets** (Project Settings → Edge
+Functions → Secrets, or `supabase secrets set KEY=value`):
+
+```
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+SITE_URL=https://your-deployed-app-url
+```
+
+(`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically
+by Supabase — you don't set those yourself.)
+
+**4. Run the extra schema migration**
+
+Run [`docs/schema_v2_scheduling.sql`](docs/schema_v2_scheduling.sql) in the
+SQL editor (after `docs/schema.sql`) — it adds the Google connection table,
+scheduling-hours settings, and the quote accept-token columns.
+
+**5. Connect your account**
+
+In the app, go to **Settings → Google Calendar & Email** and click
+"Connect Google". After that, sending a quote (Quotes → Send) emails the
+client from your Gmail with Accept/Decline links; accepting lets them pick
+an open slot computed from your **Settings → Scheduling** hours minus
+what's already busy on your Google Calendar, and booking creates both the
+Job in Project Flow and the real Google Calendar event.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -45,16 +116,23 @@ Then swap `createClient(...)` in `src/lib/supabase.ts` for
 - **Schedule** — job list with status, a create-job dialog, and a job detail
   page with status changes and freeform notes.
 - **Quotes** — create with line items, auto-totaled, status tracking
-  (draft/sent/accepted/declined).
+  (draft/sent/accepted/declined), and a "Send" button that emails the
+  client via Gmail with Accept/Decline links.
+- **Public quote page** (`/q/:token`, no login) — client accepts or
+  declines, then picks an open slot; booking creates the Job, the Google
+  Calendar event, and links back the auto-generated invoice.
 - **Invoices** — same shape as quotes plus a due date and payment status
-  (draft/sent/paid/overdue).
-- **Settings** — business profile shown on quotes/invoices.
-- **Dashboard** — at-a-glance counts and next-up jobs.
+  (draft/sent/paid/overdue). Automatically created (as a draft) the moment
+  a client accepts a quote.
+- **Settings** — business profile, Google connection, and scheduling hours
+  (work days/times, job length).
+- **Dashboard** — at-a-glance counts, a month calendar of scheduled jobs,
+  and a next-up list.
 
 ## Roadmap: the Claude agent layer
 
-This scaffold is phase 1 (core PM app). Planned phase 2 work, once the data
-model is proven out:
+This scaffold is phase 1 (core PM app) plus the phase-1.5 quote → schedule
+→ invoice automation above. Planned phase 2 work:
 
 1. **Office copilot** — an in-app assistant that drafts quotes, invoice
    line items, and client follow-up messages from a plain-English
@@ -62,9 +140,9 @@ model is proven out:
 2. **Customer-facing chat** — a website widget where customers describe
    what they need; the agent turns the conversation into a lead / draft job
    in Project Flow.
-3. **Scheduling & reminders** — the agent watches the schedule, flags
-   conflicts, and sends automated reminders to customers and crew ahead of
-   a job.
+3. **Smarter reminders** — the agent sends automated reminders to
+   customers and crew ahead of a job, and nudges you about quotes sitting
+   unanswered too long.
 
 ## Project structure
 
@@ -74,8 +152,15 @@ src/
   components/layout/ app shell (sidebar layout, protected route)
   contexts/           Supabase auth context
   hooks/               TanStack Query hooks per resource (clients, jobs, ...)
-  lib/                 Supabase client, cn()/formatting helpers
-  pages/               route-level screens
+  lib/                 Supabase client, Google auth linking, edge-function fetch helpers
+  pages/               route-level screens (PublicQuote.tsx is the unauthenticated /q/:token page)
   types/               shared domain types
-docs/schema.sql        Supabase schema + RLS policies
+supabase/functions/
+  _shared/             Google token refresh, Gmail send, Calendar API helpers
+  send-quote-email/    emails a quote via the owner's Gmail (auth required)
+  quote-response/      public accept/decline + auto-creates the invoice on accept
+  available-slots/     public: business hours minus Google Calendar busy times
+  book-slot/           public: creates the Job + the real Google Calendar event
+docs/schema.sql               Supabase schema + RLS policies
+docs/schema_v2_scheduling.sql Google connections, scheduling hours, quote tokens
 ```

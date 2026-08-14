@@ -14,6 +14,7 @@ import JobDetail from "@/pages/JobDetail";
 import Quotes from "@/pages/Quotes";
 import Invoices from "@/pages/Invoices";
 import SettingsPage from "@/pages/Settings";
+import PublicQuote from "@/pages/PublicQuote";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,8 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/q/:token" element={<PublicQuote />} />
+              <Route path="/q/:token/:action" element={<PublicQuote />} />
               <Route
                 element={
                   <ProtectedRoute>

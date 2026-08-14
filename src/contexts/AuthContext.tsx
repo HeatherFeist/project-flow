@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { captureGoogleTokensOnSignIn } from "@/lib/googleAuth";
 
 interface AuthContextValue {
   session: Session | null;
@@ -31,6 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
+      if (newSession?.provider_refresh_token) {
+        captureGoogleTokensOnSignIn({
+          provider_token: newSession.provider_token,
+          provider_refresh_token: newSession.provider_refresh_token,
+          user: newSession.user,
+        });
+      }
     });
 
     return () => listener.subscription.unsubscribe();

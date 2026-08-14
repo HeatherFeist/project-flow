@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Copy, Mail, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
 import { useCreateQuote, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
+import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import type { LineItem, QuoteStatus } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +39,7 @@ export default function Quotes() {
   const { data: clients } = useClients();
   const createQuote = useCreateQuote();
   const updateStatus = useUpdateQuoteStatus();
+  const sendQuoteEmail = useSendQuoteEmail();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
   const [notes, setNotes] = useState("");
@@ -62,6 +64,21 @@ export default function Quotes() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create quote");
     }
+  }
+
+  async function handleSend(quoteId: string) {
+    try {
+      await sendQuoteEmail.mutateAsync(quoteId);
+      toast.success("Quote emailed to the client");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send quote email");
+    }
+  }
+
+  function copyLink(token: string) {
+    const url = `${window.location.origin}/q/${token}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Quote link copied");
   }
 
   return (
@@ -124,19 +141,20 @@ export default function Quotes() {
                 <TableHead>Date</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Send</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (quotes ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     No quotes yet.
                   </TableCell>
                 </TableRow>
@@ -172,6 +190,21 @@ export default function Quotes() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={sendQuoteEmail.isPending || q.status === "accepted" || q.status === "declined"}
+                        onClick={() => handleSend(q.id)}
+                      >
+                        <Mail /> {q.status === "draft" ? "Send" : "Resend"}
+                      </Button>
+                      <Button variant="ghost" size="icon" title="Copy client link" onClick={() => copyLink(q.accept_token)}>
+                        <Copy className="size-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

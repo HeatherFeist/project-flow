@@ -6,6 +6,7 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { useInvoices } from "@/hooks/useInvoices";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { JobsCalendar } from "@/components/JobsCalendar";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -60,32 +61,43 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Next up</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 pb-6">
-          {upcomingJobs.length === 0 && (
-            <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
-          )}
-          {upcomingJobs.slice(0, 5).map((job) => (
-            <Link
-              key={job.id}
-              to={`/schedule/${job.id}`}
-              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-accent/50"
-            >
-              <div>
-                <p className="font-medium">{job.title}</p>
-                <p className="text-muted-foreground">{job.client?.name}</p>
-              </div>
-              <div className="text-right">
-                <p>{formatDateTime(job.scheduled_at)}</p>
-                <Badge variant="secondary">{job.status.replace("_", " ")}</Badge>
-              </div>
-            </Link>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-5">
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Calendar</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-6">
+            <JobsCalendar jobs={jobs ?? []} />
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Next up</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 pb-6">
+            {upcomingJobs.length === 0 && (
+              <p className="text-sm text-muted-foreground">No upcoming jobs scheduled.</p>
+            )}
+            {upcomingJobs.slice(0, 5).map((job) => (
+              <Link
+                key={job.id}
+                to={`/schedule/${job.id}`}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-accent/50"
+              >
+                <div>
+                  <p className="font-medium">{job.title}</p>
+                  <p className="text-muted-foreground">{job.client?.name}</p>
+                </div>
+                <div className="text-right">
+                  <p>{formatDateTime(job.scheduled_at)}</p>
+                  <Badge variant="secondary">{job.status.replace("_", " ")}</Badge>
+                </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
