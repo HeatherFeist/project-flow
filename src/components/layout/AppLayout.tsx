@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -63,6 +64,7 @@ export function AppLayout() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{user?.email}</p>
           </div>
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
