@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useClients, useCreateClient } from "@/hooks/useClients";
+import { useClients, useCreateClient, useDeleteClient } from "@/hooks/useClients";
+import { DeleteButton } from "@/components/DeleteButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +24,7 @@ export default function Clients() {
   const { user } = useAuth();
   const { data: clients, isLoading } = useClients();
   const createClient = useCreateClient();
+  const deleteClient = useDeleteClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
 
@@ -127,19 +129,20 @@ export default function Clients() {
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Address</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (clients ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     No clients yet. Add your first one above.
                   </TableCell>
                 </TableRow>
@@ -154,6 +157,20 @@ export default function Clients() {
                   <TableCell>{client.email ?? "—"}</TableCell>
                   <TableCell>{client.phone ?? "—"}</TableCell>
                   <TableCell>{client.address ?? "—"}</TableCell>
+                  <TableCell>
+                    <DeleteButton
+                      itemLabel={client.name}
+                      description="This also removes their jobs, quotes, and invoices. This can't be undone."
+                      onConfirm={async () => {
+                        try {
+                          await deleteClient.mutateAsync(client.id);
+                          toast.success("Client deleted");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to delete client");
+                        }
+                      }}
+                    />
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

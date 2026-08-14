@@ -1,18 +1,22 @@
-import { Link, useParams } from "react-router-dom";
-import { useClient } from "@/hooks/useClients";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
+import { useClient, useDeleteClient } from "@/hooks/useClients";
 import { useJobs } from "@/hooks/useJobs";
 import { useQuotes } from "@/hooks/useQuotes";
 import { useInvoices } from "@/hooks/useInvoices";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DeleteButton } from "@/components/DeleteButton";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: client, isLoading } = useClient(id);
   const { data: jobs } = useJobs();
   const { data: quotes } = useQuotes();
   const { data: invoices } = useInvoices();
+  const deleteClient = useDeleteClient();
 
   const clientJobs = (jobs ?? []).filter((j) => j.client_id === id);
   const clientQuotes = (quotes ?? []).filter((q) => q.client_id === id);
@@ -27,7 +31,22 @@ export default function ClientDetail() {
         <Link to="/clients" className="text-sm text-muted-foreground hover:underline">
           ← Clients
         </Link>
-        <h1 className="text-2xl font-semibold">{client.name}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">{client.name}</h1>
+          <DeleteButton
+            itemLabel={client.name}
+            description="This also removes their jobs, quotes, and invoices. This can't be undone."
+            onConfirm={async () => {
+              try {
+                await deleteClient.mutateAsync(client.id);
+                toast.success("Client deleted");
+                navigate("/clients");
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to delete client");
+              }
+            }}
+          />
+        </div>
         <p className="text-muted-foreground">
           {[client.email, client.phone, client.address].filter(Boolean).join(" · ") || "No contact details on file"}
         </p>

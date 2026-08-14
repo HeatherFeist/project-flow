@@ -85,6 +85,19 @@ export function useUpdateJobStatus() {
   });
 }
 
+export function useDeleteJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("jobs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
 export function useAddJobNote() {
   const queryClient = useQueryClient();
   return useMutation({

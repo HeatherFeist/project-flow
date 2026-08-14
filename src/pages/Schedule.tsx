@@ -4,8 +4,9 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
-import { useCreateJob, useJobs } from "@/hooks/useJobs";
+import { useCreateJob, useDeleteJob, useJobs } from "@/hooks/useJobs";
 import type { JobStatus } from "@/types/domain";
+import { DeleteButton } from "@/components/DeleteButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ export default function Schedule() {
   const { data: jobs, isLoading } = useJobs();
   const { data: clients } = useClients();
   const createJob = useCreateJob();
+  const deleteJob = useDeleteJob();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     client_id: "",
@@ -153,19 +155,20 @@ export default function Schedule() {
                 <TableHead>Client</TableHead>
                 <TableHead>When</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (jobs ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     No jobs scheduled yet.
                   </TableCell>
                 </TableRow>
@@ -181,6 +184,19 @@ export default function Schedule() {
                   <TableCell>{formatDateTime(job.scheduled_at)}</TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[job.status]}>{job.status.replace("_", " ")}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DeleteButton
+                      itemLabel={job.title}
+                      onConfirm={async () => {
+                        try {
+                          await deleteJob.mutateAsync(job.id);
+                          toast.success("Job deleted");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to delete job");
+                        }
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

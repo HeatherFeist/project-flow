@@ -4,9 +4,10 @@ import { Copy, Mail, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
-import { useCreateQuote, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
+import { useCreateQuote, useDeleteQuote, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import type { LineItem, QuoteStatus } from "@/types/domain";
+import { DeleteButton } from "@/components/DeleteButton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,7 @@ export default function Quotes() {
   const createQuote = useCreateQuote();
   const updateStatus = useUpdateQuoteStatus();
   const sendQuoteEmail = useSendQuoteEmail();
+  const deleteQuote = useDeleteQuote();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
   const [notes, setNotes] = useState("");
@@ -142,19 +144,20 @@ export default function Quotes() {
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Send</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={6} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (quotes ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={6} className="text-muted-foreground">
                     No quotes yet.
                   </TableCell>
                 </TableRow>
@@ -205,6 +208,19 @@ export default function Quotes() {
                         <Copy className="size-4" />
                       </Button>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <DeleteButton
+                      itemLabel={`quote for ${q.client?.name ?? "this client"}`}
+                      onConfirm={async () => {
+                        try {
+                          await deleteQuote.mutateAsync(q.id);
+                          toast.success("Quote deleted");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to delete quote");
+                        }
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

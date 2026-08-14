@@ -1,22 +1,25 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { useAddJobNote, useJob, useJobNotes, useUpdateJobStatus } from "@/hooks/useJobs";
+import { useAddJobNote, useDeleteJob, useJob, useJobNotes, useUpdateJobStatus } from "@/hooks/useJobs";
 import type { JobStatus } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DeleteButton } from "@/components/DeleteButton";
 import { formatDateTime } from "@/lib/utils";
 
 const STATUSES: JobStatus[] = ["scheduled", "in_progress", "completed", "cancelled"];
 
 export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data: job, isLoading } = useJob(id);
   const { data: notes } = useJobNotes(id);
   const updateStatus = useUpdateJobStatus();
   const addNote = useAddJobNote();
+  const deleteJob = useDeleteJob();
   const [note, setNote] = useState("");
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
@@ -39,23 +42,37 @@ export default function JobDetail() {
         <Link to="/schedule" className="text-sm text-muted-foreground hover:underline">
           ← Schedule
         </Link>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h1 className="text-2xl font-semibold">{job.title}</h1>
-          <Select
-            value={job.status}
-            onValueChange={(v) => updateStatus.mutate({ id: job.id, status: v as JobStatus })}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUSES.map((s) => (
-                <SelectItem key={s} value={s}>
-                  {s.replace("_", " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <Select
+              value={job.status}
+              onValueChange={(v) => updateStatus.mutate({ id: job.id, status: v as JobStatus })}
+            >
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s.replace("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DeleteButton
+              itemLabel={job.title}
+              onConfirm={async () => {
+                try {
+                  await deleteJob.mutateAsync(job.id);
+                  toast.success("Job deleted");
+                  navigate("/schedule");
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Failed to delete job");
+                }
+              }}
+            />
+          </div>
         </div>
         <p className="text-muted-foreground">
           {job.client && (

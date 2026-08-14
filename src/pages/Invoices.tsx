@@ -4,8 +4,9 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
-import { useCreateInvoice, useInvoices, useUpdateInvoiceStatus } from "@/hooks/useInvoices";
+import { useCreateInvoice, useDeleteInvoice, useInvoices, useUpdateInvoiceStatus } from "@/hooks/useInvoices";
 import type { InvoiceStatus, LineItem } from "@/types/domain";
+import { DeleteButton } from "@/components/DeleteButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ export default function Invoices() {
   const { data: clients } = useClients();
   const createInvoice = useCreateInvoice();
   const updateStatus = useUpdateInvoiceStatus();
+  const deleteInvoice = useDeleteInvoice();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -125,19 +127,20 @@ export default function Invoices() {
                 <TableHead>Due</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (invoices ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">
+                  <TableCell colSpan={5} className="text-muted-foreground">
                     No invoices yet.
                   </TableCell>
                 </TableRow>
@@ -173,6 +176,19 @@ export default function Invoices() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    <DeleteButton
+                      itemLabel={`invoice for ${inv.client?.name ?? "this client"}`}
+                      onConfirm={async () => {
+                        try {
+                          await deleteInvoice.mutateAsync(inv.id);
+                          toast.success("Invoice deleted");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to delete invoice");
+                        }
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
