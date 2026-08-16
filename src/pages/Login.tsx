@@ -46,7 +46,7 @@ export default function Login() {
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
           <Sparkles className="mb-2 size-6 text-primary" />
-          <CardTitle>Project Flow</CardTitle>
+          <CardTitle className="gradient-text">Project Flow</CardTitle>
           <CardDescription>
             {mode === "sign-in" ? "Sign in to your workspace" : "Create your workspace"}
           </CardDescription>

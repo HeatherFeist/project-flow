@@ -35,7 +35,7 @@ export function AppLayout() {
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-card sm:flex">
         <div className="flex items-center gap-2 px-4 py-4">
           <Sparkles className="size-5 text-primary" />
-          <span className="font-semibold">Project Flow</span>
+          <span className="gradient-text font-semibold">Project Flow</span>
         </div>
         <nav className="flex-1 space-y-1 px-2">
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
