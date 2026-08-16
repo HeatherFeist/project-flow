@@ -1,0 +1,10 @@
+name = "project-flow"
+compatibility_date = "2024-09-23"
+
+# Serves the Vite build output as a static SPA through Cloudflare Workers.
+# `not_found_handling = "single-page-application"` makes every unmatched
+# path (e.g. /clients, /q/:token) fall back to index.html so React Router
+# can take over client-side, instead of Cloudflare 404ing them.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
