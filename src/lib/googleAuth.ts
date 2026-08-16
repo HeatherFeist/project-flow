@@ -38,10 +38,10 @@ export async function captureGoogleTokensOnSignIn(session: {
   provider_token?: string | null;
   provider_refresh_token?: string | null;
   user: { id: string; email?: string | null };
-}) {
-  if (!session.provider_refresh_token) return;
+}): Promise<{ saved: boolean; error: string | null }> {
+  if (!session.provider_refresh_token) return { saved: false, error: null };
 
-  await supabase.from("google_connections").upsert({
+  const { error } = await supabase.from("google_connections").upsert({
     user_id: session.user.id,
     google_email: session.user.email ?? null,
     refresh_token: session.provider_refresh_token,
@@ -50,4 +50,10 @@ export async function captureGoogleTokensOnSignIn(session: {
     scope: GOOGLE_SCOPES,
     updated_at: new Date().toISOString(),
   });
+
+  if (error) {
+    console.error("Failed to save Google connection:", error);
+    return { saved: false, error: error.message };
+  }
+  return { saved: true, error: null };
 }

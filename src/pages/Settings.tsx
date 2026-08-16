@@ -45,7 +45,11 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
-  const { data: googleConnection, isLoading: googleLoading } = useGoogleConnection(user?.id);
+  const {
+    data: googleConnection,
+    isLoading: googleLoading,
+    error: googleError,
+  } = useGoogleConnection(user?.id);
   const { data: schedulingSettings } = useSchedulingSettings(user?.id);
   const saveSchedulingSettings = useSaveSchedulingSettings();
 
@@ -161,7 +165,13 @@ export default function Settings() {
             calendar.
           </CardDescription>
         </CardHeader>
-        <CardContent className="pb-6">
+        <CardContent className="space-y-2 pb-6">
+          {googleError && (
+            <p className="text-sm text-destructive">
+              Couldn't check your Google connection: {googleError.message}. This usually means{" "}
+              <code>docs/schema_v2_scheduling.sql</code> hasn't been run in Supabase yet.
+            </p>
+          )}
           {googleLoading ? (
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
           ) : googleConnection ? (
