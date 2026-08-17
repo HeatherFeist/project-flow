@@ -190,11 +190,12 @@ automation.
   quotes, and invoices, and a **CSV import** (Clients → Import CSV) for
   bringing a contact list over from Jobber or any other tool — upload,
   match up the columns, done.
-- **Schedule** — job list with status, a create-job dialog, and a job detail
-  page with status changes and freeform notes.
+- **Schedule** — job list with status, a create-job dialog, a job detail
+  page with status changes and freeform notes, and CSV import (auto-matches
+  or creates the client per row).
 - **Quotes** — create with line items, auto-totaled, status tracking
-  (draft/sent/accepted/declined), and a "Send" button that emails the
-  client via Gmail with Accept/Decline links.
+  (draft/sent/accepted/declined), a "Send" button that emails the client
+  via Gmail with Accept/Decline links, and CSV import.
 - **Public quote page** (`/q/:token`, no login) — client accepts or
   declines, then picks an open slot; booking creates the Job, the Google
   Calendar event, and links back the auto-generated invoice.

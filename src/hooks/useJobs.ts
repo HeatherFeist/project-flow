@@ -1,6 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { resolveClientIds } from "@/lib/importClientMatching";
 import type { Job, JobNote, JobStatus } from "@/types/domain";
+
+export interface JobImportRow {
+  clientName: string;
+  clientEmail: string | null;
+  title: string;
+  description: string | null;
+  status: JobStatus;
+  scheduledAt: string | null;
+  address: string | null;
+}
 
 export function useJobs() {
   return useQuery({
@@ -62,6 +73,48 @@ export function useCreateJob() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
+export function useImportJobs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ownerId, rows }: { ownerId: string; rows: JobImportRow[] }) => {
+      const clientIds = await resolveClientIds(
+        ownerId,
+        rows.map((r) => ({ name: r.clientName, email: r.clientEmail })),
+      );
+
+      const records = rows
+        .map((row, i) => {
+          const client_id = clientIds[i];
+          if (!client_id || !row.title) return null;
+          return {
+            owner_id: ownerId,
+            client_id,
+            title: row.title,
+            description: row.description,
+            status: row.status,
+            scheduled_at: row.scheduledAt,
+            address: row.address,
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+
+      const CHUNK_SIZE = 200;
+      let imported = 0;
+      for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+        const chunk = records.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase.from("jobs").insert(chunk);
+        if (error) throw error;
+        imported += chunk.length;
+      }
+      return { imported, skipped: rows.length - imported };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
   });
 }

@@ -1,6 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { resolveClientIds } from "@/lib/importClientMatching";
 import type { LineItem, Quote, QuoteStatus } from "@/types/domain";
+
+export interface QuoteImportRow {
+  clientName: string;
+  clientEmail: string | null;
+  description: string | null;
+  status: QuoteStatus;
+  totalCents: number | null;
+  notes: string | null;
+  date: string | null;
+}
 
 export function useQuotes() {
   return useQuery({
@@ -75,6 +86,58 @@ export function useUpdateQuoteStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
+    },
+  });
+}
+
+export function useImportQuotes() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ownerId, rows }: { ownerId: string; rows: QuoteImportRow[] }) => {
+      const clientIds = await resolveClientIds(
+        ownerId,
+        rows.map((r) => ({ name: r.clientName, email: r.clientEmail })),
+      );
+
+      const records = rows
+        .map((row, i) => {
+          const client_id = clientIds[i];
+          if (!client_id) return null;
+          const totalCents = row.totalCents ?? 0;
+          const items: LineItem[] = [
+            {
+              id: crypto.randomUUID(),
+              description: row.description || "Imported quote",
+              quantity: 1,
+              unit_price_cents: totalCents,
+            },
+          ];
+          return {
+            owner_id: ownerId,
+            client_id,
+            job_id: null,
+            status: row.status,
+            total_cents: totalCents,
+            notes: row.notes,
+            items,
+            ...(row.date ? { created_at: row.date } : {}),
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+
+      const CHUNK_SIZE = 200;
+      let imported = 0;
+      for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+        const chunk = records.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase.from("quotes").insert(chunk);
+        if (error) throw error;
+        imported += chunk.length;
+      }
+      return { imported, skipped: rows.length - imported };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
   });
 }

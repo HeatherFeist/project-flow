@@ -55,7 +55,7 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((cell) => cell.trim() !== ""));
 }
 
-const FIELD_KEYWORDS: Record<string, string[]> = {
+export const CLIENT_FIELD_KEYWORDS: Record<string, string[]> = {
   firstName: ["first name", "given name", "first"],
   lastName: ["last name", "surname", "family name", "last"],
   fullName: ["full name", "name", "client name", "customer name", "contact name"],
@@ -66,20 +66,33 @@ const FIELD_KEYWORDS: Record<string, string[]> = {
   notes: ["notes", "note", "comments", "description"],
 };
 
-export function guessColumnMapping(headers: string[]) {
-  const normalized = headers.map((h) => h.trim().toLowerCase());
-  const mapping: Record<string, string | null> = {
-    firstName: null,
-    lastName: null,
-    fullName: null,
-    company: null,
-    email: null,
-    phone: null,
-    address: null,
-    notes: null,
-  };
+export const JOB_FIELD_KEYWORDS: Record<string, string[]> = {
+  clientMatch: ["client", "client name", "customer", "customer name"],
+  clientEmail: ["client email", "customer email", "email"],
+  title: ["title", "job title", "job name", "summary"],
+  description: ["description", "details", "job description"],
+  status: ["status", "job status"],
+  scheduledAt: ["date", "scheduled date", "job date", "start date", "scheduled", "appointment date"],
+  address: ["address", "job address", "service address", "site address"],
+  notes: ["notes", "note", "comments"],
+};
 
-  for (const [field, keywords] of Object.entries(FIELD_KEYWORDS)) {
+export const QUOTE_FIELD_KEYWORDS: Record<string, string[]> = {
+  clientMatch: ["client", "client name", "customer", "customer name"],
+  clientEmail: ["client email", "customer email", "email"],
+  description: ["description", "line item", "item", "service"],
+  status: ["status", "quote status"],
+  total: ["total", "amount", "price", "quote total", "estimate total", "grand total"],
+  notes: ["notes", "note", "comments"],
+  date: ["date", "quote date", "created date", "sent date"],
+};
+
+export function guessColumnMapping(headers: string[], fieldKeywords: Record<string, string[]> = CLIENT_FIELD_KEYWORDS) {
+  const normalized = headers.map((h) => h.trim().toLowerCase());
+  const mapping: Record<string, string | null> = {};
+  for (const field of Object.keys(fieldKeywords)) mapping[field] = null;
+
+  for (const [field, keywords] of Object.entries(fieldKeywords)) {
     const idx = normalized.findIndex((h) => keywords.includes(h));
     if (idx !== -1) {
       mapping[field] = headers[idx];
@@ -90,4 +103,65 @@ export function guessColumnMapping(headers: string[]) {
   }
 
   return mapping;
+}
+
+/** Best-effort "$1,234.56" / "1234.56" -> cents. Returns null if unparseable. */
+export function parseCurrencyToCents(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const cleaned = raw.replace(/[^0-9.-]/g, "");
+  if (!cleaned) return null;
+  const value = Number.parseFloat(cleaned);
+  if (Number.isNaN(value)) return null;
+  return Math.round(value * 100);
+}
+
+/** Best-effort date parse; returns an ISO string or null. */
+export function parseDateLoose(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+export function normalizeJobStatus(raw: string | undefined): "scheduled" | "in_progress" | "completed" | "cancelled" {
+  const s = (raw ?? "").toLowerCase();
+  if (s.includes("cancel")) return "cancelled";
+  if (s.includes("complet") || s.includes("done") || s.includes("closed")) return "completed";
+  if (s.includes("progress") || s.includes("active") || s.includes("late")) return "in_progress";
+  return "scheduled";
+}
+
+export function normalizeQuoteStatus(raw: string | undefined): "draft" | "sent" | "accepted" | "declined" {
+  const s = (raw ?? "").toLowerCase();
+  if (s.includes("approve") || s.includes("accept") || s.includes("convert") || s.includes("won")) return "accepted";
+  if (s.includes("declin") || s.includes("reject") || s.includes("archiv") || s.includes("lost")) return "declined";
+  if (s.includes("sent") || s.includes("awaiting") || s.includes("pending")) return "sent";
+  return "draft";
+}
+
+/** Looks up an existing client id by email (preferred) or exact name match. */
+export interface ClientLookup {
+  byEmail: Map<string, string>;
+  byName: Map<string, string>;
+}
+
+export function buildClientLookup(clients: { id: string; name: string; email: string | null }[]): ClientLookup {
+  const byEmail = new Map<string, string>();
+  const byName = new Map<string, string>();
+  for (const c of clients) {
+    if (c.email) byEmail.set(c.email.trim().toLowerCase(), c.id);
+    byName.set(c.name.trim().toLowerCase(), c.id);
+  }
+  return { byEmail, byName };
+}
+
+export function matchClientId(lookup: ClientLookup, name: string, email: string | null): string | null {
+  if (email) {
+    const byEmail = lookup.byEmail.get(email.trim().toLowerCase());
+    if (byEmail) return byEmail;
+  }
+  if (name) {
+    const byName = lookup.byName.get(name.trim().toLowerCase());
+    if (byName) return byName;
+  }
+  return null;
 }

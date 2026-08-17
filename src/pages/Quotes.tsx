@@ -8,6 +8,7 @@ import { useCreateQuote, useDeleteQuote, useQuotes, useUpdateQuoteStatus } from 
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import type { LineItem, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +91,9 @@ export default function Quotes() {
           <h1 className="text-2xl font-semibold">Quotes</h1>
           <p className="text-muted-foreground">Send estimates and track their status.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <ImportQuotesDialog />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button disabled={!clients || clients.length === 0}>
               <Plus /> New quote
@@ -132,6 +135,7 @@ export default function Quotes() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>

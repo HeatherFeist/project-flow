@@ -7,6 +7,7 @@ import { useClients } from "@/hooks/useClients";
 import { useCreateJob, useDeleteJob, useJobs } from "@/hooks/useJobs";
 import type { JobStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ImportJobsDialog } from "@/components/ImportJobsDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +76,9 @@ export default function Schedule() {
           <h1 className="text-2xl font-semibold">Schedule</h1>
           <p className="text-muted-foreground">Every job, past and upcoming.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <ImportJobsDialog />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button disabled={!clients || clients.length === 0}>
               <Plus /> New job
@@ -144,6 +147,7 @@ export default function Schedule() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
