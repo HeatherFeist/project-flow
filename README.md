@@ -233,6 +233,18 @@ new-text auto-replies from the section above, and is also shown (with a
 copy button) in **Settings → Estimate Chatbot** for sharing anywhere else
 — a website, a business card, etc.
 
+**Embedding on another website**: add `?embed=1` to the link to drop the
+chat inline into any page via an iframe, instead of it opening as a
+standalone page — works on any site builder that allows a raw HTML/embed
+block (WordPress, Squarespace, Wix, Webflow, custom code, ...):
+
+```html
+<iframe
+  src="https://flow.w3bbworldwide.com/estimate/<ownerId>?embed=1"
+  style="width: 100%; height: 600px; border: none;"
+></iframe>
+```
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.

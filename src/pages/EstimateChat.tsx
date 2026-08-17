@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Loader2, Send, Sparkles } from "lucide-react";
 import { sendEstimateChatMessage, type ChatMessage } from "@/lib/functions";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,10 @@ interface DisplayMessage {
 
 export default function EstimateChat() {
   const { ownerId } = useParams<{ ownerId: string }>();
+  const [searchParams] = useSearchParams();
+  // ?embed=1 — for dropping this page into an <iframe> on another site:
+  // fills its container instead of centering as a full standalone page.
+  const embedded = searchParams.get("embed") === "1";
   const [apiMessages, setApiMessages] = useState<ChatMessage[]>([]);
   const [displayMessages, setDisplayMessages] = useState<DisplayMessage[]>([
     {
@@ -55,8 +60,17 @@ export default function EstimateChat() {
   if (!ownerId) return null;
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
-      <Card className="flex h-[80vh] w-full max-w-lg flex-col">
+    <div
+      className={
+        embedded ? "flex h-svh flex-col" : "flex min-h-svh items-center justify-center p-4"
+      }
+    >
+      <Card
+        className={cn(
+          "flex flex-col",
+          embedded ? "h-full w-full flex-1 rounded-none border-none" : "h-[80vh] w-full max-w-lg",
+        )}
+      >
         <CardHeader className="flex-row items-center gap-2 border-b pb-4">
           <Sparkles className="size-5 text-primary" />
           <CardTitle className="text-base">Get a quick estimate</CardTitle>
