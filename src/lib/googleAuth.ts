@@ -6,15 +6,22 @@ const GOOGLE_SCOPES = [
   "email",
 ].join(" ");
 
+// Set right before redirecting to Google, so AuthContext can tell "we just
+// came back from a Connect Google attempt" apart from any other session
+// change (token refresh, sign-in elsewhere, etc.) and always report an
+// outcome instead of silently doing nothing.
+const PENDING_KEY = "pf_google_connect_pending";
+
 /**
  * Links a Google identity to the *currently signed-in* user (rather than
  * signing in as whatever account that Google login belongs to), requesting
  * Calendar + Gmail-send access. Requires "Manual linking" to be turned on
  * for this Supabase project — see the README's Google setup section.
- * Redirects away from the app; on return, `captureGoogleTokensOnSignIn`
+ * Redirects away from the app; on return, `handleGoogleConnectReturn`
  * (wired into onAuthStateChange in AuthContext) persists the tokens.
  */
 export async function connectGoogle() {
+  sessionStorage.setItem(PENDING_KEY, "1");
   const { error } = await supabase.auth.linkIdentity({
     provider: "google",
     options: {
@@ -26,20 +33,42 @@ export async function connectGoogle() {
       redirectTo: `${window.location.origin}/settings`,
     },
   });
-  if (error) throw error;
+  if (error) {
+    sessionStorage.removeItem(PENDING_KEY);
+    throw error;
+  }
 }
 
-/**
- * Supabase only hands back `provider_refresh_token` on the redirect right
- * after the OAuth consent screen, so this must run from the session that
- * comes back from `connectGoogle()` — see AuthContext's onAuthStateChange.
- */
-export async function captureGoogleTokensOnSignIn(session: {
+interface GoogleReturnSession {
   provider_token?: string | null;
   provider_refresh_token?: string | null;
   user: { id: string; email?: string | null };
-}): Promise<{ saved: boolean; error: string | null }> {
-  if (!session.provider_refresh_token) return { saved: false, error: null };
+}
+
+/**
+ * Call this from AuthContext's onAuthStateChange on every session change.
+ * Returns null (do nothing, show nothing) unless this session change is the
+ * redirect back from `connectGoogle()` — detected via the sessionStorage
+ * flag, since a provider_refresh_token can be legitimately absent even on a
+ * real connect attempt (Google only issues one on first consent), and that
+ * case still needs to be reported, not swallowed.
+ */
+export async function handleGoogleConnectReturn(
+  session: GoogleReturnSession,
+): Promise<{ saved: boolean; error: string | null } | null> {
+  const wasPending = sessionStorage.getItem(PENDING_KEY);
+  if (!wasPending) return null;
+  sessionStorage.removeItem(PENDING_KEY);
+
+  if (!session.provider_refresh_token) {
+    return {
+      saved: false,
+      error:
+        "Google didn't grant offline access, so we can't save this connection. This usually means " +
+        "Google skipped the consent screen because it was already granted once before — go to " +
+        "myaccount.google.com/permissions, remove this app's access, then try Connect Google again.",
+    };
+  }
 
   const { error } = await supabase.from("google_connections").upsert({
     user_id: session.user.id,

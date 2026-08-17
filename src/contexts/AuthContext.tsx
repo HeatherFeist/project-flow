@@ -9,7 +9,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { captureGoogleTokensOnSignIn } from "@/lib/googleAuth";
+import { handleGoogleConnectReturn } from "@/lib/googleAuth";
 
 interface AuthContextValue {
   session: Session | null;
@@ -35,15 +35,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
-      if (newSession?.provider_refresh_token) {
-        captureGoogleTokensOnSignIn({
+      if (newSession) {
+        handleGoogleConnectReturn({
           provider_token: newSession.provider_token,
           provider_refresh_token: newSession.provider_refresh_token,
           user: newSession.user,
-        }).then(({ saved, error }) => {
-          if (error) {
-            toast.error(`Couldn't save your Google connection: ${error}`);
-          } else if (saved) {
+        }).then((result) => {
+          if (!result) return;
+          if (result.error) {
+            toast.error(result.error, { duration: 12000 });
+          } else if (result.saved) {
             toast.success("Google account connected");
             queryClient.invalidateQueries({ queryKey: ["google_connection"] });
           }
