@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { PriceBookItem } from "@/types/domain";
+import type { PriceHistoryGroup } from "@/lib/csv";
 
 export function usePriceBook(userId: string | undefined) {
   return useQuery({
@@ -103,6 +104,33 @@ export function useSeedStarterPriceBook() {
     },
     onSuccess: (_data, ownerId) => {
       queryClient.invalidateQueries({ queryKey: ["price_book", ownerId] });
+    },
+  });
+}
+
+// Imports real historical pricing (from a Jobber/other-tool invoice export,
+// already grouped by groupPriceHistory) as price book rows — the low/high
+// range reflects what was *actually* charged, not a generic estimate.
+export function useImportPriceHistory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ownerId, groups }: { ownerId: string; groups: PriceHistoryGroup[] }) => {
+      const rows = groups.map((g) => ({
+        owner_id: ownerId,
+        category: g.category,
+        item_name: g.itemName,
+        unit: "flat" as const,
+        low_cents: g.lowCents,
+        high_cents: g.highCents,
+        notes: g.occurrences > 1 ? `From ${g.occurrences} past invoices` : "From 1 past invoice (range estimated)",
+      }));
+      if (rows.length === 0) return 0;
+      const { error } = await supabase.from("price_book_items").insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["price_book", variables.ownerId] });
     },
   });
 }

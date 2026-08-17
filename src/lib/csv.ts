@@ -138,6 +138,68 @@ export function normalizeQuoteStatus(raw: string | undefined): "draft" | "sent" 
   return "draft";
 }
 
+export const PRICE_HISTORY_FIELD_KEYWORDS: Record<string, string[]> = {
+  itemName: ["item", "line item", "service", "product", "description", "item name"],
+  category: ["category", "type", "job type", "service type"],
+  amount: ["amount", "price", "total", "unit price", "line total", "amount charged", "rate"],
+  quantity: ["quantity", "qty", "hours"],
+};
+
+interface PriceHistoryEntry {
+  itemName: string;
+  category: string | null;
+  amountCents: number;
+}
+
+export interface PriceHistoryGroup {
+  itemName: string;
+  category: string;
+  lowCents: number;
+  highCents: number;
+  occurrences: number;
+}
+
+/**
+ * Groups raw invoice/price-book CSV rows (one row per line item) by
+ * normalized item name and turns each group into a real price range —
+ * min/max of what was actually charged. A single-occurrence item gets a
+ * modest +/-10% padding instead of a zero-width range, since one data
+ * point isn't really a "range" yet.
+ */
+export function groupPriceHistory(entries: PriceHistoryEntry[]): PriceHistoryGroup[] {
+  const groups = new Map<string, { itemName: string; category: string | null; amounts: number[] }>();
+
+  for (const entry of entries) {
+    const name = entry.itemName.trim();
+    if (!name || entry.amountCents == null || Number.isNaN(entry.amountCents)) continue;
+    const key = name.toLowerCase();
+    const existing = groups.get(key);
+    if (existing) {
+      existing.amounts.push(entry.amountCents);
+      if (!existing.category && entry.category) existing.category = entry.category;
+    } else {
+      groups.set(key, { itemName: name, category: entry.category, amounts: [entry.amountCents] });
+    }
+  }
+
+  const result: PriceHistoryGroup[] = [];
+  for (const g of groups.values()) {
+    const min = Math.min(...g.amounts);
+    const max = Math.max(...g.amounts);
+    const lowCents = g.amounts.length === 1 ? Math.round(min * 0.9) : min;
+    const highCents = g.amounts.length === 1 ? Math.round(max * 1.1) : max;
+    result.push({
+      itemName: g.itemName,
+      category: g.category?.trim() || "Imported",
+      lowCents,
+      highCents,
+      occurrences: g.amounts.length,
+    });
+  }
+
+  return result.sort((a, b) => a.category.localeCompare(b.category) || a.itemName.localeCompare(b.itemName));
+}
+
 /** Looks up an existing client id by email (preferred) or exact name match. */
 export interface ClientLookup {
   byEmail: Map<string, string>;

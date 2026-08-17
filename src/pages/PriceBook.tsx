@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ImportPriceHistoryDialog } from "@/components/ImportPriceHistoryDialog";
 import {
   Dialog,
   DialogContent,
@@ -91,6 +92,7 @@ export default function PriceBook() {
               <Sparkles /> {seedStarter.isPending ? "Loading…" : "Load starter items"}
             </Button>
           )}
+          <ImportPriceHistoryDialog />
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
