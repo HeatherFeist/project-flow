@@ -26,11 +26,13 @@ export async function createCheckoutSession(params: {
     body.set(`metadata[${key}]`, value);
   }
 
-  // Card only, deliberately — ACH bank-transfer settles in 3-5 business
-  // days no matter which processor moves it, which conflicts with needing
-  // deposit funds the same day. Card + Stripe's Instant Payout (to a linked
-  // debit card, from the Dashboard) is the fast path; see the README.
+  // Card + Cash App Pay, deliberately no ACH bank-transfer — ACH settles in
+  // 3-5 business days no matter which processor moves it, which conflicts
+  // with needing deposit funds the same day. Both of these use standard
+  // (card-speed) payout timing, so both work with Stripe's Instant Payout
+  // (to a linked debit card, from the Dashboard); see the README.
   body.set("payment_method_types[0]", "card");
+  body.set("payment_method_types[1]", "cashapp");
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",

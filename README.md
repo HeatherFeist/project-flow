@@ -295,23 +295,33 @@ are fully supported).
 
 That's it — from then on, **Invoices → Send** emails the client a "Pay Now"
 link; the public `/pay/:token` page lets them pay the full balance or a
-partial amount by **card** via Stripe Checkout (hosted by Stripe — no card
-data ever touches Project Flow's servers); and the invoice's status and
-paid amount update automatically via the webhook the moment a payment
-succeeds.
+partial amount by **card or Cash App Pay** via Stripe Checkout (hosted by
+Stripe — no payment data ever touches Project Flow's servers); and the
+invoice's status and paid amount update automatically via the webhook the
+moment a payment succeeds.
 
-**Card only, deliberately — not ACH bank-transfer.** ACH settles in 3-5
-business days no matter which processor moves it (Plaid, Stripe, Dwolla —
-same underlying banking network), which conflicts with Nick needing
-deposit funds the same day to buy materials. Card payments support
-Stripe's **Instant Payout**, which ACH-settled funds can't use until days
-later anyway.
+**Card + Cash App Pay, deliberately no ACH bank-transfer.** ACH settles in
+3-5 business days no matter which processor moves it (Plaid, Stripe,
+Dwolla — same underlying banking network), which conflicts with Nick
+needing deposit funds the same day to buy materials. Card and Cash App Pay
+both use standard, card-speed payout timing and both support Stripe's
+**Instant Payout** — ACH-settled funds can't use it until days later
+anyway. Cash App Pay is a native Stripe Checkout payment method (not a
+separate Cash App/Block integration) — see
+[Stripe's Cash App Pay docs](https://docs.stripe.com/payments/cash-app-pay).
 
-**Why not Plaid at all**: Plaid alone doesn't move money — it's a
-bank-linking/verification layer, not a payment rail; you'd still need a
-processor (Dwolla, or Stripe's own ACH support) on top of it, plus real
-NACHA/ACH-origination compliance weight. Given the speed requirement rules
-out ACH anyway, there's no case for it here.
+**Why not Venmo or a raw Plaid integration**: Venmo has no general
+merchant/developer API for one-off charges — it's built around
+peer-to-peer username/QR requests, so there's no way to wire an automated
+"Pay Now" button or webhook to it the way we did with Stripe. Plaid alone
+doesn't move money either — it's a bank-linking/verification layer, not a
+payment rail; you'd still need a processor (Dwolla, or Stripe's own ACH
+support) on top of it, plus real NACHA/ACH-origination compliance weight.
+Given the speed requirement already rules out ACH, neither is worth
+adding here. PayPal and Square were also considered — both offer the same
+"instant transfer to a debit card" mechanic Stripe already provides, at
+similar-or-higher fees, so there's no speed or cost advantage to adding
+them alongside what's already built.
 
 **Getting Nick same-day access to the money — Stripe Instant Payout:**
 1. Client pays by card → funds typically become "available" in Nick's
