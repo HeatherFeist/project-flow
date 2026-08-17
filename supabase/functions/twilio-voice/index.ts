@@ -46,13 +46,16 @@ Deno.serve(async (req) => {
     if (params.DialCallStatus !== "completed" && params.DialCallStatus !== "answered") {
       const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
 
+      const siteUrl = Deno.env.get("SITE_URL") ?? "";
+      const chatLink = `${siteUrl}/estimate/${settings.user_id}`;
+
       try {
         await sendSms({
           accountSid,
           authToken,
           from: to,
           to: from,
-          body: settings.missed_call_message,
+          body: `${settings.missed_call_message}\n\nGet a rough estimate & schedule a visit here: ${chatLink}`,
         });
       } catch (err) {
         console.error("Failed to send missed-call text:", err);

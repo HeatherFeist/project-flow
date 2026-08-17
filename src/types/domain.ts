@@ -10,7 +10,7 @@ export interface Profile {
   created_at: string;
 }
 
-export type ClientSource = "manual" | "missed_call" | "inbound_text";
+export type ClientSource = "manual" | "missed_call" | "inbound_text" | "import" | "chatbot";
 
 export interface Client {
   id: string;
@@ -89,6 +89,20 @@ export interface TwilioSettings {
   twilio_phone_number: string;
   forward_to_phone: string | null;
   missed_call_message: string;
+}
+
+export type PriceUnit = "flat" | "per hour" | "per sq ft" | "per linear ft";
+
+export interface PriceBookItem {
+  id: string;
+  owner_id: string;
+  category: string;
+  item_name: string;
+  unit: PriceUnit;
+  low_cents: number;
+  high_cents: number;
+  notes: string | null;
+  created_at: string;
 }
 
 export interface Invoice {

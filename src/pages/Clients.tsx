@@ -159,9 +159,13 @@ export default function Clients() {
                       <Link to={`/clients/${client.id}`} className="font-medium hover:underline">
                         {client.name}
                       </Link>
-                      {client.source !== "manual" && (
+                      {client.source !== "manual" && client.source !== "import" && (
                         <Badge variant="warning">
-                          {client.source === "missed_call" ? "missed call" : "new text"}
+                          {client.source === "missed_call"
+                            ? "missed call"
+                            : client.source === "chatbot"
+                              ? "chatbot"
+                              : "new text"}
                         </Badge>
                       )}
                     </div>

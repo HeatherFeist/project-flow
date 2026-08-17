@@ -68,3 +68,15 @@ export function bookSlot(token: string, start: string, end: string) {
     body: JSON.stringify({ token, start, end }),
   });
 }
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string | { type: string; [key: string]: unknown }[];
+}
+
+export function sendEstimateChatMessage(ownerId: string, messages: ChatMessage[]) {
+  return callFunction<{ reply: string; messages: ChatMessage[] }>("estimate-chat", {
+    method: "POST",
+    body: JSON.stringify({ ownerId, messages }),
+  });
+}

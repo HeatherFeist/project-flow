@@ -1,7 +1,8 @@
 // Twilio Messaging webhook. Configure this as the "A message comes in"
 // webhook (POST) on your Twilio number. Logs the sender as a client/lead
-// (or appends to their existing notes if already a client) and sends a
-// short auto-acknowledgement back.
+// (or appends to their existing notes if already a client). New leads get
+// an auto-reply pointing them at the estimate chatbot; existing clients get
+// no auto-reply, so an ongoing conversation with the owner isn't interrupted.
 
 import { serviceClient } from "../_shared/google.ts";
 import { parseTwilioWebhook, twimlResponse, verifyTwilioSignature, xmlEscape } from "../_shared/twilio.ts";
@@ -47,19 +48,23 @@ Deno.serve(async (req) => {
   if (existing) {
     const updatedNotes = `${existing.notes ?? ""}\n[${stamp}] Text: ${body}`.trim();
     await supabase.from("clients").update({ notes: updatedNotes }).eq("id", existing.id);
-  } else {
-    await supabase.from("clients").insert({
-      owner_id: settings.user_id,
-      name: `New lead (${from})`,
-      phone: from,
-      source: "inbound_text",
-      notes: `[${stamp}] Text: ${body}`,
-    });
+    return twimlResponse(`<Response></Response>`);
   }
+
+  await supabase.from("clients").insert({
+    owner_id: settings.user_id,
+    name: `New lead (${from})`,
+    phone: from,
+    source: "inbound_text",
+    notes: `[${stamp}] Text: ${body}`,
+  });
+
+  const siteUrl = Deno.env.get("SITE_URL") ?? "";
+  const chatLink = `${siteUrl}/estimate/${settings.user_id}`;
 
   return twimlResponse(
     `<Response><Message>${xmlEscape(
-      "Thanks for reaching out! We got your message and will get back to you shortly.",
+      `Thanks for reaching out! Get a rough estimate & schedule a free visit here: ${chatLink}`,
     )}</Message></Response>`,
   );
 });

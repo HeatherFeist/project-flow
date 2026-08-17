@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  Tags,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/invoices", label: "Invoices", icon: Receipt },
+  { to: "/price-book", label: "Price Book", icon: Tags },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

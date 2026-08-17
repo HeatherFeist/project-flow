@@ -183,6 +183,56 @@ forwarding on no-answer** to ring the Twilio number — his line keeps working
 exactly as it does today, and only unanswered calls fall through to the
 automation.
 
+### Estimate chatbot setup (Price Book + Claude-powered scheduling chat)
+
+A text-based chatbot at `/estimate/:ownerId` — the link every missed-call
+and new-lead text above points to. It chats with the customer about their
+job, gives a rough estimate from your **Price Book**, and can book a free
+estimate visit directly onto your Google Calendar. It's a Claude "agent"
+with three tools: look up the price book, check open slots, and book a
+visit — same underlying scheduling logic as the quote-acceptance flow.
+
+Homewyse has no public API or licensed data feed for third-party apps, so
+the Price Book is a business-owned reference table instead (Settings →
+Price Book, or the sidebar) — seed it with the built-in starter items and
+adjust them to match real rates, or build it from scratch.
+
+**1. Get an Anthropic API key**
+
+Create one at [console.anthropic.com](https://console.anthropic.com) →
+API Keys.
+
+**2. Supabase Edge Function**
+
+```bash
+supabase functions deploy estimate-chat
+```
+
+Set this secret:
+
+```
+ANTHROPIC_API_KEY=...
+```
+
+(Optional: set `CLAUDE_MODEL` to override the default `claude-haiku-4-5-20251001`
+— e.g. to a Sonnet model for smarter but pricier conversations.)
+
+**3. Run the extra schema migration**
+
+Run [`docs/schema_v5_price_book_chat.sql`](docs/schema_v5_price_book_chat.sql)
+— it adds the `price_book_items` table.
+
+**4. Add starter price book items**
+
+In the app, go to **Price Book → Load starter items** for a reasonable
+starting point (general handyman labor, common plumbing/electrical/carpentry
+jobs), then edit anything that doesn't match real rates.
+
+That's it — the chat link is already wired into the Twilio missed-call and
+new-text auto-replies from the section above, and is also shown (with a
+copy button) in **Settings → Estimate Chatbot** for sharing anywhere else
+— a website, a business card, etc.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -204,26 +254,37 @@ automation.
   a client accepts a quote.
 - **Settings** — business profile, Google connection, scheduling hours
   (work days/times, job length), and Twilio number + forwarding setup.
-- **Calls & texts** — missed calls auto-text the caller and log them as a
-  lead; inbound texts do the same; a "Text reminder" button on jobs sends
-  an SMS appointment reminder.
+- **Calls & texts** — missed calls auto-text the caller (with a link to the
+  estimate chatbot) and log them as a lead; inbound texts do the same; a
+  "Text reminder" button on jobs sends an SMS appointment reminder.
+- **Price Book** — business-owned reference table of job types and typical
+  price ranges (seedable with reasonable starter values), used by the
+  estimate chatbot.
+- **Estimate chatbot** (`/estimate/:ownerId`, no login) — a Claude-powered
+  chat that asks what the customer needs, gives a rough estimate from the
+  Price Book, and can book a free estimate visit — creating the Client, the
+  Job, and the real Google Calendar event, same as the quote-acceptance
+  flow. Linked automatically from missed-call/new-text auto-replies, and
+  shareable from Settings.
 - **Dashboard** — at-a-glance counts, a month calendar of scheduled jobs,
   and a next-up list.
 
 ## Roadmap: the Claude agent layer
 
-This scaffold is phase 1 (core PM app) plus the phase-1.5 quote → schedule
-→ invoice automation above. Planned phase 2 work:
+Phase 1 (core PM app), phase 1.5 (quote → schedule → invoice automation),
+and now the customer-facing chatbot above are done. What's left from the
+original phase-2 sketch:
 
-1. **Office copilot** — an in-app assistant that drafts quotes, invoice
-   line items, and client follow-up messages from a plain-English
-   description of the job.
-2. **Customer-facing chat** — a website widget where customers describe
-   what they need; the agent turns the conversation into a lead / draft job
-   in Project Flow.
-3. **Smarter reminders** — the agent sends automated reminders to
-   customers and crew ahead of a job, and nudges you about quotes sitting
-   unanswered too long.
+1. **Office copilot** — an in-app assistant *for Nick*, not the customer —
+   drafts quotes, invoice line items, and client follow-up messages from a
+   plain-English description of the job.
+2. **Smarter reminders** — nudges Nick about quotes sitting unanswered too
+   long, or jobs missing a Price Book match the chatbot had to punt on.
+3. **Voice AI on the call itself** — right now callers only reach the
+   chatbot via a text link after a missed call; a real-time voice AI that
+   talks to callers live (via Twilio Media Streams) is a substantially
+   bigger build and was deliberately deferred — see the "How should callers
+   reach the chatbot" decision point in project history.
 
 ## Project structure
 
@@ -244,11 +305,13 @@ supabase/functions/
   quote-response/      public accept/decline + auto-creates the invoice on accept
   available-slots/     public: business hours minus Google Calendar busy times
   book-slot/           public: creates the Job + the real Google Calendar event
-  twilio-voice/        Twilio Voice webhook: ring the owner, auto-text + log a lead if missed
-  twilio-sms/          Twilio Messaging webhook: logs inbound texts as leads/notes
+  twilio-voice/        Twilio Voice webhook: ring the owner, auto-text (+ chat link) + log a lead if missed
+  twilio-sms/          Twilio Messaging webhook: logs inbound texts as leads, replies with the chat link
   send-job-reminder/   texts a client an appointment reminder for a job (auth required)
-docs/schema.sql               Supabase schema + RLS policies
-docs/schema_v2_scheduling.sql Google connections, scheduling hours, quote tokens
-docs/schema_v3_twilio.sql     Twilio number/forwarding settings, client lead source
+  estimate-chat/       public: Claude tool-using agent — price book lookup, slot check, booking
+docs/schema.sql                 Supabase schema + RLS policies
+docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
+docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
 docs/schema_v4_google_oauth.sql One-time state table for the direct Google OAuth flow
+docs/schema_v5_price_book_chat.sql Price Book table
 ```

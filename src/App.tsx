@@ -15,6 +15,8 @@ import Quotes from "@/pages/Quotes";
 import Invoices from "@/pages/Invoices";
 import SettingsPage from "@/pages/Settings";
 import PublicQuote from "@/pages/PublicQuote";
+import PriceBook from "@/pages/PriceBook";
+import EstimateChat from "@/pages/EstimateChat";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/q/:token" element={<PublicQuote />} />
               <Route path="/q/:token/:action" element={<PublicQuote />} />
+              <Route path="/estimate/:ownerId" element={<EstimateChat />} />
               <Route
                 element={
                   <ProtectedRoute>
@@ -42,6 +45,7 @@ function App() {
                 <Route path="/schedule/:id" element={<JobDetail />} />
                 <Route path="/quotes" element={<Quotes />} />
                 <Route path="/invoices" element={<Invoices />} />
+                <Route path="/price-book" element={<PriceBook />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Routes>

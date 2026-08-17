@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarCheck2, Loader2, PhoneCall } from "lucide-react";
+import { CalendarCheck2, Copy, Loader2, MessageCircle, PhoneCall } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { connectGoogle } from "@/lib/googleAuth";
@@ -304,6 +304,43 @@ export default function Settings() {
                 {savingTwilio ? "Saving…" : "Save"}
               </Button>
             </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Estimate Chatbot</CardTitle>
+          <CardDescription>
+            Missed-call and new-text auto-replies link here automatically. You can also share this link
+            directly — on your website, business card, etc. Give customers a rough estimate from your{" "}
+            <a href="/price-book" className="underline">
+              Price Book
+            </a>{" "}
+            and book a free visit on your calendar.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          {user && (
+            <div className="flex items-center gap-2">
+              <Input readOnly value={`${window.location.origin}/estimate/${user.id}`} className="font-mono text-xs" />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/estimate/${user.id}`);
+                  toast.success("Link copied");
+                }}
+              >
+                <Copy className="size-4" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" asChild>
+                <a href={`/estimate/${user.id}`} target="_blank" rel="noreferrer">
+                  <MessageCircle className="size-4" />
+                </a>
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
