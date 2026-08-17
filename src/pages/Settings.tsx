@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { CalendarCheck2, Loader2, PhoneCall } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +43,7 @@ const TIME_OPTIONS = timeOptions();
 
 export default function Settings() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,6 +54,25 @@ export default function Settings() {
     isLoading: googleLoading,
     error: googleError,
   } = useGoogleConnection(user?.id);
+
+  // Handle the redirect back from google-oauth-callback: /settings?google=connected
+  // or /settings?google=error&message=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("google");
+    if (!result) return;
+
+    if (result === "connected") {
+      toast.success("Google account connected");
+      queryClient.invalidateQueries({ queryKey: ["google_connection"] });
+    } else if (result === "error") {
+      const message = params.get("message") ?? "Failed to connect Google";
+      toast.error(message, { duration: 12000 });
+    }
+
+    // Strip the query params so a refresh doesn't re-show the toast.
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [queryClient]);
   const { data: schedulingSettings } = useSchedulingSettings(user?.id);
   const saveSchedulingSettings = useSaveSchedulingSettings();
   const { data: twilioSettings, isLoading: twilioLoading, error: twilioError } = useTwilioSettings(user?.id);

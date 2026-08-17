@@ -74,6 +74,59 @@ export async function getFreshAccessToken(userId: string): Promise<string> {
   return access_token;
 }
 
+export const GOOGLE_OAUTH_SCOPES = [
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/userinfo.email",
+].join(" ");
+
+/** Builds the URL to send the browser to for the Google consent screen. */
+export function buildGoogleAuthUrl(params: { redirectUri: string; state: string }): string {
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.searchParams.set("client_id", Deno.env.get("GOOGLE_CLIENT_ID")!);
+  url.searchParams.set("redirect_uri", params.redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", GOOGLE_OAUTH_SCOPES);
+  url.searchParams.set("access_type", "offline");
+  url.searchParams.set("prompt", "consent");
+  url.searchParams.set("state", params.state);
+  return url.toString();
+}
+
+/** Exchanges a Google OAuth authorization code for tokens (first leg). */
+export async function exchangeGoogleCode(params: {
+  code: string;
+  redirectUri: string;
+}): Promise<{ access_token: string; refresh_token?: string; expires_in: number; id_token?: string }> {
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
+      client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
+      code: params.code,
+      redirect_uri: params.redirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google code exchange failed: ${await res.text()}`);
+  }
+
+  return res.json();
+}
+
+/** Looks up the connected Google account's email address. */
+export async function getGoogleUserEmail(accessToken: string): Promise<string | null> {
+  const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.email ?? null;
+}
+
 function base64UrlEncode(str: string): string {
   const bytes = new TextEncoder().encode(str);
   let binary = "";

@@ -40,10 +40,16 @@ Then swap `createClient(...)` in `src/lib/supabase.ts` for
 ### Google setup (quote emails + Calendar scheduling)
 
 The quote → email → accept/decline → book-a-slot → Google Calendar flow
-needs a Google Cloud OAuth client and four Supabase Edge Functions. This is
+needs a Google Cloud OAuth client and six Supabase Edge Functions. This is
 the one part of the app that can't run purely client-side, since it needs
 real secrets (a Gmail-send token, a Google OAuth client secret) that must
 never ship to the browser.
+
+Connecting Google runs as its own direct OAuth flow through our
+`google-oauth-start` / `google-oauth-callback` functions — not through
+Supabase Auth's identity-linking, which turned out not to reliably return a
+refresh token for Calendar/Gmail scopes (particularly on Google Workspace
+accounts).
 
 **1. Google Cloud**
 
@@ -55,19 +61,10 @@ never ship to the browser.
    scopes).
 4. Create an **OAuth client ID** (Web application). Add this Authorized
    redirect URI, using your Supabase project ref:
-   `https://<project-ref>.supabase.co/auth/v1/callback`
+   `https://<project-ref>.supabase.co/functions/v1/google-oauth-callback`
 5. Note the **Client ID** and **Client secret**.
 
-**2. Supabase Auth**
-
-1. Authentication → Providers → **Google**: paste in the Client ID/secret
-   and enable the provider.
-2. Authentication → Settings: turn on **"Allow manual linking"**. This is
-   what lets a user who's already signed in with email/password *add* a
-   Google identity (for Calendar + Gmail) without it creating a second
-   account or signing them out.
-
-**3. Supabase Edge Functions**
+**2. Supabase Edge Functions**
 
 The functions live in `supabase/functions/`. Deploy them with the
 [Supabase CLI](https://supabase.com/docs/guides/cli):
@@ -79,6 +76,8 @@ supabase functions deploy send-quote-email
 supabase functions deploy quote-response
 supabase functions deploy available-slots
 supabase functions deploy book-slot
+supabase functions deploy google-oauth-start
+supabase functions deploy google-oauth-callback
 ```
 
 Then set these as **Edge Function secrets** (Project Settings → Edge
@@ -93,13 +92,15 @@ SITE_URL=https://your-deployed-app-url
 (`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically
 by Supabase — you don't set those yourself.)
 
-**4. Run the extra schema migration**
+**3. Run the extra schema migrations**
 
-Run [`docs/schema_v2_scheduling.sql`](docs/schema_v2_scheduling.sql) in the
-SQL editor (after `docs/schema.sql`) — it adds the Google connection table,
-scheduling-hours settings, and the quote accept-token columns.
+Run, in order:
+- [`docs/schema_v2_scheduling.sql`](docs/schema_v2_scheduling.sql) — Google
+  connection table, scheduling-hours settings, quote accept-tokens.
+- [`docs/schema_v4_google_oauth.sql`](docs/schema_v4_google_oauth.sql) —
+  the one-time state table the direct OAuth flow uses.
 
-**5. Connect your account**
+**4. Connect your account**
 
 In the app, go to **Settings → Google Calendar & Email** and click
 "Connect Google". After that, sending a quote (Quotes → Send) emails the
@@ -219,11 +220,13 @@ src/
   components/layout/ app shell (sidebar layout, protected route)
   contexts/           Supabase auth context
   hooks/               TanStack Query hooks per resource (clients, jobs, ...)
-  lib/                 Supabase client, Google auth linking, edge-function fetch helpers
+  lib/                 Supabase client, Google connect helper, edge-function fetch helpers
   pages/               route-level screens (PublicQuote.tsx is the unauthenticated /q/:token page)
   types/               shared domain types
 supabase/functions/
-  _shared/             Google token refresh, Gmail/Twilio send, Calendar API, TwiML helpers
+  _shared/             Google token refresh/exchange, Gmail/Twilio send, Calendar API, TwiML helpers
+  google-oauth-start/    auth required: creates a one-time state row, returns the Google consent URL
+  google-oauth-callback/ public (state-token scoped): exchanges the code, saves the connection
   send-quote-email/    emails a quote via the owner's Gmail (auth required)
   quote-response/      public accept/decline + auto-creates the invoice on accept
   available-slots/     public: business hours minus Google Calendar busy times
@@ -234,4 +237,5 @@ supabase/functions/
 docs/schema.sql               Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql     Twilio number/forwarding settings, client lead source
+docs/schema_v4_google_oauth.sql One-time state table for the direct Google OAuth flow
 ```
