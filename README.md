@@ -78,7 +78,14 @@ supabase functions deploy available-slots
 supabase functions deploy book-slot
 supabase functions deploy google-oauth-start
 supabase functions deploy google-oauth-callback
+supabase functions deploy create-job
 ```
+
+`create-job` is what the dashboard/Schedule "New job" dialog calls when you
+schedule a job yourself — if Google is connected it also creates the
+matching Google Calendar event (with an email reminder), so a job you add
+by hand reminds you the same way one booked through the public quote page
+does.
 
 `supabase/config.toml` marks `google-oauth-callback`, `quote-response`,
 `available-slots`, `book-slot`, `twilio-voice`, and `twilio-sms` as
@@ -118,6 +125,11 @@ client from your Gmail with Accept/Decline links; accepting lets them pick
 an open slot computed from your **Settings → Scheduling** hours minus
 what's already busy on your Google Calendar, and booking creates both the
 Job in Project Flow and the real Google Calendar event.
+
+You don't have to wait on a client to book, either — click "New job" on
+the Schedule page, or click straight on a day in the Dashboard calendar,
+and Project Flow creates the Google Calendar event (with an email
+reminder) for you the same way.
 
 ### Twilio setup (missed-call text-back, inbound-text leads, SMS reminders)
 
@@ -506,6 +518,7 @@ supabase/functions/
   quote-response/      public accept/decline + auto-creates the invoice on accept
   available-slots/     public: business hours minus Google Calendar busy times
   book-slot/           public: creates the Job + the real Google Calendar event
+  create-job/          auth required: dashboard/Schedule "New job" — same Calendar sync as book-slot
   twilio-voice/        Twilio Voice webhook: ring the owner, auto-text (+ chat link) + log a lead if missed
   twilio-sms/          Twilio Messaging webhook: logs inbound texts as leads, replies with the chat link
   send-job-reminder/   texts a client an appointment reminder for a job (auth required)

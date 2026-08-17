@@ -201,6 +201,9 @@ export async function getBusyIntervals(params: {
 }
 
 // Creates an event on the user's primary calendar; returns the event id.
+// By default overrides the calendar's default reminders with an explicit
+// email reminder, so the owner gets a reminder in their inbox even if
+// their Google Calendar's own default reminders aren't set to email.
 export async function createCalendarEvent(params: {
   accessToken: string;
   summary: string;
@@ -210,7 +213,9 @@ export async function createCalendarEvent(params: {
   end: string;
   timezone: string;
   attendeeEmail?: string;
+  reminderMinutes?: number[];
 }): Promise<string> {
+  const reminderMinutes = params.reminderMinutes ?? [60, 1440];
   const res = await fetch(
     "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
     {
@@ -226,6 +231,10 @@ export async function createCalendarEvent(params: {
         start: { dateTime: params.start, timeZone: params.timezone },
         end: { dateTime: params.end, timeZone: params.timezone },
         attendees: params.attendeeEmail ? [{ email: params.attendeeEmail }] : undefined,
+        reminders: {
+          useDefault: false,
+          overrides: reminderMinutes.map((minutes) => ({ method: "email", minutes })),
+        },
       }),
     },
   );

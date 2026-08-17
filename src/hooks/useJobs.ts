@@ -77,6 +77,38 @@ export function useCreateJob() {
   });
 }
 
+// Creates a job via the create-job edge function instead of a direct table
+// insert — it also pushes a matching event (with an email reminder) onto
+// the owner's Google Calendar when Google is connected and a time is set,
+// so scheduling from inside Project Flow behaves like the client-facing
+// booking flow does.
+export function useCreateJobWithCalendarSync() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      client_id: string;
+      title: string;
+      description: string | null;
+      address: string | null;
+      scheduled_at: string | null;
+    }) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke<{ job: Job; calendarSynced: boolean }>(
+        "create-job",
+        { body: input, headers: { Authorization: `Bearer ${sessionData.session?.access_token}` } },
+      );
+      if (error) throw error;
+      if (!data || (data as unknown as { error?: string }).error) {
+        throw new Error((data as unknown as { error?: string })?.error ?? "Failed to create job");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
 export function useImportJobs() {
   const queryClient = useQueryClient();
   return useMutation({

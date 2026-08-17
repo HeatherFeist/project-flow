@@ -9,7 +9,7 @@ function dayKey(d: Date) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-export function JobsCalendar({ jobs }: { jobs: Job[] }) {
+export function JobsCalendar({ jobs, onDayClick }: { jobs: Job[]; onDayClick?: (date: Date) => void }) {
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -72,10 +72,15 @@ export function JobsCalendar({ jobs }: { jobs: Job[] }) {
           return (
             <div
               key={i}
+              role={onDayClick ? "button" : undefined}
+              tabIndex={onDayClick ? 0 : undefined}
+              onClick={onDayClick ? () => onDayClick(date) : undefined}
               className={cn(
                 "min-h-16 rounded-md border p-1 text-xs",
                 isToday && "border-primary",
+                onDayClick && "cursor-pointer hover:bg-accent/50",
               )}
+              title={onDayClick ? "Click to schedule a job on this day" : undefined}
             >
               <span className={cn("text-muted-foreground", isToday && "font-semibold text-foreground")}>
                 {date.getDate()}
@@ -85,6 +90,7 @@ export function JobsCalendar({ jobs }: { jobs: Job[] }) {
                   <Link
                     key={job.id}
                     to={`/schedule/${job.id}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="block truncate rounded bg-secondary px-1 py-0.5 text-secondary-foreground hover:bg-secondary/80"
                     title={job.title}
                   >

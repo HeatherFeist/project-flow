@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { CalendarDays, FileText, Receipt, Users } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
@@ -7,6 +8,7 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { JobsCalendar } from "@/components/JobsCalendar";
+import { NewJobDialog } from "@/components/NewJobDialog";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -14,6 +16,7 @@ export default function Dashboard() {
   const { data: jobs } = useJobs();
   const { data: quotes } = useQuotes();
   const { data: invoices } = useInvoices();
+  const [newJobDate, setNewJobDate] = useState<Date | null>(null);
 
   const upcomingJobs = (jobs ?? []).filter(
     (j) => j.status === "scheduled" || j.status === "in_progress",
@@ -65,9 +68,10 @@ export default function Dashboard() {
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Calendar</CardTitle>
+            <p className="text-sm text-muted-foreground">Click any day to schedule a job on it.</p>
           </CardHeader>
           <CardContent className="pb-6">
-            <JobsCalendar jobs={jobs ?? []} />
+            <JobsCalendar jobs={jobs ?? []} onDayClick={setNewJobDate} />
           </CardContent>
         </Card>
 
@@ -98,6 +102,15 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {newJobDate && (
+        <NewJobDialog
+          open={!!newJobDate}
+          onOpenChange={(open) => !open && setNewJobDate(null)}
+          initialDate={newJobDate}
+          hideTrigger
+        />
+      )}
     </div>
   );
 }
