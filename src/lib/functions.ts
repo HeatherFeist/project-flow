@@ -74,10 +74,10 @@ export interface ChatMessage {
   content: string | { type: string; [key: string]: unknown }[];
 }
 
-export function sendEstimateChatMessage(ownerId: string, messages: ChatMessage[]) {
+export function sendEstimateChatMessage(ownerId: string, messages: ChatMessage[], photoUrls: string[] = []) {
   return callFunction<{ reply: string; messages: ChatMessage[] }>("estimate-chat", {
     method: "POST",
-    body: JSON.stringify({ ownerId, messages }),
+    body: JSON.stringify({ ownerId, messages, photoUrls }),
   });
 }
 

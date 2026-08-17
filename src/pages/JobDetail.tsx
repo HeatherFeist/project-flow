@@ -117,6 +117,21 @@ export default function JobDetail() {
         </Card>
       )}
 
+      {job.photo_urls && job.photo_urls.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Photos</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 pb-6">
+            {job.photo_urls.map((url) => (
+              <a key={url} href={url} target="_blank" rel="noreferrer">
+                <img src={url} alt="Job" className="size-24 rounded-md border object-cover" />
+              </a>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Notes</CardTitle>

@@ -50,7 +50,12 @@ const TOOLS = [
   },
 ];
 
-async function executeTool(name: string, input: Record<string, unknown>, ownerId: string) {
+async function executeTool(
+  name: string,
+  input: Record<string, unknown>,
+  ownerId: string,
+  photoUrls: string[],
+) {
   const supabase = serviceClient();
 
   if (name === "get_price_book") {
@@ -144,6 +149,7 @@ async function executeTool(name: string, input: Record<string, unknown>, ownerId
       status: "scheduled",
       scheduled_at: start,
       google_event_id: googleEventId,
+      photo_urls: photoUrls,
     });
     if (jobError) throw jobError;
 
@@ -154,7 +160,12 @@ async function executeTool(name: string, input: Record<string, unknown>, ownerId
 }
 
 // deno-lint-ignore no-explicit-any
-async function runAgentLoop(ownerId: string, messages: any[], systemPrompt: string) {
+async function runAgentLoop(
+  ownerId: string,
+  messages: any[],
+  systemPrompt: string,
+  photoUrls: string[],
+) {
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured.");
 
@@ -189,7 +200,7 @@ async function runAgentLoop(ownerId: string, messages: any[], systemPrompt: stri
       for (const block of data.content) {
         if (block.type === "tool_use") {
           try {
-            const result = await executeTool(block.name, block.input, ownerId);
+            const result = await executeTool(block.name, block.input, ownerId, photoUrls);
             toolResults.push({ type: "tool_result", tool_use_id: block.id, content: JSON.stringify(result) });
           } catch (err) {
             toolResults.push({
@@ -223,13 +234,14 @@ Deno.serve(async (req) => {
   const jsonHeaders = { ...CORS_HEADERS, "Content-Type": "application/json" };
 
   try {
-    const { ownerId, messages } = await req.json();
+    const { ownerId, messages, photoUrls } = await req.json();
     if (!ownerId || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Missing ownerId or messages" }), {
         status: 400,
         headers: jsonHeaders,
       });
     }
+    const attachedPhotoUrls: string[] = Array.isArray(photoUrls) ? photoUrls : [];
 
     const supabase = serviceClient();
     const { data: profile } = await supabase
@@ -243,13 +255,14 @@ Deno.serve(async (req) => {
 
 Your job, in order:
 1. Ask what they need done — keep it to 1-2 short questions, don't interrogate.
-2. Call get_price_book and give a ROUGH estimate range based on it. ALWAYS make clear this is a rough, non-binding estimate and the final price depends on an in-person visit. If the price book is empty or doesn't cover their job, say you don't have pricing for that yet and someone will follow up with a quote — don't make up numbers.
-3. Offer a free in-person estimate visit. If they want one, call get_available_slots and describe a few options in plain language (e.g. "Tuesday at 10am").
-4. Once they've picked one specific time and given you their name and phone number, call book_estimate_visit to confirm it.
+2. If they've attached a photo (or a video, which shows up as a few frames from it), actually look at it and use what you see — visible damage, size/scope of the area, materials involved — to sharpen the estimate and ask better follow-up questions instead of just asking them to describe it in words.
+3. Call get_price_book and give a ROUGH estimate range based on it. ALWAYS make clear this is a rough, non-binding estimate and the final price depends on an in-person visit. If the price book is empty or doesn't cover their job, say you don't have pricing for that yet and someone will follow up with a quote — don't make up numbers.
+4. Offer a free in-person estimate visit. If they want one, call get_available_slots and describe a few options in plain language (e.g. "Tuesday at 10am").
+5. Once they've picked one specific time and given you their name and phone number, call book_estimate_visit to confirm it.
 
 Keep replies short and conversational, like a text message — no long paragraphs, no markdown formatting.`;
 
-    const result = await runAgentLoop(ownerId, messages, systemPrompt);
+    const result = await runAgentLoop(ownerId, messages, systemPrompt, attachedPhotoUrls);
     return new Response(JSON.stringify(result), { headers: jsonHeaders });
   } catch (err) {
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {

@@ -210,6 +210,15 @@ estimate visit directly onto your Google Calendar. It's a Claude "agent"
 with three tools: look up the price book, check open slots, and book a
 visit — same underlying scheduling logic as the quote-acceptance flow.
 
+Customers can also attach a **photo or video** of the project (camera icon
+next to the message box) — Claude actually looks at it (video gets a few
+frames auto-extracted client-side, since Claude only accepts images) and
+factors what it sees into the estimate and follow-up questions. Photos are
+uploaded to a public Supabase Storage bucket and, if a visit gets booked,
+saved onto the resulting Job for Nick to see later. There's also a mic
+button for voice input, using the browser's free built-in speech
+recognition (no setup, hidden automatically in browsers without support).
+
 Homewyse has no public API or licensed data feed for third-party apps, so
 the Price Book is a business-owned reference table instead (Settings →
 Price Book, or the sidebar) — seed it with the built-in starter items and
@@ -235,10 +244,14 @@ ANTHROPIC_API_KEY=...
 (Optional: set `CLAUDE_MODEL` to override the default `claude-haiku-4-5-20251001`
 — e.g. to a Sonnet model for smarter but pricier conversations.)
 
-**3. Run the extra schema migration**
+**3. Run the extra schema migrations**
 
 Run [`docs/schema_v5_price_book_chat.sql`](docs/schema_v5_price_book_chat.sql)
-— it adds the `price_book_items` table.
+— it adds the `price_book_items` table. Then run
+[`docs/schema_v8_estimate_uploads.sql`](docs/schema_v8_estimate_uploads.sql)
+— it creates the public `estimate-uploads` Storage bucket (with a 20MB
+size limit and an image/video-only allow-list) and adds `photo_urls` to
+`jobs`.
 
 **4. Add starter price book items**
 
@@ -452,6 +465,8 @@ matter in practice.
   shareable from Settings. Has a mic button for voice input (browser
   speech-to-text, no extra setup) so customers can talk instead of type —
   hidden automatically in browsers that don't support it (e.g. Firefox).
+  Customers can also attach a photo or video, which Claude actually
+  analyzes to sharpen the estimate; saved onto the Job if a visit is booked.
 - **Dashboard** — at-a-glance counts, a month calendar of scheduled jobs,
   and a next-up list.
 
@@ -508,4 +523,5 @@ docs/schema_v4_google_oauth.sql One-time state table for the direct Google OAuth
 docs/schema_v5_price_book_chat.sql Price Book table
 docs/schema_v6_stripe_payments.sql Invoice pay tokens/amount_paid, invoice_payments table
 docs/schema_v7_paypal_payments.sql Adds provider/paypal_order_id to invoice_payments
+docs/schema_v8_estimate_uploads.sql Public estimate-uploads Storage bucket, jobs.photo_urls
 ```

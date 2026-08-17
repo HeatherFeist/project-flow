@@ -35,6 +35,7 @@ export interface Job {
   scheduled_at: string | null;
   address: string | null;
   google_event_id: string | null;
+  photo_urls: string[];
   created_at: string;
   client?: Pick<Client, "id" | "name">;
 }
