@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarCheck2, Code2, Copy, Loader2, MessageCircle, PhoneCall } from "lucide-react";
+import { CalendarCheck2, Copy, ExternalLink, Loader2, MessageCircle, PhoneCall } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { connectGoogle } from "@/lib/googleAuth";
@@ -15,34 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Profile } from "@/types/domain";
-
-const WEBSITE_PLATFORMS: { value: string; label: string; instructions: string }[] = [
-  {
-    value: "wordpress",
-    label: "WordPress",
-    instructions: "Edit the page → add a Custom HTML block (search \"HTML\" in the block inserter) → paste the code below.",
-  },
-  {
-    value: "squarespace",
-    label: "Squarespace",
-    instructions: "Edit the page → Add Block → Code Block → paste the code below.",
-  },
-  {
-    value: "wix",
-    label: "Wix",
-    instructions: "Open the Editor → Add → Embed → Embed a Widget (HTML iframe) → paste the code below.",
-  },
-  {
-    value: "webflow",
-    label: "Webflow",
-    instructions: "Add an Embed element (from the Add panel, under Components) → paste the code below.",
-  },
-  {
-    value: "other",
-    label: "Other / custom site",
-    instructions: "Paste the code below anywhere in your site's HTML where you want the chat to appear.",
-  },
-];
 
 const DAYS = [
   { value: 0, label: "Sun" },
@@ -76,7 +48,6 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [websitePlatform, setWebsitePlatform] = useState("wordpress");
 
   const {
     data: googleConnection,
@@ -411,41 +382,34 @@ export default function Settings() {
 
               <div className="space-y-2 border-t pt-4">
                 <Label className="text-xs">Embed on Nick's website</Label>
-                <Select value={websitePlatform} onValueChange={setWebsitePlatform}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {WEBSITE_PLATFORMS.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <p className="text-xs text-muted-foreground">
-                  {WEBSITE_PLATFORMS.find((p) => p.value === websitePlatform)?.instructions}
+                  A simple, step-by-step guide — pick the website platform and it shows exactly where to
+                  paste the code. Safe to send straight to Nick; no login needed.
                 </p>
-                {(() => {
-                  const snippet = `<iframe src="${window.location.origin}/estimate/${user.id}?embed=1" style="width: 100%; height: 600px; border: none;" allow="microphone"></iframe>`;
-                  return (
-                    <div className="flex items-start gap-2">
-                      <Textarea readOnly value={snippet} className="min-h-16 font-mono text-xs" />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        title="Copy embed code"
-                        onClick={() => {
-                          navigator.clipboard.writeText(snippet);
-                          toast.success("Embed code copied");
-                        }}
-                      >
-                        <Code2 className="size-4" />
-                      </Button>
-                    </div>
-                  );
-                })()}
+                <div className="flex items-center gap-2">
+                  <Input
+                    readOnly
+                    value={`${window.location.origin}/embed-guide/${user.id}`}
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Copy guide link"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/embed-guide/${user.id}`);
+                      toast.success("Guide link copied");
+                    }}
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                  <Button type="button" variant="outline" size="icon" title="Open guide" asChild>
+                    <a href={`/embed-guide/${user.id}`} target="_blank" rel="noreferrer">
+                      <ExternalLink className="size-4" />
+                    </a>
+                  </Button>
+                </div>
               </div>
             </>
           )}
