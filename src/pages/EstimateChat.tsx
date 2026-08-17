@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { Loader2, Mic, MicOff, Send, Sparkles } from "lucide-react";
 import { sendEstimateChatMessage, type ChatMessage } from "@/lib/functions";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export default function EstimateChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const speech = useSpeechRecognition((transcript) => setInput(transcript));
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -96,13 +98,27 @@ export default function EstimateChat() {
               </div>
             </div>
           )}
-          {error && <p className="text-center text-sm text-destructive">{error}</p>}
+          {(error || speech.error) && (
+            <p className="text-center text-sm text-destructive">{error || speech.error}</p>
+          )}
         </CardContent>
         <form onSubmit={handleSend} className="flex items-center gap-2 border-t p-3">
+          {speech.supported && (
+            <Button
+              type="button"
+              variant={speech.listening ? "destructive" : "outline"}
+              size="icon"
+              title={speech.listening ? "Stop recording" : "Speak instead of typing"}
+              disabled={sending}
+              onClick={() => (speech.listening ? speech.stop() : speech.start())}
+            >
+              {speech.listening ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+            </Button>
+          )}
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message…"
+            placeholder={speech.listening ? "Listening…" : "Type a message…"}
             disabled={sending}
             autoFocus
           />

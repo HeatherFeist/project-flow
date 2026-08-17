@@ -427,7 +427,7 @@ export default function Settings() {
                   {WEBSITE_PLATFORMS.find((p) => p.value === websitePlatform)?.instructions}
                 </p>
                 {(() => {
-                  const snippet = `<iframe src="${window.location.origin}/estimate/${user.id}?embed=1" style="width: 100%; height: 600px; border: none;"></iframe>`;
+                  const snippet = `<iframe src="${window.location.origin}/estimate/${user.id}?embed=1" style="width: 100%; height: 600px; border: none;" allow="microphone"></iframe>`;
                   return (
                     <div className="flex items-start gap-2">
                       <Textarea readOnly value={snippet} className="min-h-16 font-mono text-xs" />

@@ -125,12 +125,17 @@ Same reasoning as the Google setup above: sending texts and answering calls
 needs a real secret (Twilio's Auth Token) held server-side, so this runs
 through Edge Functions too.
 
-**1. Twilio**
+**1. Twilio account + number**
 
-1. Sign up at [twilio.com](https://www.twilio.com) and buy a phone number
-   with Voice + SMS capability (~$1.15/month).
-2. From the Twilio Console home page, note your **Account SID** and
-   **Auth Token**.
+1. Sign up at [twilio.com](https://www.twilio.com).
+2. Buy a number: left sidebar → **Phone Numbers → Manage → Buy a number**.
+   Pick a local US number, make sure the **Voice** and **SMS** capability
+   checkboxes are shown as available for it (they are by default for most
+   US numbers), and complete the purchase (~$1.15/month).
+3. Get your credentials: left sidebar → **Account → API keys & tokens**
+   (or the "Account Info" panel right on the Console dashboard home page).
+   Copy the **Account SID** (starts with `AC...`) and click "Show" to
+   reveal the **Auth Token**.
 
 **2. Supabase Edge Functions**
 
@@ -140,20 +145,33 @@ supabase functions deploy twilio-sms
 supabase functions deploy send-job-reminder
 ```
 
-Set these as Edge Function secrets:
+Set these as Edge Function secrets — replace with the values from step 1:
 
 ```
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
+supabase secrets set TWILIO_ACCOUNT_SID=AC...
+supabase secrets set TWILIO_AUTH_TOKEN=...
 ```
 
 **3. Point Twilio at the functions**
 
-In the Twilio Console, on your phone number's configuration page:
-- **"A call comes in"** webhook (HTTP POST) →
-  `https://<project-ref>.supabase.co/functions/v1/twilio-voice`
-- **"A message comes in"** webhook (HTTP POST) →
-  `https://<project-ref>.supabase.co/functions/v1/twilio-sms`
+1. Left sidebar → **Phone Numbers → Manage → Active numbers**.
+2. Click the phone number you bought (not a checkbox — click the number
+   itself, e.g. `+1 737 258 3478`, to open its settings page).
+3. You land on a page with a **Configure** tab already selected. Scroll to
+   the **Voice Configuration** section.
+4. Find the row labeled **"A call comes in"**. It has three parts: a
+   dropdown (leave it set to **Webhook**), a URL text field, and an
+   HTTP method dropdown next to it.
+5. In the URL field, paste:
+   `https://<project-ref>.supabase.co/functions/v1/twilio-voice`
+   (replace `<project-ref>` with yours, e.g. `gkzddhskefldotphilif`).
+6. Set the method dropdown next to it to **HTTP POST** (not GET).
+7. Scroll down further to the **Messaging Configuration** section. Find
+   **"A message comes in"** — same three-part row (dropdown/URL/method).
+8. Paste: `https://<project-ref>.supabase.co/functions/v1/twilio-sms`,
+   method **HTTP POST**.
+9. Scroll to the very bottom of the page and click the blue **Save
+   configuration** button — nothing takes effect until you click this.
 
 **4. Run the extra schema migration**
 
@@ -242,8 +260,13 @@ block (WordPress, Squarespace, Wix, Webflow, custom code, ...):
 <iframe
   src="https://flow.w3bbworldwide.com/estimate/<ownerId>?embed=1"
   style="width: 100%; height: 600px; border: none;"
+  allow="microphone"
 ></iframe>
 ```
+
+The `allow="microphone"` is needed for the chat's voice-input button to
+work once it's embedded cross-origin — without it, the browser silently
+blocks mic access inside the iframe.
 
 ### Stripe payments setup (invoice "Pay Now" + partial payments)
 
@@ -426,7 +449,9 @@ matter in practice.
   Price Book, and can book a free estimate visit — creating the Client, the
   Job, and the real Google Calendar event, same as the quote-acceptance
   flow. Linked automatically from missed-call/new-text auto-replies, and
-  shareable from Settings.
+  shareable from Settings. Has a mic button for voice input (browser
+  speech-to-text, no extra setup) so customers can talk instead of type —
+  hidden automatically in browsers that don't support it (e.g. Firefox).
 - **Dashboard** — at-a-glance counts, a month calendar of scheduled jobs,
   and a next-up list.
 
