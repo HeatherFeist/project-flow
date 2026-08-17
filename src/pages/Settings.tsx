@@ -381,10 +381,10 @@ export default function Settings() {
               </div>
 
               <div className="space-y-2 border-t pt-4">
-                <Label className="text-xs">Embed on Nick's website</Label>
+                <Label className="text-xs">Embed on your website</Label>
                 <p className="text-xs text-muted-foreground">
-                  A simple, step-by-step guide — pick the website platform and it shows exactly where to
-                  paste the code. Safe to send straight to Nick; no login needed.
+                  A simple, step-by-step guide — pick your website platform and it shows exactly where to
+                  paste the code. Safe to send to whoever manages the site; no login needed.
                 </p>
                 <div className="flex items-center gap-2">
                   <Input
