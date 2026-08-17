@@ -341,6 +341,55 @@ When ready for real payments, swap the test-mode `STRIPE_SECRET_KEY` for
 Nick's live key (and repeat the webhook step for live mode — test and live
 webhooks are separate).
 
+### PayPal setup (second payment option on invoices)
+
+An independent payment option alongside Stripe — some clients simply
+prefer paying with an account they already have. Same simple-architecture
+approach: one PayPal business account, configured via secrets, no
+Connect-style per-user setup.
+
+**1. PayPal**
+
+1. Sign up for a PayPal **Business** account at
+   [paypal.com/bizsignup](https://www.paypal.com/bizsignup/) (there's also
+   a signup link right in **Settings → Payments**).
+2. Create an app at [developer.paypal.com](https://developer.paypal.com) →
+   Apps & Credentials, to get a **Client ID** and **Client Secret**. Use
+   the **Sandbox** credentials first to test the flow before going live.
+
+**2. Supabase Edge Functions**
+
+```bash
+supabase functions deploy create-paypal-order
+supabase functions deploy capture-paypal-order
+```
+
+Set these secrets:
+
+```
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+```
+
+(Leave `PAYPAL_MODE` unset for sandbox testing; set `PAYPAL_MODE=live`
+once you switch to live credentials.)
+
+**3. Run the extra schema migration**
+
+Run [`docs/schema_v7_paypal_payments.sql`](docs/schema_v7_paypal_payments.sql)
+— it adds `provider`/`paypal_order_id` columns to `invoice_payments` so
+Stripe and PayPal payments are both tracked in the same table.
+
+That's it — the `/pay/:token` page now shows a **"Pay with PayPal"** button
+alongside the Stripe one. Unlike Stripe, this flow doesn't use a webhook —
+the payment is captured directly when PayPal redirects the payer back to
+the app, which keeps the setup simpler at the cost of one edge case: if
+someone closes their browser mid-flow after approving but before the
+redirect completes, that payment won't be recorded automatically and would
+need reconciling from the PayPal dashboard. Acceptable for now; a PayPal
+webhook could be added later for extra robustness if this turns out to
+matter in practice.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -360,10 +409,12 @@ webhooks are separate).
 - **Invoices** — same shape as quotes plus a due date and payment status
   (draft/sent/partially_paid/paid/overdue). Automatically created (as a
   draft) the moment a client accepts a quote. A "Send" button emails a
-  Stripe "Pay Now" link; clients can pay the full balance or a partial
-  amount/deposit, and the invoice updates automatically on payment.
+  "Pay Now" link; clients can pay the full balance or a partial
+  amount/deposit by card, Cash App Pay, or PayPal, and the invoice updates
+  automatically on payment.
 - **Settings** — business profile, Google connection, scheduling hours
-  (work days/times, job length), and Twilio number + forwarding setup.
+  (work days/times, job length), Twilio number + forwarding setup, and
+  Stripe/PayPal signup links.
 - **Calls & texts** — missed calls auto-text the caller (with a link to the
   estimate chatbot) and log them as a lead; inbound texts do the same; a
   "Text reminder" button on jobs sends an SMS appointment reminder.
@@ -423,10 +474,13 @@ supabase/functions/
   invoice-pay-info/    public: invoice details for the /pay/:token page
   create-invoice-checkout/ public: creates a Stripe Checkout session for a chosen amount
   stripe-webhook/       public (Stripe-signature verified): records payments, updates invoice status
+  create-paypal-order/  public: creates a PayPal order for a chosen amount
+  capture-paypal-order/ public: captures the order on redirect-back, records the payment
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
 docs/schema_v4_google_oauth.sql One-time state table for the direct Google OAuth flow
 docs/schema_v5_price_book_chat.sql Price Book table
 docs/schema_v6_stripe_payments.sql Invoice pay tokens/amount_paid, invoice_payments table
+docs/schema_v7_paypal_payments.sql Adds provider/paypal_order_id to invoice_payments
 ```

@@ -339,6 +339,35 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Payments</CardTitle>
+          <CardDescription>
+            Invoice "Pay Now" links accept card, Cash App Pay, and PayPal. Each processor is set up
+            with your own account's keys as server secrets — not connected here in the app (see the
+            README's setup steps for exactly what to configure).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 pb-6">
+          <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+            <span>Stripe — card &amp; Cash App Pay, Instant Payout to a debit card</span>
+            <Button variant="outline" size="sm" asChild>
+              <a href="https://dashboard.stripe.com/register" target="_blank" rel="noreferrer">
+                Sign up for Stripe
+              </a>
+            </Button>
+          </div>
+          <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+            <span>PayPal — a more familiar option for some clients</span>
+            <Button variant="outline" size="sm" asChild>
+              <a href="https://www.paypal.com/bizsignup/" target="_blank" rel="noreferrer">
+                Sign up for PayPal
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Estimate Chatbot</CardTitle>
           <CardDescription>
             Missed-call and new-text auto-replies link here automatically. You can also share this link

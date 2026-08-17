@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle2, CreditCard, Loader2, Sparkles } from "lucide-react";
-import { createInvoiceCheckout, fetchInvoicePayInfo } from "@/lib/functions";
+import {
+  capturePaypalOrder,
+  createInvoiceCheckout,
+  createPaypalOrder,
+  fetchInvoicePayInfo,
+} from "@/lib/functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,12 +19,16 @@ export default function PayInvoice() {
   const { token } = useParams<{ token: string }>();
   const [searchParams] = useSearchParams();
   const justPaid = searchParams.get("paid") === "1";
+  const paypalReturn = searchParams.get("provider") === "paypal";
+  const paypalOrderId = searchParams.get("token"); // PayPal's own query param, distinct from our :token path param
 
   const [data, setData] = useState<InvoiceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
-  const [paying, setPaying] = useState(false);
+  const [paying, setPaying] = useState<"stripe" | "paypal" | null>(null);
+  const [capturingPaypal, setCapturingPaypal] = useState(paypalReturn);
+  const capturedRef = useRef(false);
 
   async function load() {
     if (!token) return;
@@ -49,7 +58,21 @@ export default function PayInvoice() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, justPaid]);
 
-  async function handlePay(e: React.FormEvent) {
+  useEffect(() => {
+    if (!paypalReturn || !paypalOrderId || !token || capturedRef.current) return;
+    capturedRef.current = true;
+    capturePaypalOrder(token, paypalOrderId)
+      .then(() => load())
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to complete PayPal payment"))
+      .finally(() => {
+        setCapturingPaypal(false);
+        // Strip PayPal's query params so a refresh doesn't try to re-capture.
+        window.history.replaceState({}, "", window.location.pathname);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paypalReturn, paypalOrderId, token]);
+
+  async function handleStripePay(e: React.FormEvent) {
     e.preventDefault();
     if (!token) return;
     const amountCents = Math.round(Number(amount) * 100);
@@ -57,21 +80,40 @@ export default function PayInvoice() {
       setError("Enter a valid amount.");
       return;
     }
-    setPaying(true);
+    setPaying("stripe");
     setError(null);
     try {
       const result = await createInvoiceCheckout(token, amountCents);
       window.location.href = result.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start payment");
-      setPaying(false);
+      setPaying(null);
     }
   }
 
-  if (loading) {
+  async function handlePaypalPay() {
+    if (!token) return;
+    const amountCents = Math.round(Number(amount) * 100);
+    if (!amountCents || amountCents <= 0) {
+      setError("Enter a valid amount.");
+      return;
+    }
+    setPaying("paypal");
+    setError(null);
+    try {
+      const result = await createPaypalOrder(token, amountCents);
+      window.location.href = result.approveUrl;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start PayPal payment");
+      setPaying(null);
+    }
+  }
+
+  if (loading || capturingPaypal) {
     return (
       <Centered>
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        {capturingPaypal && <p className="mt-2 text-sm text-muted-foreground">Finishing up your PayPal payment…</p>}
       </Centered>
     );
   }
@@ -126,7 +168,7 @@ export default function PayInvoice() {
               <p className="font-medium">Paid in full — thank you!</p>
             </div>
           ) : (
-            <form onSubmit={handlePay} className="space-y-3">
+            <form onSubmit={handleStripePay} className="space-y-3">
               {justPaid && (
                 <p className="text-center text-sm text-muted-foreground">
                   Finishing up your payment — this updates automatically in a few seconds.
@@ -144,11 +186,20 @@ export default function PayInvoice() {
                   onChange={(e) => setAmount(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  You can pay the full balance or a partial amount / deposit, by card or Cash App.
+                  You can pay the full balance or a partial amount / deposit.
                 </p>
               </div>
-              <Button type="submit" className="w-full" disabled={paying}>
-                <CreditCard /> {paying ? "Redirecting to checkout…" : "Continue to payment"}
+              <Button type="submit" className="w-full" disabled={paying !== null}>
+                <CreditCard /> {paying === "stripe" ? "Redirecting to checkout…" : "Pay with card or Cash App"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={paying !== null}
+                onClick={handlePaypalPay}
+              >
+                {paying === "paypal" ? "Redirecting to PayPal…" : "Pay with PayPal"}
               </Button>
             </form>
           )}
@@ -162,7 +213,7 @@ export default function PayInvoice() {
 
 function Centered({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
+    <div className="flex min-h-svh flex-col items-center justify-center p-4">
       <div className={wide ? "w-full max-w-lg" : undefined}>{children}</div>
     </div>
   );

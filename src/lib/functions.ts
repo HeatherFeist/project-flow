@@ -108,3 +108,17 @@ export function createInvoiceCheckout(token: string, amountCents: number) {
     body: JSON.stringify({ token, amountCents }),
   });
 }
+
+export function createPaypalOrder(token: string, amountCents: number) {
+  return callFunction<{ approveUrl: string }>("create-paypal-order", {
+    method: "POST",
+    body: JSON.stringify({ token, amountCents }),
+  });
+}
+
+export function capturePaypalOrder(token: string, paypalOrderId: string) {
+  return callFunction<{ ok: true; alreadyRecorded?: boolean }>("capture-paypal-order", {
+    method: "POST",
+    body: JSON.stringify({ token, paypalOrderId }),
+  });
+}
