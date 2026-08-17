@@ -144,11 +144,11 @@ export default function PayInvoice() {
                   onChange={(e) => setAmount(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  You can pay the full balance or a partial amount / deposit, by card or bank transfer.
+                  You can pay the full balance or a partial amount / deposit.
                 </p>
               </div>
               <Button type="submit" className="w-full" disabled={paying}>
-                <CreditCard /> {paying ? "Redirecting to checkout…" : "Continue to payment"}
+                <CreditCard /> {paying ? "Redirecting to checkout…" : "Pay with card"}
               </Button>
             </form>
           )}

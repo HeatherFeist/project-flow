@@ -295,27 +295,37 @@ are fully supported).
 
 That's it — from then on, **Invoices → Send** emails the client a "Pay Now"
 link; the public `/pay/:token` page lets them pay the full balance or a
-partial amount by **card or bank transfer (ACH)** via Stripe Checkout
-(hosted by Stripe — no card or bank data ever touches Project Flow's
-servers); and the invoice's status and paid amount update automatically
-via the webhook the moment a payment succeeds.
+partial amount by **card** via Stripe Checkout (hosted by Stripe — no card
+data ever touches Project Flow's servers); and the invoice's status and
+paid amount update automatically via the webhook the moment a payment
+succeeds.
 
-**Why ACH instead of a separate Plaid integration**: Plaid alone doesn't
-move money — it's a bank-linking/verification layer, not a payment rail.
-Stripe already includes ACH direct debit as a Checkout payment method and
-does the bank-linking itself (Plaid-equivalent instant verification), so
-enabling it here (already on by default in this setup) gets clients a
-lower-fee bank-transfer option (~0.8%, capped around $5, vs ~2.9%+30¢ for
-card) without a second integration or the compliance weight of running
-ACH origination directly.
+**Card only, deliberately — not ACH bank-transfer.** ACH settles in 3-5
+business days no matter which processor moves it (Plaid, Stripe, Dwolla —
+same underlying banking network), which conflicts with Nick needing
+deposit funds the same day to buy materials. Card payments support
+Stripe's **Instant Payout**, which ACH-settled funds can't use until days
+later anyway.
 
-**Instant Payouts** (getting the money into Nick's bank fast once Stripe
-has it) is a feature of his own Stripe account, not something built into
-the app — once he adds a debit card in the Stripe Dashboard/app, he can
-trigger an instant payout of his available balance himself, for Stripe's
-small instant-payout fee. Regardless of payout speed, funds land in
-whatever bank account (his Huntington account) he's connected to Stripe's
-standard payout settings.
+**Why not Plaid at all**: Plaid alone doesn't move money — it's a
+bank-linking/verification layer, not a payment rail; you'd still need a
+processor (Dwolla, or Stripe's own ACH support) on top of it, plus real
+NACHA/ACH-origination compliance weight. Given the speed requirement rules
+out ACH anyway, there's no case for it here.
+
+**Getting Nick same-day access to the money — Stripe Instant Payout:**
+1. Client pays by card → funds typically become "available" in Nick's
+   Stripe balance within about a day (often faster on an established
+   account).
+2. He needs a **debit card** (not just his bank account) added under
+   Stripe Dashboard → Settings → Payouts — Instant Payout specifically
+   requires one.
+3. From there, he presses **Instant Payout** whenever he wants that
+   balance moved — funds land on the debit card in about 30 minutes, for a
+   small fee (~1%, minimum ~$0.50).
+
+His regular bank account (Huntington) stays connected for Stripe's normal
+payout schedule for everything he doesn't pull out instantly.
 
 When ready for real payments, swap the test-mode `STRIPE_SECRET_KEY` for
 Nick's live key (and repeat the webhook step for live mode — test and live

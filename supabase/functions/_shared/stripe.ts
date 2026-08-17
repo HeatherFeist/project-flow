@@ -26,13 +26,11 @@ export async function createCheckoutSession(params: {
     body.set(`metadata[${key}]`, value);
   }
 
-  // Offer bank-transfer (ACH direct debit) alongside card — lower fees than
-  // card (~0.8%, capped around $5, vs ~2.9%+30¢), settles in a few business
-  // days. Stripe handles the bank-linking itself (Plaid-equivalent instant
-  // verification); the client just picks "US bank account" at checkout.
+  // Card only, deliberately — ACH bank-transfer settles in 3-5 business
+  // days no matter which processor moves it, which conflicts with needing
+  // deposit funds the same day. Card + Stripe's Instant Payout (to a linked
+  // debit card, from the Dashboard) is the fast path; see the README.
   body.set("payment_method_types[0]", "card");
-  body.set("payment_method_types[1]", "us_bank_account");
-  body.set("payment_method_options[us_bank_account][verification_method]", "instant");
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
