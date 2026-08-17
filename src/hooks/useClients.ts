@@ -65,6 +65,30 @@ export function useUpdateClient() {
   });
 }
 
+export function useImportClients() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      rows: (Pick<Client, "name" | "email" | "phone" | "address" | "notes"> & { owner_id: string })[],
+    ) => {
+      // Chunk to keep each request comfortably under Supabase's payload/row
+      // limits even for a large exported client list.
+      const CHUNK_SIZE = 200;
+      let imported = 0;
+      for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+        const chunk = rows.slice(i, i + CHUNK_SIZE);
+        const { error } = await supabase.from("clients").insert(chunk);
+        if (error) throw error;
+        imported += chunk.length;
+      }
+      return imported;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
 export function useDeleteClient() {
   const queryClient = useQueryClient();
   return useMutation({

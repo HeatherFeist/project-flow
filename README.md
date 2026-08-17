@@ -186,8 +186,10 @@ automation.
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
-- **Clients** — list, create, and a detail page rolling up a client's jobs,
-  quotes, and invoices.
+- **Clients** — list, create, a detail page rolling up a client's jobs,
+  quotes, and invoices, and a **CSV import** (Clients → Import CSV) for
+  bringing a contact list over from Jobber or any other tool — upload,
+  match up the columns, done.
 - **Schedule** — job list with status, a create-job dialog, and a job detail
   page with status changes and freeform notes.
 - **Quotes** — create with line items, auto-totaled, status tracking

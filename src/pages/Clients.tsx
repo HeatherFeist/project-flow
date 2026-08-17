@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients, useCreateClient, useDeleteClient } from "@/hooks/useClients";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ImportClientsDialog } from "@/components/ImportClientsDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,9 @@ export default function Clients() {
           <h1 className="text-2xl font-semibold">Clients</h1>
           <p className="text-muted-foreground">Everyone you do work for.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex items-center gap-2">
+          <ImportClientsDialog />
+          <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus /> Add client
@@ -119,6 +122,7 @@ export default function Clients() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
