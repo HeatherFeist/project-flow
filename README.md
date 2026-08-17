@@ -295,15 +295,27 @@ are fully supported).
 
 That's it — from then on, **Invoices → Send** emails the client a "Pay Now"
 link; the public `/pay/:token` page lets them pay the full balance or a
-partial amount by card via Stripe Checkout (hosted by Stripe — no card
-data ever touches Project Flow's servers); and the invoice's status and
-paid amount update automatically via the webhook the moment a payment
-succeeds.
+partial amount by **card or bank transfer (ACH)** via Stripe Checkout
+(hosted by Stripe — no card or bank data ever touches Project Flow's
+servers); and the invoice's status and paid amount update automatically
+via the webhook the moment a payment succeeds.
 
-**Instant Payouts** (getting the money into Nick's bank fast) is a feature
-of his own Stripe account, not something built into the app — once he adds
-a debit card in the Stripe Dashboard/app, he can trigger an instant payout
-of his available balance himself, for Stripe's small instant-payout fee.
+**Why ACH instead of a separate Plaid integration**: Plaid alone doesn't
+move money — it's a bank-linking/verification layer, not a payment rail.
+Stripe already includes ACH direct debit as a Checkout payment method and
+does the bank-linking itself (Plaid-equivalent instant verification), so
+enabling it here (already on by default in this setup) gets clients a
+lower-fee bank-transfer option (~0.8%, capped around $5, vs ~2.9%+30¢ for
+card) without a second integration or the compliance weight of running
+ACH origination directly.
+
+**Instant Payouts** (getting the money into Nick's bank fast once Stripe
+has it) is a feature of his own Stripe account, not something built into
+the app — once he adds a debit card in the Stripe Dashboard/app, he can
+trigger an instant payout of his available balance himself, for Stripe's
+small instant-payout fee. Regardless of payout speed, funds land in
+whatever bank account (his Huntington account) he's connected to Stripe's
+standard payout settings.
 
 When ready for real payments, swap the test-mode `STRIPE_SECRET_KEY` for
 Nick's live key (and repeat the webhook step for live mode — test and live
