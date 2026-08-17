@@ -10,6 +10,8 @@ export interface Profile {
   created_at: string;
 }
 
+export type ClientSource = "manual" | "missed_call" | "inbound_text";
+
 export interface Client {
   id: string;
   owner_id: string;
@@ -18,6 +20,7 @@ export interface Client {
   phone: string | null;
   address: string | null;
   notes: string | null;
+  source: ClientSource;
   created_at: string;
 }
 
@@ -79,6 +82,13 @@ export interface SchedulingSettings {
 export interface GoogleConnection {
   user_id: string;
   google_email: string | null;
+}
+
+export interface TwilioSettings {
+  user_id: string;
+  twilio_phone_number: string;
+  forward_to_phone: string | null;
+  missed_call_message: string;
 }
 
 export interface Invoice {

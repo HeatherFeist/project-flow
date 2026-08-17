@@ -108,6 +108,70 @@ an open slot computed from your **Settings → Scheduling** hours minus
 what's already busy on your Google Calendar, and booking creates both the
 Job in Project Flow and the real Google Calendar event.
 
+### Twilio setup (missed-call text-back, inbound-text leads, SMS reminders)
+
+Same reasoning as the Google setup above: sending texts and answering calls
+needs a real secret (Twilio's Auth Token) held server-side, so this runs
+through Edge Functions too.
+
+**1. Twilio**
+
+1. Sign up at [twilio.com](https://www.twilio.com) and buy a phone number
+   with Voice + SMS capability (~$1.15/month).
+2. From the Twilio Console home page, note your **Account SID** and
+   **Auth Token**.
+
+**2. Supabase Edge Functions**
+
+```bash
+supabase functions deploy twilio-voice
+supabase functions deploy twilio-sms
+supabase functions deploy send-job-reminder
+```
+
+Set these as Edge Function secrets:
+
+```
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+```
+
+**3. Point Twilio at the functions**
+
+In the Twilio Console, on your phone number's configuration page:
+- **"A call comes in"** webhook (HTTP POST) →
+  `https://<project-ref>.supabase.co/functions/v1/twilio-voice`
+- **"A message comes in"** webhook (HTTP POST) →
+  `https://<project-ref>.supabase.co/functions/v1/twilio-sms`
+
+**4. Run the extra schema migration**
+
+Run [`docs/schema_v3_twilio.sql`](docs/schema_v3_twilio.sql) — it adds the
+`twilio_settings` table and a `source` column on `clients` so auto-created
+leads (from a missed call or inbound text) are flagged in the UI.
+
+**5. Connect your account**
+
+In the app, go to **Settings → Calls & Texts (Twilio)** and enter the
+Twilio number you bought and the real cell phone it should ring through to
+(e.g. Nick's). Customize the missed-call auto-text if you like.
+
+That's it — from then on:
+- A call to the Twilio number rings the configured cell for 20 seconds; if
+  unanswered, the caller gets auto-texted and is logged as a new lead in
+  **Clients** (tagged "missed call").
+- A text to the Twilio number gets an auto-acknowledgement and is logged
+  the same way (tagged "new text"), or appended to notes if they're
+  already a client.
+- The **"Text reminder"** button on a scheduled job's detail page sends the
+  client an SMS appointment reminder from the Twilio number.
+
+If you want Nick's existing business number in this flow rather than
+replacing it, keep his real number as-is and set his carrier's **call
+forwarding on no-answer** to ring the Twilio number — his line keeps working
+exactly as it does today, and only unanswered calls fall through to the
+automation.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -124,8 +188,11 @@ Job in Project Flow and the real Google Calendar event.
 - **Invoices** — same shape as quotes plus a due date and payment status
   (draft/sent/paid/overdue). Automatically created (as a draft) the moment
   a client accepts a quote.
-- **Settings** — business profile, Google connection, and scheduling hours
-  (work days/times, job length).
+- **Settings** — business profile, Google connection, scheduling hours
+  (work days/times, job length), and Twilio number + forwarding setup.
+- **Calls & texts** — missed calls auto-text the caller and log them as a
+  lead; inbound texts do the same; a "Text reminder" button on jobs sends
+  an SMS appointment reminder.
 - **Dashboard** — at-a-glance counts, a month calendar of scheduled jobs,
   and a next-up list.
 
@@ -156,11 +223,15 @@ src/
   pages/               route-level screens (PublicQuote.tsx is the unauthenticated /q/:token page)
   types/               shared domain types
 supabase/functions/
-  _shared/             Google token refresh, Gmail send, Calendar API helpers
+  _shared/             Google token refresh, Gmail/Twilio send, Calendar API, TwiML helpers
   send-quote-email/    emails a quote via the owner's Gmail (auth required)
   quote-response/      public accept/decline + auto-creates the invoice on accept
   available-slots/     public: business hours minus Google Calendar busy times
   book-slot/           public: creates the Job + the real Google Calendar event
+  twilio-voice/        Twilio Voice webhook: ring the owner, auto-text + log a lead if missed
+  twilio-sms/          Twilio Messaging webhook: logs inbound texts as leads/notes
+  send-job-reminder/   texts a client an appointment reminder for a job (auth required)
 docs/schema.sql               Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql Google connections, scheduling hours, quote tokens
+docs/schema_v3_twilio.sql     Twilio number/forwarding settings, client lead source
 ```

@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { MessageSquare } from "lucide-react";
 import { useAddJobNote, useDeleteJob, useJob, useJobNotes, useUpdateJobStatus } from "@/hooks/useJobs";
+import { useSendJobReminder } from "@/hooks/useTwilio";
 import type { JobStatus } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +22,18 @@ export default function JobDetail() {
   const updateStatus = useUpdateJobStatus();
   const addNote = useAddJobNote();
   const deleteJob = useDeleteJob();
+  const sendReminder = useSendJobReminder();
   const [note, setNote] = useState("");
+
+  async function handleSendReminder() {
+    if (!id) return;
+    try {
+      await sendReminder.mutateAsync(id);
+      toast.success("Reminder texted to the client");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send reminder");
+    }
+  }
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (!job) return <p className="text-muted-foreground">Job not found.</p>;
@@ -60,6 +73,15 @@ export default function JobDetail() {
                 ))}
               </SelectContent>
             </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={sendReminder.isPending || !job.scheduled_at}
+              onClick={handleSendReminder}
+              title={job.scheduled_at ? "Text an appointment reminder to the client" : "Schedule a time first"}
+            >
+              <MessageSquare /> Text reminder
+            </Button>
             <DeleteButton
               itemLabel={job.title}
               onConfirm={async () => {

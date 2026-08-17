@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients, useCreateClient, useDeleteClient } from "@/hooks/useClients";
 import { DeleteButton } from "@/components/DeleteButton";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -150,9 +151,16 @@ export default function Clients() {
               {(clients ?? []).map((client) => (
                 <TableRow key={client.id}>
                   <TableCell>
-                    <Link to={`/clients/${client.id}`} className="font-medium hover:underline">
-                      {client.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link to={`/clients/${client.id}`} className="font-medium hover:underline">
+                        {client.name}
+                      </Link>
+                      {client.source !== "manual" && (
+                        <Badge variant="warning">
+                          {client.source === "missed_call" ? "missed call" : "new text"}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>{client.email ?? "—"}</TableCell>
                   <TableCell>{client.phone ?? "—"}</TableCell>

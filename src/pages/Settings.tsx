@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CalendarCheck2, Loader2 } from "lucide-react";
+import { CalendarCheck2, Loader2, PhoneCall } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { connectGoogle } from "@/lib/googleAuth";
 import { useGoogleConnection, useSaveSchedulingSettings, useSchedulingSettings } from "@/hooks/useScheduling";
+import { useSaveTwilioSettings, useTwilioSettings } from "@/hooks/useTwilio";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -52,6 +54,14 @@ export default function Settings() {
   } = useGoogleConnection(user?.id);
   const { data: schedulingSettings } = useSchedulingSettings(user?.id);
   const saveSchedulingSettings = useSaveSchedulingSettings();
+  const { data: twilioSettings, isLoading: twilioLoading, error: twilioError } = useTwilioSettings(user?.id);
+  const saveTwilioSettings = useSaveTwilioSettings();
+  const [twilioForm, setTwilioForm] = useState({
+    twilio_phone_number: "",
+    forward_to_phone: "",
+    missed_call_message: "",
+  });
+  const [savingTwilio, setSavingTwilio] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -65,6 +75,15 @@ export default function Settings() {
         setLoading(false);
       });
   }, [user]);
+
+  useEffect(() => {
+    if (!twilioSettings) return;
+    setTwilioForm({
+      twilio_phone_number: twilioSettings.twilio_phone_number,
+      forward_to_phone: twilioSettings.forward_to_phone ?? "",
+      missed_call_message: twilioSettings.missed_call_message,
+    });
+  }, [twilioSettings]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -91,6 +110,25 @@ export default function Settings() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to connect Google");
       setConnecting(false);
+    }
+  }
+
+  async function handleSaveTwilio(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSavingTwilio(true);
+    try {
+      await saveTwilioSettings.mutateAsync({
+        user_id: user.id,
+        twilio_phone_number: twilioForm.twilio_phone_number,
+        forward_to_phone: twilioForm.forward_to_phone || null,
+        missed_call_message: twilioForm.missed_call_message || undefined,
+      });
+      toast.success("Twilio settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save Twilio settings");
+    } finally {
+      setSavingTwilio(false);
     }
   }
 
@@ -183,6 +221,68 @@ export default function Settings() {
             <Button onClick={handleConnectGoogle} disabled={connecting}>
               {connecting ? "Redirecting…" : "Connect Google"}
             </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Calls &amp; Texts (Twilio)</CardTitle>
+          <CardDescription>
+            Missed calls auto-text the caller a callback message; inbound texts get logged as leads in
+            Clients.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pb-6">
+          {twilioError && (
+            <p className="text-sm text-destructive">
+              Couldn't load Twilio settings: {twilioError.message}. This usually means{" "}
+              <code>docs/schema_v3_twilio.sql</code> hasn't been run in Supabase yet.
+            </p>
+          )}
+          {twilioLoading ? (
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          ) : (
+            <form onSubmit={handleSaveTwilio} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="twilio_number">Twilio phone number</Label>
+                <Input
+                  id="twilio_number"
+                  placeholder="+17372583478"
+                  value={twilioForm.twilio_phone_number}
+                  onChange={(e) => setTwilioForm({ ...twilioForm, twilio_phone_number: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="forward_to">Ring through to (real cell number)</Label>
+                <Input
+                  id="forward_to"
+                  placeholder="+19375551234"
+                  value={twilioForm.forward_to_phone}
+                  onChange={(e) => setTwilioForm({ ...twilioForm, forward_to_phone: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="missed_call_message">Missed-call auto-text</Label>
+                <Textarea
+                  id="missed_call_message"
+                  value={twilioForm.missed_call_message}
+                  onChange={(e) => setTwilioForm({ ...twilioForm, missed_call_message: e.target.value })}
+                  placeholder="Sorry we missed your call! Reply here and let us know what you need."
+                />
+              </div>
+              {twilioSettings && (
+                <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
+                  <PhoneCall className="size-4 text-success" />
+                  Configured — point your Twilio number's Voice and Messaging webhooks at the{" "}
+                  <code>twilio-voice</code> and <code>twilio-sms</code> Edge Functions (see README).
+                </div>
+              )}
+              <Button type="submit" disabled={savingTwilio}>
+                {savingTwilio ? "Saving…" : "Save"}
+              </Button>
+            </form>
           )}
         </CardContent>
       </Card>
