@@ -245,6 +245,70 @@ block (WordPress, Squarespace, Wix, Webflow, custom code, ...):
 ></iframe>
 ```
 
+### Stripe payments setup (invoice "Pay Now" + partial payments)
+
+Simple architecture, not Stripe Connect: this uses **one Stripe account**
+(Nick's own), configured only via secrets — no per-user Stripe settings in
+the app. Right fit for one business; would need Stripe Connect instead if
+Project Flow ever serves multiple separate businesses.
+
+**1. Stripe**
+
+1. Sign up / log in at [dashboard.stripe.com](https://dashboard.stripe.com).
+2. Get your **Secret key** (Developers → API keys). Use the **test mode**
+   key first to try the flow before going live.
+
+**2. Supabase Edge Functions**
+
+```bash
+supabase functions deploy send-invoice-email
+supabase functions deploy invoice-pay-info
+supabase functions deploy create-invoice-checkout
+supabase functions deploy stripe-webhook
+```
+
+Set this secret:
+
+```
+STRIPE_SECRET_KEY=sk_...
+```
+
+**3. Add the webhook**
+
+In the Stripe Dashboard → Developers → Webhooks → **Add endpoint**:
+- URL: `https://<project-ref>.supabase.co/functions/v1/stripe-webhook`
+- Event to send: `checkout.session.completed`
+
+Stripe shows a **signing secret** (`whsec_...`) for that endpoint once
+created — set it too:
+
+```
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+**4. Run the extra schema migration**
+
+Run [`docs/schema_v6_stripe_payments.sql`](docs/schema_v6_stripe_payments.sql)
+— it adds `pay_token`/`sent_at`/`amount_paid_cents` to `invoices` and a new
+`invoice_payments` table (one row per payment, so partial payments/deposits
+are fully supported).
+
+That's it — from then on, **Invoices → Send** emails the client a "Pay Now"
+link; the public `/pay/:token` page lets them pay the full balance or a
+partial amount by card via Stripe Checkout (hosted by Stripe — no card
+data ever touches Project Flow's servers); and the invoice's status and
+paid amount update automatically via the webhook the moment a payment
+succeeds.
+
+**Instant Payouts** (getting the money into Nick's bank fast) is a feature
+of his own Stripe account, not something built into the app — once he adds
+a debit card in the Stripe Dashboard/app, he can trigger an instant payout
+of his available balance himself, for Stripe's small instant-payout fee.
+
+When ready for real payments, swap the test-mode `STRIPE_SECRET_KEY` for
+Nick's live key (and repeat the webhook step for live mode — test and live
+webhooks are separate).
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -262,8 +326,10 @@ block (WordPress, Squarespace, Wix, Webflow, custom code, ...):
   declines, then picks an open slot; booking creates the Job, the Google
   Calendar event, and links back the auto-generated invoice.
 - **Invoices** — same shape as quotes plus a due date and payment status
-  (draft/sent/paid/overdue). Automatically created (as a draft) the moment
-  a client accepts a quote.
+  (draft/sent/partially_paid/paid/overdue). Automatically created (as a
+  draft) the moment a client accepts a quote. A "Send" button emails a
+  Stripe "Pay Now" link; clients can pay the full balance or a partial
+  amount/deposit, and the invoice updates automatically on payment.
 - **Settings** — business profile, Google connection, scheduling hours
   (work days/times, job length), and Twilio number + forwarding setup.
 - **Calls & texts** — missed calls auto-text the caller (with a link to the
@@ -321,9 +387,14 @@ supabase/functions/
   twilio-sms/          Twilio Messaging webhook: logs inbound texts as leads, replies with the chat link
   send-job-reminder/   texts a client an appointment reminder for a job (auth required)
   estimate-chat/       public: Claude tool-using agent — price book lookup, slot check, booking
+  send-invoice-email/  emails an invoice via the owner's Gmail with a Pay Now link (auth required)
+  invoice-pay-info/    public: invoice details for the /pay/:token page
+  create-invoice-checkout/ public: creates a Stripe Checkout session for a chosen amount
+  stripe-webhook/       public (Stripe-signature verified): records payments, updates invoice status
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
 docs/schema_v4_google_oauth.sql One-time state table for the direct Google OAuth flow
 docs/schema_v5_price_book_chat.sql Price Book table
+docs/schema_v6_stripe_payments.sql Invoice pay tokens/amount_paid, invoice_payments table
 ```

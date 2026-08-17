@@ -1,6 +1,6 @@
 export type JobStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
 export type QuoteStatus = "draft" | "sent" | "accepted" | "declined";
-export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue";
+export type InvoiceStatus = "draft" | "sent" | "partially_paid" | "paid" | "overdue";
 
 export interface Profile {
   id: string;
@@ -113,7 +113,10 @@ export interface Invoice {
   quote_id: string | null;
   status: InvoiceStatus;
   total_cents: number;
+  amount_paid_cents: number;
+  pay_token: string;
   due_date: string | null;
+  sent_at: string | null;
   created_at: string;
   client?: Pick<Client, "id" | "name">;
   items?: LineItem[];

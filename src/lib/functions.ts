@@ -80,3 +80,31 @@ export function sendEstimateChatMessage(ownerId: string, messages: ChatMessage[]
     body: JSON.stringify({ ownerId, messages }),
   });
 }
+
+export function fetchInvoicePayInfo(token: string) {
+  return fetch(`${FUNCTIONS_URL}/invoice-pay-info?token=${encodeURIComponent(token)}`, {
+    headers: { apikey: ANON_KEY ?? "" },
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error ?? "Failed to load invoice");
+    return json as {
+      invoice: {
+        id: string;
+        status: string;
+        total_cents: number;
+        amount_paid_cents: number;
+        due_date: string | null;
+        items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
+        client: { name: string; email: string | null };
+      };
+      business: { business_name: string | null; phone: string | null; email: string | null } | null;
+    };
+  });
+}
+
+export function createInvoiceCheckout(token: string, amountCents: number) {
+  return callFunction<{ url: string }>("create-invoice-checkout", {
+    method: "POST",
+    body: JSON.stringify({ token, amountCents }),
+  });
+}

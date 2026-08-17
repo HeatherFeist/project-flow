@@ -33,3 +33,12 @@ verify_jwt = false
 
 [functions.estimate-chat]
 verify_jwt = false
+
+[functions.invoice-pay-info]
+verify_jwt = false
+
+[functions.create-invoice-checkout]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false

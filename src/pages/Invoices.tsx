@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Copy, CreditCard, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
-import { useCreateInvoice, useDeleteInvoice, useInvoices, useUpdateInvoiceStatus } from "@/hooks/useInvoices";
+import {
+  useCreateInvoice,
+  useDeleteInvoice,
+  useInvoices,
+  useSendInvoiceEmail,
+  useUpdateInvoiceStatus,
+} from "@/hooks/useInvoices";
 import type { InvoiceStatus, LineItem } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { Button } from "@/components/ui/button";
@@ -25,12 +31,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineItemsEditor } from "@/components/LineItemsEditor";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-const STATUSES: InvoiceStatus[] = ["draft", "sent", "paid", "overdue"];
+const STATUSES: InvoiceStatus[] = ["draft", "sent", "partially_paid", "paid", "overdue"];
 const STATUS_VARIANT: Record<InvoiceStatus, "secondary" | "success" | "warning" | "outline"> = {
   draft: "outline",
   sent: "secondary",
+  partially_paid: "warning",
   paid: "success",
   overdue: "warning",
+};
+const STATUS_LABEL: Record<InvoiceStatus, string> = {
+  draft: "draft",
+  sent: "sent",
+  partially_paid: "partial",
+  paid: "paid",
+  overdue: "overdue",
 };
 
 export default function Invoices() {
@@ -40,6 +54,7 @@ export default function Invoices() {
   const createInvoice = useCreateInvoice();
   const updateStatus = useUpdateInvoiceStatus();
   const deleteInvoice = useDeleteInvoice();
+  const sendInvoiceEmail = useSendInvoiceEmail();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -65,6 +80,21 @@ export default function Invoices() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create invoice");
     }
+  }
+
+  async function handleSend(invoiceId: string) {
+    try {
+      await sendInvoiceEmail.mutateAsync(invoiceId);
+      toast.success("Invoice emailed to the client");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send invoice email");
+    }
+  }
+
+  function copyLink(payToken: string) {
+    const url = `${window.location.origin}/pay/${payToken}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Payment link copied");
   }
 
   return (
@@ -126,21 +156,23 @@ export default function Invoices() {
                 <TableHead>Client</TableHead>
                 <TableHead>Due</TableHead>
                 <TableHead>Total</TableHead>
+                <TableHead>Paid</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Send</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={7} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (invoices ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-muted-foreground">
+                  <TableCell colSpan={7} className="text-muted-foreground">
                     No invoices yet.
                   </TableCell>
                 </TableRow>
@@ -158,6 +190,9 @@ export default function Invoices() {
                   </TableCell>
                   <TableCell>{formatDate(inv.due_date)}</TableCell>
                   <TableCell>{formatCurrency(inv.total_cents)}</TableCell>
+                  <TableCell className={inv.amount_paid_cents > 0 ? "text-success" : "text-muted-foreground"}>
+                    {formatCurrency(inv.amount_paid_cents)}
+                  </TableCell>
                   <TableCell>
                     <Select
                       value={inv.status}
@@ -171,11 +206,31 @@ export default function Invoices() {
                       <SelectContent>
                         {STATUSES.map((s) => (
                           <SelectItem key={s} value={s}>
-                            {s}
+                            {STATUS_LABEL[s]}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={sendInvoiceEmail.isPending || inv.status === "paid"}
+                        onClick={() => handleSend(inv.id)}
+                      >
+                        <CreditCard /> {inv.status === "draft" ? "Send" : "Resend"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Copy payment link"
+                        onClick={() => copyLink(inv.pay_token)}
+                      >
+                        <Copy className="size-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <DeleteButton
