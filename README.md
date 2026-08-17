@@ -80,6 +80,16 @@ supabase functions deploy google-oauth-start
 supabase functions deploy google-oauth-callback
 ```
 
+`supabase/config.toml` marks `google-oauth-callback`, `quote-response`,
+`available-slots`, `book-slot`, `twilio-voice`, and `twilio-sms` as
+`verify_jwt = false` — those are hit by Google's redirect, Twilio's
+webhook servers, or an anonymous visitor, none of whom have a Supabase
+login. Supabase's platform gateway rejects unauthenticated requests by
+default (`UNAUTHORIZED_NO_AUTH_HEADER`) unless a function is explicitly
+marked this way, so deploying straight from this repo (where the file
+already exists) handles it automatically — you don't need to pass
+`--no-verify-jwt` by hand.
+
 Then set these as **Edge Function secrets** (Project Settings → Edge
 Functions → Secrets, or `supabase secrets set KEY=value`):
 

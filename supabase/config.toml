@@ -1,0 +1,32 @@
+# Project Flow — Supabase CLI config.
+# Declares which Edge Functions should skip Supabase's platform-level JWT
+# check, so `supabase functions deploy <name>` does the right thing without
+# needing --no-verify-jwt remembered by hand every time.
+#
+# verify_jwt = false: called by someone who will never have a Supabase
+# session — Google's OAuth redirect, Twilio's webhook servers, or an
+# anonymous visitor on the public /q/:token quote page.
+#
+# Functions left out of this file (send-quote-email, send-job-reminder,
+# google-oauth-start) keep the default verify_jwt = true, since those are
+# only ever called from inside the app by a signed-in owner.
+
+project_id = "gkzddhskefldotphilif"
+
+[functions.google-oauth-callback]
+verify_jwt = false
+
+[functions.quote-response]
+verify_jwt = false
+
+[functions.available-slots]
+verify_jwt = false
+
+[functions.book-slot]
+verify_jwt = false
+
+[functions.twilio-voice]
+verify_jwt = false
+
+[functions.twilio-sms]
+verify_jwt = false
