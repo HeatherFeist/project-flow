@@ -7,6 +7,7 @@ export interface Profile {
   business_name: string | null;
   phone: string | null;
   email: string | null;
+  service_area: string | null;
   is_exempt: boolean;
   created_at: string;
 }

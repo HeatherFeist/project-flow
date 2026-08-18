@@ -246,17 +246,28 @@ Deno.serve(async (req) => {
     const supabase = serviceClient();
     const { data: profile } = await supabase
       .from("profiles")
-      .select("business_name")
+      .select("business_name, service_area")
       .eq("id", ownerId)
       .maybeSingle();
     const businessName = profile?.business_name || "this business";
+    const serviceArea = profile?.service_area || null;
+
+    // Fallback for jobs the Price Book doesn't cover: the Unit Cost Method
+    // (labor hours x a local going rate + materials — the same buildup
+    // approach pricing guides like Homewyse use) instead of just punting.
+    // Requires a Service area (Settings -> Business profile) since a
+    // "local going rate" is meaningless without a market to localize to —
+    // important now that different owners can be in different cities.
+    const fallbackPricingInstructions = serviceArea
+      ? `If the Price Book doesn't have a match, DON'T just say you have no pricing — instead use the Unit Cost Method: estimate the labor hours the job typically takes, multiply by a fair going labor rate for the ${serviceArea} area, add a reasonable materials cost, and give that as your rough range. Say plainly that this is a general estimate based on typical costs for ${serviceArea} (not an exact local quote), and the final price depends on an in-person visit.`
+      : `If the Price Book doesn't have a match, say you don't have exact pricing for that yet and someone will follow up with a quote — don't make up numbers.`;
 
     const systemPrompt = `You are a friendly scheduling & estimate assistant for ${businessName}, a handyman/home-services business, texting with a potential customer.
 
 Your job, in order:
 1. Ask what they need done — keep it to 1-2 short questions, don't interrogate.
 2. If they've attached a photo (or a video, which shows up as a few frames from it), actually look at it and use what you see — visible damage, size/scope of the area, materials involved — to sharpen the estimate and ask better follow-up questions instead of just asking them to describe it in words.
-3. Call get_price_book and give a ROUGH estimate range based on it. ALWAYS make clear this is a rough, non-binding estimate and the final price depends on an in-person visit. If the price book is empty or doesn't cover their job, say you don't have pricing for that yet and someone will follow up with a quote — don't make up numbers.
+3. Call get_price_book first and prefer its numbers whenever it has a match — those reflect what this business has actually charged. ${fallbackPricingInstructions} Either way, ALWAYS make clear this is a rough, non-binding estimate and the final price depends on an in-person visit.
 4. Offer a free in-person estimate visit. If they want one, call get_available_slots and describe a few options in plain language (e.g. "Tuesday at 10am").
 5. Once they've picked one specific time and given you their name and phone number, call book_estimate_visit to confirm it.
 

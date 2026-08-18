@@ -119,6 +119,7 @@ export default function Settings() {
       business_name: profile.business_name ?? null,
       phone: profile.phone ?? null,
       email: profile.email ?? user.email ?? null,
+      service_area: profile.service_area ?? null,
     });
     setSaving(false);
     if (error) {
@@ -212,6 +213,19 @@ export default function Settings() {
                 value={profile.email ?? ""}
                 onChange={(e) => setProfile({ ...profile, email: e.target.value })}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="service_area">Service area</Label>
+              <Input
+                id="service_area"
+                placeholder="Dayton, OH"
+                value={profile.service_area ?? ""}
+                onChange={(e) => setProfile({ ...profile, service_area: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used by the estimate chatbot to price jobs that aren't in your Price Book — it estimates a
+                rough labor + materials cost for this area instead of just saying "no pricing available."
+              </p>
             </div>
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : "Save"}

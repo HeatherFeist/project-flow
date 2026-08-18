@@ -233,8 +233,21 @@ recognition (no setup, hidden automatically in browsers without support).
 
 Homewyse has no public API or licensed data feed for third-party apps, so
 the Price Book is a business-owned reference table instead (Settings →
-Price Book, or the sidebar) — seed it with the built-in starter items and
-adjust them to match real rates, or build it from scratch.
+Price Book, or the sidebar) — seed it with the built-in starter items,
+import real historical prices from a Jobber (or other tool) CSV export, or
+build it from scratch.
+
+**Fallback pricing for jobs not in the Price Book — the Unit Cost Method.**
+The Price Book is always checked first and preferred when it has a match.
+When it doesn't, the chatbot builds a rough estimate itself using the Unit
+Cost Method — the same buildup approach pricing guides like Homewyse use:
+estimated labor hours × a fair going rate for your **Service area**, plus a
+reasonable materials cost. Set your Service area in **Settings → Business
+profile** (e.g. "Dayton, OH") — without it, the chatbot has no market to
+localize rates to and just says it doesn't have pricing yet instead. This
+is a *reasoned* estimate from Claude's general knowledge of regional costs,
+not a live local pricing feed — always shown as rough and non-binding, same
+as a Price Book match.
 
 **1. Get an Anthropic API key**
 
@@ -269,7 +282,9 @@ size limit and an image/video-only allow-list) and adds `photo_urls` to
 
 In the app, go to **Price Book → Load starter items** for a reasonable
 starting point (general handyman labor, common plumbing/electrical/carpentry
-jobs), then edit anything that doesn't match real rates.
+jobs), then edit anything that doesn't match real rates. Also run
+[`docs/schema_v10_service_area.sql`](docs/schema_v10_service_area.sql) and
+set a Service area in Settings so the Unit Cost Method fallback above works.
 
 That's it — the chat link is already wired into the Twilio missed-call and
 new-text auto-replies from the section above, and is also shown (with a
@@ -612,4 +627,5 @@ docs/schema_v6_stripe_payments.sql Invoice pay tokens/amount_paid, invoice_payme
 docs/schema_v7_paypal_payments.sql Adds provider/paypal_order_id to invoice_payments
 docs/schema_v8_estimate_uploads.sql Public estimate-uploads Storage bucket, jobs.photo_urls
 docs/schema_v9_platform_subscriptions.sql subscriptions table, profiles.is_exempt comp flag
+docs/schema_v10_service_area.sql Adds profiles.service_area, for the Unit Cost Method pricing fallback
 ```
