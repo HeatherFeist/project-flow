@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +10,9 @@ import {
   LogOut,
   Sparkles,
   Tags,
+  Menu,
+  ChevronLeft,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -29,11 +33,97 @@ const NAV_ITEMS = [
 export function AppLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the mobile drawer automatically whenever the route changes (link
+  // tap, back button, etc.) so it never lingers open over the new page.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
+  const currentLabel = NAV_ITEMS.find((item) =>
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
+  )?.label;
+
+  async function handleSignOut() {
+    await signOut();
+    navigate("/login");
+  }
 
   return (
-    <div className="flex min-h-svh w-full">
+    <div className="flex min-h-svh w-full flex-col sm:flex-row">
+      {/* Mobile top bar — the only nav entry point on small screens, since
+          the sidebar below is hidden here. Gives a back button (when not
+          on a top-level page) plus a hamburger menu to jump anywhere. */}
+      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-card px-2 sm:hidden">
+        {location.pathname !== "/" ? (
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} title="Back">
+            <ChevronLeft className="size-5" />
+          </Button>
+        ) : (
+          <Sparkles className="ml-2 size-5 text-primary" />
+        )}
+        <span className="flex-1 truncate text-center font-medium">
+          {currentLabel ?? "Project Flow"}
+        </span>
+        <Button variant="ghost" size="icon" onClick={() => setMenuOpen(true)} title="Menu">
+          <Menu className="size-5" />
+        </Button>
+      </header>
+
+      {/* Mobile menu drawer */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-40 sm:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
+          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-card shadow-xl">
+            <div className="flex items-center justify-between gap-2 px-4 py-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-5 text-primary" />
+                <span className="gradient-text font-semibold">Project Flow</span>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => setMenuOpen(false)} title="Close menu">
+                <X className="size-4" />
+              </Button>
+            </div>
+            <nav className="flex-1 space-y-1 px-2">
+              {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-secondary text-secondary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    )
+                  }
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </NavLink>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2 border-t px-4 py-3">
+              <Avatar className="size-8">
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{user?.email}</p>
+              </div>
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
+                <LogOut className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-card sm:flex">
         <div className="flex items-center gap-2 px-4 py-4">
           <Sparkles className="size-5 text-primary" />
@@ -67,15 +157,7 @@ export function AppLayout() {
             <p className="truncate text-sm font-medium">{user?.email}</p>
           </div>
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={async () => {
-              await signOut();
-              navigate("/login");
-            }}
-            title="Sign out"
-          >
+          <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
             <LogOut className="size-4" />
           </Button>
         </div>
