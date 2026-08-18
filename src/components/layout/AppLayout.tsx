@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { HelpChatWidget } from "@/components/HelpChatWidget";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
@@ -167,6 +168,7 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      <HelpChatWidget />
     </div>
   );
 }

@@ -524,6 +524,28 @@ update profiles set is_exempt = true where id = '<your user id>';
 When ready for real billing, swap the test-mode `PLATFORM_STRIPE_SECRET_KEY`
 for the live key and repeat the webhook step for live mode.
 
+### In-app help chatbot (site navigation + renovation Q&A)
+
+A small chat widget (the ? bubble, bottom-right on every page once you're
+signed in) — separate from the public estimate chatbot. It's for **you**,
+not your customers: ask it how to do something in the app ("how do I
+import my old invoices?") and it answers with the right page and a
+clickable link, or ask it a general renovation/repair question ("what
+order should a bathroom remodel happen in?") and it answers from general
+knowledge, flagging anything structural/electrical/plumbing/permit-related
+as something to confirm with a licensed pro and local codes. It doesn't
+touch your business data — no price book, no client info — so nothing new
+to secure there.
+
+**Supabase Edge Function**
+
+```bash
+supabase functions deploy app-help-chat
+```
+
+No new secret needed — it reuses `ANTHROPIC_API_KEY` from the estimate
+chatbot setup above. No schema migration either.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -618,6 +640,7 @@ supabase/functions/
   create-subscription-checkout/    auth required: starts the platform $49/mo subscription checkout
   create-billing-portal-session/   auth required: opens Stripe's Billing Portal for the owner
   platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
+  app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
