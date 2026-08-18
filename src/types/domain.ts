@@ -7,7 +7,25 @@ export interface Profile {
   business_name: string | null;
   phone: string | null;
   email: string | null;
+  is_exempt: boolean;
   created_at: string;
+}
+
+export type SubscriptionStatus =
+  | "incomplete"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid";
+
+export interface Subscription {
+  owner_id: string;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  status: SubscriptionStatus;
+  current_period_end: string | null;
+  updated_at: string;
 }
 
 export type ClientSource = "manual" | "missed_call" | "inbound_text" | "import" | "chatbot";

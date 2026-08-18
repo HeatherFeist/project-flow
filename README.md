@@ -438,6 +438,77 @@ need reconciling from the PayPal dashboard. Acceptable for now; a PayPal
 webhook could be added later for extra robustness if this turns out to
 matter in practice.
 
+### Platform subscription billing (charging owners $49/mo to use Project Flow)
+
+This is different from the two Stripe/PayPal sections above — those move
+money from a business owner's *customers* to *that owner*, through an
+account each owner controls. This section is the other direction: Project
+Flow charging **business owners** to use the app itself, through **your
+own, separate Stripe account** for the product. Don't reuse Nick's Stripe
+keys here — set up a distinct Stripe account for Project Flow the product.
+
+**1. Stripe**
+
+1. Sign up for a **new** Stripe account at
+   [dashboard.stripe.com](https://dashboard.stripe.com) — this is the
+   platform's account, not any individual owner's.
+2. Create a **Product** (Product catalog → + Add product), e.g. "Project
+   Flow subscription", with a **recurring Price**: $49.00/month. Copy that
+   price's ID (starts with `price_...`).
+3. Get the **Secret key** (Developers → API keys) — test mode first.
+
+**2. Supabase Edge Functions**
+
+```bash
+supabase functions deploy create-subscription-checkout
+supabase functions deploy create-billing-portal-session
+supabase functions deploy platform-stripe-webhook
+```
+
+Set these secrets:
+
+```
+PLATFORM_STRIPE_SECRET_KEY=sk_...
+PLATFORM_STRIPE_PRICE_ID=price_...
+```
+
+**3. Add the webhook**
+
+In the **platform** Stripe Dashboard (not Nick's) → Developers → Webhooks
+→ **Add endpoint**:
+- URL: `https://<project-ref>.supabase.co/functions/v1/platform-stripe-webhook`
+- Events to send: `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`
+
+Copy that endpoint's **signing secret** and set it:
+
+```
+PLATFORM_STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+**4. Turn on Stripe's Customer Portal**
+
+Settings → Billing → Customer portal, in the platform Stripe Dashboard —
+turn it on (needed for the "Manage billing" button to work) and enable
+"Customers can cancel subscriptions".
+
+**5. Run the extra schema migration**
+
+Run [`docs/schema_v9_platform_subscriptions.sql`](docs/schema_v9_platform_subscriptions.sql)
+— adds the `subscriptions` table and a `profiles.is_exempt` flag.
+
+That's it — any signed-in owner without an active subscription gets
+redirected to `/subscribe`; after paying, the webhook flips their status to
+`active` and they're back in. **To comp your own account** (or anyone
+else's) without paying, run in the Supabase SQL editor:
+
+```sql
+update profiles set is_exempt = true where id = '<your user id>';
+```
+
+When ready for real billing, swap the test-mode `PLATFORM_STRIPE_SECRET_KEY`
+for the live key and repeat the webhook step for live mode.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -529,6 +600,9 @@ supabase/functions/
   stripe-webhook/       public (Stripe-signature verified): records payments, updates invoice status
   create-paypal-order/  public: creates a PayPal order for a chosen amount
   capture-paypal-order/ public: captures the order on redirect-back, records the payment
+  create-subscription-checkout/    auth required: starts the platform $49/mo subscription checkout
+  create-billing-portal-session/   auth required: opens Stripe's Billing Portal for the owner
+  platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
@@ -537,4 +611,5 @@ docs/schema_v5_price_book_chat.sql Price Book table
 docs/schema_v6_stripe_payments.sql Invoice pay tokens/amount_paid, invoice_payments table
 docs/schema_v7_paypal_payments.sql Adds provider/paypal_order_id to invoice_payments
 docs/schema_v8_estimate_uploads.sql Public estimate-uploads Storage bucket, jobs.photo_urls
+docs/schema_v9_platform_subscriptions.sql subscriptions table, profiles.is_exempt comp flag
 ```

@@ -4,8 +4,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { RequireSubscription } from "@/components/layout/RequireSubscription";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
+import Subscribe from "@/pages/Subscribe";
 import Dashboard from "@/pages/Dashboard";
 import Clients from "@/pages/Clients";
 import ClientDetail from "@/pages/ClientDetail";
@@ -36,9 +38,19 @@ function App() {
               <Route path="/embed-guide/:ownerId" element={<EmbedGuide />} />
               <Route path="/pay/:token" element={<PayInvoice />} />
               <Route
+                path="/subscribe"
                 element={
                   <ProtectedRoute>
-                    <AppLayout />
+                    <Subscribe />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <RequireSubscription>
+                      <AppLayout />
+                    </RequireSubscription>
                   </ProtectedRoute>
                 }
               >

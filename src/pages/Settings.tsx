@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { connectGoogle } from "@/lib/googleAuth";
 import { useGoogleConnection, useSaveSchedulingSettings, useSchedulingSettings } from "@/hooks/useScheduling";
 import { useSaveTwilioSettings, useTwilioSettings } from "@/hooks/useTwilio";
+import { useCreateBillingPortalSession, useSubscription } from "@/hooks/useSubscription";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,6 +49,9 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+
+  const { data: subscriptionData, isLoading: subscriptionLoading } = useSubscription(user?.id);
+  const billingPortal = useCreateBillingPortalSession();
 
   const {
     data: googleConnection,
@@ -213,6 +217,52 @@ export default function Settings() {
               {saving ? "Saving…" : "Save"}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Billing</CardTitle>
+          <CardDescription>Your Project Flow subscription.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 pb-6">
+          {subscriptionLoading ? (
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          ) : subscriptionData?.isExempt ? (
+            <p className="text-sm text-muted-foreground">This account has complimentary access.</p>
+          ) : subscriptionData?.isActive ? (
+            <>
+              <p className="text-sm">
+                <span className="font-medium text-foreground">Active</span> — $49/month
+                {subscriptionData.subscription?.current_period_end
+                  ? `, renews ${new Date(subscriptionData.subscription.current_period_end).toLocaleDateString()}`
+                  : ""}
+                .
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={billingPortal.isPending}
+                onClick={async () => {
+                  try {
+                    const { url } = await billingPortal.mutateAsync();
+                    window.location.href = url;
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Couldn't open billing portal");
+                  }
+                }}
+              >
+                {billingPortal.isPending ? "Opening…" : "Manage billing"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">No active subscription.</p>
+              <Button type="button" asChild>
+                <a href="/subscribe">Subscribe — $49/mo</a>
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
 
