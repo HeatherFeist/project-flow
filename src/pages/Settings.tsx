@@ -247,11 +247,23 @@ export default function Settings() {
           ) : subscriptionData?.isActive ? (
             <>
               <p className="text-sm">
-                <span className="font-medium text-foreground">Active</span> — $49/month
-                {subscriptionData.subscription?.current_period_end
-                  ? `, renews ${new Date(subscriptionData.subscription.current_period_end).toLocaleDateString()}`
-                  : ""}
-                .
+                {subscriptionData.subscription?.status === "trialing" ? (
+                  <>
+                    <span className="font-medium text-foreground">Free trial</span> — $49/month starts
+                    {subscriptionData.subscription?.current_period_end
+                      ? ` ${new Date(subscriptionData.subscription.current_period_end).toLocaleDateString()}`
+                      : " soon"}
+                    .
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium text-foreground">Active</span> — $49/month
+                    {subscriptionData.subscription?.current_period_end
+                      ? `, renews ${new Date(subscriptionData.subscription.current_period_end).toLocaleDateString()}`
+                      : ""}
+                    .
+                  </>
+                )}
               </p>
               <Button
                 type="button"

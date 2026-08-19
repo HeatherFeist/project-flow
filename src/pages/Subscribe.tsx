@@ -42,15 +42,17 @@ export default function Subscribe() {
         <CardHeader className="text-center">
           <Sparkles className="mx-auto size-8 text-primary" />
           <CardTitle className="text-2xl">Subscribe to Project Flow</CardTitle>
-          <p className="text-muted-foreground">$49/month, cancel anytime.</p>
+          <p className="text-muted-foreground">
+            {data?.subscription?.stripe_subscription_id
+              ? "$49/month, cancel anytime."
+              : "7 days free, then $49/month — cancel anytime."}
+          </p>
         </CardHeader>
         <CardContent className="space-y-5 pb-6">
           {justPaid ? (
             <div className="flex flex-col items-center gap-2 py-4 text-center">
               <Loader2 className="size-6 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">
-                Payment received — activating your account…
-              </p>
+              <p className="text-sm text-muted-foreground">Setting up your account…</p>
             </div>
           ) : (
             <>
@@ -68,10 +70,15 @@ export default function Subscribe() {
                 onClick={handleSubscribe}
                 disabled={createCheckout.isPending || isLoading}
               >
-                {createCheckout.isPending ? "Redirecting to checkout…" : "Subscribe — $49/mo"}
+                {createCheckout.isPending
+                  ? "Redirecting to checkout…"
+                  : data?.subscription?.stripe_subscription_id
+                    ? "Subscribe — $49/mo"
+                    : "Start 7-day free trial"}
               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                Payment is handled securely by Stripe. You'll be redirected here after checkout.
+                Payment is handled securely by Stripe. A card is required to start the trial, but you
+                won't be charged until it ends — cancel anytime before then from Settings → Billing.
               </p>
             </>
           )}

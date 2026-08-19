@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const { data: existing } = await supabase
       .from("subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, stripe_subscription_id")
       .eq("owner_id", ownerId)
       .maybeSingle();
 
@@ -46,6 +46,11 @@ Deno.serve(async (req) => {
       await supabase.from("subscriptions").upsert({ owner_id: ownerId, stripe_customer_id: customerId });
     }
 
+    // 7-day free trial, but only the first time this owner ever subscribes
+    // — if they've had a real Stripe subscription before (even a canceled
+    // one), don't hand out another trial on resubscribe.
+    const trialDays = existing?.stripe_subscription_id ? undefined : 7;
+
     const siteUrl = Deno.env.get("SITE_URL") ?? "";
     const session = await createSubscriptionCheckoutSession({
       customerId,
@@ -53,6 +58,7 @@ Deno.serve(async (req) => {
       successUrl: `${siteUrl}/subscribe?success=1`,
       cancelUrl: `${siteUrl}/subscribe`,
       ownerId,
+      trialDays,
     });
 
     return new Response(JSON.stringify({ url: session.url }), { headers: jsonHeaders });

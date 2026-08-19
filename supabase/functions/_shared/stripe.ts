@@ -148,6 +148,7 @@ export async function createSubscriptionCheckoutSession(params: {
   successUrl: string;
   cancelUrl: string;
   ownerId: string;
+  trialDays?: number;
 }): Promise<{ id: string; url: string }> {
   const secretKey = platformSecretKey();
   const body = new URLSearchParams();
@@ -158,6 +159,14 @@ export async function createSubscriptionCheckoutSession(params: {
   body.set("line_items[0][price]", params.priceId);
   body.set("line_items[0][quantity]", "1");
   body.set(`subscription_data[metadata][owner_id]`, params.ownerId);
+  if (params.trialDays) {
+    body.set("subscription_data[trial_period_days]", String(params.trialDays));
+    // Card is still collected at signup (Checkout always requires a
+    // payment method for a subscription), it's just not charged until the
+    // trial ends — if the card fails once the trial's up, cancel instead
+    // of leaving them in limbo.
+    body.set("subscription_data[trial_settings][end_behavior][missing_payment_method]", "cancel");
+  }
   return stripePost("checkout/sessions", body, secretKey);
 }
 

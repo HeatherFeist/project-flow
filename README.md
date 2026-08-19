@@ -462,6 +462,12 @@ Flow charging **business owners** to use the app itself, through **your
 own, separate Stripe account** for the product. Don't reuse Nick's Stripe
 keys here — set up a distinct Stripe account for Project Flow the product.
 
+Includes a **7-day free trial** — a card is required to start it (Stripe
+Checkout always collects one for a subscription), but nothing is charged
+until the trial ends, and it auto-cancels instead of charging if the card
+fails at that point. The trial is only granted the first time an owner
+subscribes — if they cancel and come back later, it's a normal paid start.
+
 **1. Stripe**
 
 1. Sign up for a **new** Stripe account at
