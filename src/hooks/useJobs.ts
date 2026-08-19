@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { resolveClientIds } from "@/lib/importClientMatching";
+import { edgeFunctionErrorMessage } from "@/lib/utils";
 import type { Job, JobNote, JobStatus } from "@/types/domain";
 
 export interface JobImportRow {
@@ -97,7 +98,7 @@ export function useCreateJobWithCalendarSync() {
         "create-job",
         { body: input, headers: { Authorization: `Bearer ${sessionData.session?.access_token}` } },
       );
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (!data || (data as unknown as { error?: string }).error) {
         throw new Error((data as unknown as { error?: string })?.error ?? "Failed to create job");
       }

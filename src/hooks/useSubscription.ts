@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { edgeFunctionErrorMessage } from "@/lib/utils";
 import type { Subscription } from "@/types/domain";
 
 const ACTIVE_STATUSES = new Set(["active", "trialing"]);
@@ -32,7 +33,7 @@ export function useCreateSubscriptionCheckout() {
       const { data, error } = await supabase.functions.invoke("create-subscription-checkout", {
         headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
       return data as { url: string };
     },
@@ -46,7 +47,7 @@ export function useCreateBillingPortalSession() {
       const { data, error } = await supabase.functions.invoke("create-billing-portal-session", {
         headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
       return data as { url: string };
     },

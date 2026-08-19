@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { edgeFunctionErrorMessage } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/functions";
 
 // The in-app help assistant (site navigation + general renovation
@@ -14,7 +15,7 @@ export function useHelpChat() {
         body: { messages },
         headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (!data || (data as unknown as { error?: string }).error) {
         throw new Error((data as unknown as { error?: string })?.error ?? "Failed to reach the help assistant");
       }

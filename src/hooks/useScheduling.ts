@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { edgeFunctionErrorMessage } from "@/lib/utils";
 import type { GoogleConnection, SchedulingSettings } from "@/types/domain";
 
 const DEFAULT_SETTINGS: Omit<SchedulingSettings, "user_id"> = {
@@ -67,7 +68,7 @@ export function useSendQuoteEmail() {
         body: { quoteId },
         headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
       return data;
     },
