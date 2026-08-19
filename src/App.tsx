@@ -5,9 +5,11 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { RequireSubscription } from "@/components/layout/RequireSubscription";
+import { RequireOnboarding } from "@/components/layout/RequireOnboarding";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Subscribe from "@/pages/Subscribe";
+import Onboarding from "@/pages/Onboarding";
 import Dashboard from "@/pages/Dashboard";
 import Clients from "@/pages/Clients";
 import ClientDetail from "@/pages/ClientDetail";
@@ -46,10 +48,22 @@ function App() {
                 }
               />
               <Route
+                path="/onboarding"
                 element={
                   <ProtectedRoute>
                     <RequireSubscription>
-                      <AppLayout />
+                      <Onboarding />
+                    </RequireSubscription>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <RequireSubscription>
+                      <RequireOnboarding>
+                        <AppLayout />
+                      </RequireOnboarding>
                     </RequireSubscription>
                   </ProtectedRoute>
                 }

@@ -9,6 +9,7 @@ export interface Profile {
   email: string | null;
   service_area: string | null;
   is_exempt: boolean;
+  onboarding_completed: boolean;
   created_at: string;
 }
 

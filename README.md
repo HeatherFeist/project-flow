@@ -552,6 +552,30 @@ supabase functions deploy app-help-chat
 No new secret needed — it reuses `ANTHROPIC_API_KEY` from the estimate
 chatbot setup above. No schema migration either.
 
+### Onboarding wizard (new owners, right after their trial starts)
+
+A short guided setup a brand-new owner sees once, right after subscribing
+(before the first Dashboard view) — no code/secrets needed, pure frontend:
+1. **Business info** — name, phone, contact email, service area (same
+   fields as Settings → Business profile).
+2. **Bring your data over** — if they're coming from Jobber or another
+   tool, the same CSV importers used elsewhere (Clients, Jobs, Quotes,
+   Price Book history) right inline, or skip if starting fresh.
+3. **Connect the essentials** — a plain-language rundown of Google
+   Calendar/Gmail, Twilio, and Payments, pointing at Settings for each
+   (optional, skippable).
+
+Run [`docs/schema_v10_service_area.sql`](docs/schema_v10_service_area.sql)
+and [`docs/schema_v11_onboarding.sql`](docs/schema_v11_onboarding.sql) if
+you haven't already — the second one adds `profiles.onboarding_completed`
+(backfilled to `true` for existing accounts, so this never re-triggers for
+Nick's own account) and is what the wizard flips once someone finishes or
+you can flip manually to skip it for an account:
+
+```sql
+update profiles set onboarding_completed = true where id = '<user id>';
+```
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -657,4 +681,5 @@ docs/schema_v7_paypal_payments.sql Adds provider/paypal_order_id to invoice_paym
 docs/schema_v8_estimate_uploads.sql Public estimate-uploads Storage bucket, jobs.photo_urls
 docs/schema_v9_platform_subscriptions.sql subscriptions table, profiles.is_exempt comp flag
 docs/schema_v10_service_area.sql Adds profiles.service_area, for the Unit Cost Method pricing fallback
+docs/schema_v11_onboarding.sql   Adds profiles.onboarding_completed, for the setup wizard
 ```
