@@ -21,6 +21,7 @@ import InvoiceDetail from "@/pages/InvoiceDetail";
 import SettingsPage from "@/pages/Settings";
 import PublicQuote from "@/pages/PublicQuote";
 import PriceBook from "@/pages/PriceBook";
+import Materials from "@/pages/Materials";
 import EstimateChat from "@/pages/EstimateChat";
 import EmbedGuide from "@/pages/EmbedGuide";
 import PayInvoice from "@/pages/PayInvoice";
@@ -86,6 +87,7 @@ function App() {
                 <Route path="/invoices" element={<Invoices />} />
                 <Route path="/invoices/:id" element={<InvoiceDetail />} />
                 <Route path="/price-book" element={<PriceBook />} />
+                <Route path="/materials" element={<Materials />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Routes>

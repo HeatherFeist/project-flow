@@ -797,6 +797,29 @@ supabase functions deploy send-review-request
 
 No new secrets.
 
+### Materials catalog (separate from the Price Book)
+
+The Price Book is what you **charge customers** per job type; **Materials**
+(`/materials`) is what you **pay suppliers** for parts/supplies — a
+separate catalog with product name, category, supplier, SKU/item #, cost,
+unit, and an optional product-page URL so reordering the exact same item
+later on homedepot.com/lowes.com is one click instead of a re-search.
+
+**No live Home Depot/Lowe's API** — neither retailer offers one to third
+parties, and scraping their sites isn't something this app will do (against
+their Terms of Service, fragile, and risks getting blocked). Instead:
+
+- **Add manually** as you go, or
+- **Import a CSV** — if Nick has a Home Depot Pro Xtra or Lowe's Pro
+  account, both let you export purchase history to CSV. Same
+  upload → map columns → preview → import pattern as the other importers
+  in the app.
+
+**Run the schema migration**
+
+Run [`docs/schema_v19_materials.sql`](docs/schema_v19_materials.sql) —
+creates the `materials` table. No edge function, no secret.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -916,4 +939,5 @@ docs/schema_v15_job_photos.sql   Public job-photos Storage bucket, owner-writabl
 docs/schema_v16_job_photo_gallery.sql job_photos table, jobs.photo_share_token
 docs/schema_v17_client_portal.sql client_portal_login_tokens, client_portal_sessions, service_requests
 docs/schema_v18_client_messages.sql client_messages table (structured communications log)
+docs/schema_v19_materials.sql    materials table (separate catalog from Price Book)
 ```

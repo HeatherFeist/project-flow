@@ -10,6 +10,7 @@ import {
   LogOut,
   Sparkles,
   Tags,
+  Package,
   Menu,
   ChevronLeft,
   X,
@@ -28,6 +29,7 @@ const NAV_ITEMS = [
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/invoices", label: "Invoices", icon: Receipt },
   { to: "/price-book", label: "Price Book", icon: Tags },
+  { to: "/materials", label: "Materials", icon: Package },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -87,6 +87,18 @@ export const QUOTE_FIELD_KEYWORDS: Record<string, string[]> = {
   date: ["date", "quote date", "created date", "sent date"],
 };
 
+// For importing a materials/purchase-history export (e.g. from a Home
+// Depot Pro Xtra or Lowe's Pro account) into the Materials catalog.
+export const MATERIALS_FIELD_KEYWORDS: Record<string, string[]> = {
+  name: ["item", "item name", "product", "product name", "description", "material"],
+  category: ["category", "department", "type"],
+  supplier: ["supplier", "store", "vendor", "retailer"],
+  sku: ["sku", "item #", "item number", "model", "model #", "product id", "upc"],
+  unit: ["unit", "uom", "unit of measure"],
+  cost: ["cost", "price", "unit price", "amount", "unit cost"],
+  productUrl: ["url", "link", "product url", "product link"],
+};
+
 export function guessColumnMapping(headers: string[], fieldKeywords: Record<string, string[]> = CLIENT_FIELD_KEYWORDS) {
   const normalized = headers.map((h) => h.trim().toLowerCase());
   const mapping: Record<string, string | null> = {};

@@ -152,6 +152,23 @@ export interface PriceBookItem {
   created_at: string;
 }
 
+// Separate from the Price Book: the Price Book is what you charge
+// customers per job type; this is what you pay for supplies — a
+// reorder-ready catalog with supplier + SKU/product link.
+export interface Material {
+  id: string;
+  owner_id: string;
+  name: string;
+  category: string | null;
+  supplier: string | null;
+  sku: string | null;
+  unit: string;
+  cost_cents: number;
+  product_url: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
 export interface Invoice {
   id: string;
   owner_id: string;
