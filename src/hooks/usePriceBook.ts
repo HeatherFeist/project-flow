@@ -134,3 +134,38 @@ export function useImportPriceHistory() {
     },
   });
 }
+
+// Imports service line items read off a photographed past invoice (see
+// extract-invoice-items) — a single exact price per item, unlike the CSV
+// price-history import above which groups repeated charges into a
+// low/high range. Stored as low_cents === high_cents so it's still a
+// valid range, just a zero-width one until edited.
+export function useImportScannedPriceBookItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ownerId,
+      items,
+    }: {
+      ownerId: string;
+      items: { category: string; itemName: string; unit: PriceBookItem["unit"]; priceCents: number }[];
+    }) => {
+      const rows = items.map((item) => ({
+        owner_id: ownerId,
+        category: item.category,
+        item_name: item.itemName,
+        unit: item.unit,
+        low_cents: item.priceCents,
+        high_cents: item.priceCents,
+        notes: "From a scanned past invoice",
+      }));
+      if (rows.length === 0) return 0;
+      const { error } = await supabase.from("price_book_items").insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["price_book", variables.ownerId] });
+    },
+  });
+}

@@ -840,6 +840,35 @@ supabase functions deploy extract-receipt-items
 No new secret — it reuses `ANTHROPIC_API_KEY` from the estimate chatbot
 setup. No schema migration.
 
+### Scan old invoices into the Price Book automatically
+
+Companion feature to the receipt scanner above, but for the other side of
+the ledger: **Price Book → "Scan old invoice"** lets you photograph (or
+upload a photo of) a past paper invoice, and Claude's vision reads off
+every billed service line item — description, price, and a best-guess
+category and unit (flat/per hour/per sq ft/per linear ft). Same
+review-before-saving pattern as receipts: nothing lands in the Price Book
+until you've checked the extracted rows (editable, with a checkbox per
+row to drop anything that isn't real billed labor), so a misread price or
+a stray subtotal line never sneaks in.
+
+This is the AI-extraction counterpart to the CSV price-history importer
+already in Price Book and the onboarding wizard — use CSV import if you
+already have exported invoice data in spreadsheet form (it's exact,
+zero-guessing), and use this when all you have is old paper/PDF invoices
+with no digital export to work from. Each scanned item is added at its
+exact price (not a range) — edit the low/high spread afterward if you'd
+rather it reflect several jobs instead of one.
+
+**1. Supabase Edge Function**
+
+```bash
+supabase functions deploy extract-invoice-items
+```
+
+No new secret — it reuses `ANTHROPIC_API_KEY` from the estimate chatbot
+setup. No schema migration.
+
 ### AI project visualizations on quotes ("what it'll look like when done")
 
 Upload a photo of the space (a bathroom, say) plus optional reference
@@ -1072,6 +1101,7 @@ supabase/functions/
   portal-dashboard/      public (session-scoped): jobs/quotes/invoices for the portal
   portal-request-service/ public (session-scoped): logs a client's "I'd also like..." request
   extract-receipt-items/ auth required: Claude vision pulls line items off a receipt photo
+  extract-invoice-items/ auth required: Claude vision pulls service line items off a photographed old invoice
   generate-quote-visualization/ auth required: Gemini image model generates an "after" visualization
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens

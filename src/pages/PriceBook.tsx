@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus, Sparkles } from "lucide-react";
+import { Loader2, Pencil, Plus, ScanLine, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useCreatePriceBookItem,
@@ -9,6 +9,8 @@ import {
   useSeedStarterPriceBook,
   useUpdatePriceBookItem,
 } from "@/hooks/usePriceBook";
+import { useExtractInvoiceItems, type ExtractedInvoice } from "@/hooks/useInvoiceScanExtraction";
+import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
 import type { PriceBookItem, PriceUnit } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportPriceHistoryDialog } from "@/components/ImportPriceHistoryDialog";
+import { InvoiceScanReviewDialog } from "@/components/InvoiceScanReviewDialog";
 import {
   Dialog,
   DialogContent,
@@ -40,9 +43,13 @@ export default function PriceBook() {
   const updateItem = useUpdatePriceBookItem();
   const deleteItem = useDeletePriceBookItem();
   const seedStarter = useSeedStarterPriceBook();
+  const extractInvoiceItems = useExtractInvoiceItems();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PriceBookItem | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [scanning, setScanning] = useState(false);
+  const [scanReview, setScanReview] = useState<ExtractedInvoice | null>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   function openCreate() {
     setEditing(null);
@@ -100,6 +107,27 @@ export default function PriceBook() {
     }
   }
 
+  async function handleInvoiceScanSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setScanning(true);
+    try {
+      const [blob] = await fileToImageBlobs(file);
+      const base64 = await blobToBase64(blob);
+      const extracted = await extractInvoiceItems.mutateAsync({ imageBase64: base64, mediaType: "image/jpeg" });
+      if (extracted.items.length === 0) {
+        toast.info("No service line items found on that invoice.");
+      } else {
+        setScanReview(extracted);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to read invoice");
+    } finally {
+      setScanning(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -116,6 +144,18 @@ export default function PriceBook() {
             </Button>
           )}
           <ImportPriceHistoryDialog />
+          <input
+            ref={scanInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleInvoiceScanSelected}
+          />
+          <Button variant="outline" onClick={() => scanInputRef.current?.click()} disabled={scanning}>
+            {scanning ? <Loader2 className="animate-spin" /> : <ScanLine />}
+            {scanning ? "Reading…" : "Scan old invoice"}
+          </Button>
           <Dialog
             open={open}
             onOpenChange={(next) => {
@@ -286,6 +326,8 @@ export default function PriceBook() {
           </Table>
         </CardContent>
       </Card>
+
+      {scanReview && <InvoiceScanReviewDialog extracted={scanReview} onClose={() => setScanReview(null)} />}
     </div>
   );
 }
