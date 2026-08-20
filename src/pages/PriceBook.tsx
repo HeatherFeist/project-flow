@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Sparkles } from "lucide-react";
+import { Pencil, Plus, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useCreatePriceBookItem,
   useDeletePriceBookItem,
   usePriceBook,
   useSeedStarterPriceBook,
+  useUpdatePriceBookItem,
 } from "@/hooks/usePriceBook";
-import type { PriceUnit } from "@/types/domain";
+import type { PriceBookItem, PriceUnit } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,40 +31,62 @@ import { formatCurrency } from "@/lib/utils";
 
 const UNITS: PriceUnit[] = ["flat", "per hour", "per sq ft", "per linear ft"];
 
+const EMPTY_FORM = { category: "", item_name: "", unit: "flat" as PriceUnit, low: "", high: "", notes: "" };
+
 export default function PriceBook() {
   const { user } = useAuth();
   const { data: items, isLoading, error } = usePriceBook(user?.id);
   const createItem = useCreatePriceBookItem();
+  const updateItem = useUpdatePriceBookItem();
   const deleteItem = useDeletePriceBookItem();
   const seedStarter = useSeedStarterPriceBook();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    category: "",
-    item_name: "",
-    unit: "flat" as PriceUnit,
-    low: "",
-    high: "",
-    notes: "",
-  });
+  const [editing, setEditing] = useState<PriceBookItem | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  async function handleCreate(e: React.FormEvent) {
+  function openCreate() {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setOpen(true);
+  }
+
+  function openEdit(item: PriceBookItem) {
+    setEditing(item);
+    setForm({
+      category: item.category,
+      item_name: item.item_name,
+      unit: item.unit,
+      low: (item.low_cents / 100).toString(),
+      high: (item.high_cents / 100).toString(),
+      notes: item.notes ?? "",
+    });
+    setOpen(true);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+    const payload = {
+      category: form.category,
+      item_name: form.item_name,
+      unit: form.unit,
+      low_cents: Math.round(Number(form.low) * 100),
+      high_cents: Math.round(Number(form.high) * 100),
+      notes: form.notes || null,
+    };
     try {
-      await createItem.mutateAsync({
-        owner_id: user.id,
-        category: form.category,
-        item_name: form.item_name,
-        unit: form.unit,
-        low_cents: Math.round(Number(form.low) * 100),
-        high_cents: Math.round(Number(form.high) * 100),
-        notes: form.notes || null,
-      });
-      toast.success("Price book item added");
-      setForm({ category: "", item_name: "", unit: "flat", low: "", high: "", notes: "" });
+      if (editing) {
+        await updateItem.mutateAsync({ id: editing.id, owner_id: user.id, ...payload });
+        toast.success("Price book item updated");
+      } else {
+        await createItem.mutateAsync({ owner_id: user.id, ...payload });
+        toast.success("Price book item added");
+      }
+      setForm(EMPTY_FORM);
+      setEditing(null);
       setOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add item");
+      toast.error(err instanceof Error ? err.message : "Failed to save item");
     }
   }
 
@@ -93,17 +116,23 @@ export default function PriceBook() {
             </Button>
           )}
           <ImportPriceHistoryDialog />
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog
+            open={open}
+            onOpenChange={(next) => {
+              setOpen(next);
+              if (!next) setEditing(null);
+            }}
+          >
             <DialogTrigger asChild>
-              <Button>
+              <Button onClick={openCreate}>
                 <Plus /> Add item
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add price book item</DialogTitle>
+                <DialogTitle>{editing ? "Edit price book item" : "Add price book item"}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="category">Category</Label>
@@ -176,8 +205,12 @@ export default function PriceBook() {
                   />
                 </div>
                 <DialogFooter>
-                  <Button type="submit" disabled={createItem.isPending}>
-                    {createItem.isPending ? "Saving…" : "Add item"}
+                  <Button type="submit" disabled={createItem.isPending || updateItem.isPending}>
+                    {createItem.isPending || updateItem.isPending
+                      ? "Saving…"
+                      : editing
+                        ? "Save changes"
+                        : "Add item"}
                   </Button>
                 </DialogFooter>
               </form>
@@ -230,17 +263,22 @@ export default function PriceBook() {
                     {formatCurrency(item.low_cents)} – {formatCurrency(item.high_cents)}
                   </TableCell>
                   <TableCell>
-                    <DeleteButton
-                      itemLabel={item.item_name}
-                      onConfirm={async () => {
-                        try {
-                          await deleteItem.mutateAsync(item.id);
-                          toast.success("Item deleted");
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Failed to delete item");
-                        }
-                      }}
-                    />
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" title="Edit item" onClick={() => openEdit(item)}>
+                        <Pencil className="size-4" />
+                      </Button>
+                      <DeleteButton
+                        itemLabel={item.item_name}
+                        onConfirm={async () => {
+                          try {
+                            await deleteItem.mutateAsync(item.id);
+                            toast.success("Item deleted");
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Failed to delete item");
+                          }
+                        }}
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
