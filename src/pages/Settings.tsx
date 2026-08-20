@@ -511,6 +511,45 @@ export default function Settings() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Client Portal</CardTitle>
+          <CardDescription>
+            Lets clients sign in (with just their email, no password) to see all their jobs, quotes, and
+            invoices in one place, pay milestones, and ask for additional work. Share this link once —
+            each client only ever sees their own projects.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          {user && (
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={`${window.location.origin}/portal/${user.id}/login`}
+                className="font-mono text-xs"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title="Copy portal link"
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/portal/${user.id}/login`);
+                  toast.success("Portal link copied");
+                }}
+              >
+                <Copy className="size-4" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" title="Open portal login" asChild>
+                <a href={`/portal/${user.id}/login`} target="_blank" rel="noreferrer">
+                  <ExternalLink className="size-4" />
+                </a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Scheduling</CardTitle>
           <CardDescription>Open hours clients can book from once they accept a quote.</CardDescription>
         </CardHeader>

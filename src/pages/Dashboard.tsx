@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, FileText, Receipt, Users } from "lucide-react";
+import { toast } from "sonner";
+import { CalendarDays, FileText, MessageSquareText, Receipt, Users } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useJobs } from "@/hooks/useJobs";
 import { useQuotes } from "@/hooks/useQuotes";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useMarkServiceRequestReviewed, useServiceRequests } from "@/hooks/useServiceRequests";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { JobsCalendar } from "@/components/JobsCalendar";
 import { NewJobDialog } from "@/components/NewJobDialog";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
@@ -16,7 +19,10 @@ export default function Dashboard() {
   const { data: jobs } = useJobs();
   const { data: quotes } = useQuotes();
   const { data: invoices } = useInvoices();
+  const { data: serviceRequests } = useServiceRequests();
+  const markReviewed = useMarkServiceRequestReviewed();
   const [newJobDate, setNewJobDate] = useState<Date | null>(null);
+  const newRequests = (serviceRequests ?? []).filter((r) => r.status === "new");
 
   const upcomingJobs = (jobs ?? []).filter(
     (j) => j.status === "scheduled" || j.status === "in_progress",
@@ -63,6 +69,42 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+
+      {newRequests.length > 0 && (
+        <Card>
+          <CardHeader className="flex-row items-center gap-2 space-y-0">
+            <MessageSquareText className="size-4 text-primary" />
+            <CardTitle className="text-sm">
+              New requests from clients ({newRequests.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pb-6">
+            {newRequests.map((r) => (
+              <div key={r.id} className="flex items-start justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+                <div>
+                  <p className="font-medium">{r.client?.name ?? "A client"}</p>
+                  <p className="text-muted-foreground">{r.message}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{formatDateTime(r.created_at)}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={markReviewed.isPending}
+                  onClick={async () => {
+                    try {
+                      await markReviewed.mutateAsync(r.id);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Failed to update");
+                    }
+                  }}
+                >
+                  Mark reviewed
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">

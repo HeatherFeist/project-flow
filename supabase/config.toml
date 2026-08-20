@@ -54,3 +54,15 @@ verify_jwt = false
 
 [functions.job-photos-info]
 verify_jwt = false
+
+[functions.portal-login-request]
+verify_jwt = false
+
+[functions.portal-verify]
+verify_jwt = false
+
+[functions.portal-dashboard]
+verify_jwt = false
+
+[functions.portal-request-service]
+verify_jwt = false

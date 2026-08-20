@@ -146,3 +146,75 @@ export function fetchJobPhotosInfo(token: string) {
     };
   });
 }
+
+// --- Client portal ---------------------------------------------------
+
+export function requestPortalLogin(ownerId: string, email: string) {
+  return callFunction<{ ok: true; message: string }>("portal-login-request", {
+    method: "POST",
+    body: JSON.stringify({ ownerId, email }),
+  });
+}
+
+export function verifyPortalLogin(token: string) {
+  return callFunction<{ sessionToken: string }>("portal-verify", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+}
+
+export interface PortalMilestone {
+  id: string;
+  invoice_id: string;
+  title: string;
+  amount_cents: number;
+  sequence: number;
+  status: "pending" | "paid";
+  paid_at: string | null;
+}
+
+export interface PortalDashboardData {
+  client: { id: string; name: string; email: string | null };
+  business: { business_name: string | null; phone: string | null; email: string | null } | null;
+  jobs: {
+    id: string;
+    title: string;
+    status: string;
+    scheduled_at: string | null;
+    address: string | null;
+    photo_share_token: string;
+  }[];
+  quotes: {
+    id: string;
+    status: string;
+    total_cents: number;
+    notes: string | null;
+    items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
+    accept_token: string;
+    created_at: string;
+  }[];
+  invoices: {
+    id: string;
+    status: string;
+    total_cents: number;
+    amount_paid_cents: number;
+    due_date: string | null;
+    pay_token: string;
+    created_at: string;
+    milestones: PortalMilestone[];
+  }[];
+}
+
+export function fetchPortalDashboard(sessionToken: string) {
+  return callFunction<PortalDashboardData>("portal-dashboard", {
+    method: "POST",
+    body: JSON.stringify({ sessionToken }),
+  });
+}
+
+export function requestAdditionalService(sessionToken: string, message: string) {
+  return callFunction<{ ok: true }>("portal-request-service", {
+    method: "POST",
+    body: JSON.stringify({ sessionToken, message }),
+  });
+}

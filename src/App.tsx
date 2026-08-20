@@ -25,6 +25,9 @@ import EstimateChat from "@/pages/EstimateChat";
 import EmbedGuide from "@/pages/EmbedGuide";
 import PayInvoice from "@/pages/PayInvoice";
 import JobGallery from "@/pages/JobGallery";
+import PortalLogin from "@/pages/PortalLogin";
+import PortalVerify from "@/pages/PortalVerify";
+import PortalDashboard from "@/pages/PortalDashboard";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +45,9 @@ function App() {
               <Route path="/embed-guide/:ownerId" element={<EmbedGuide />} />
               <Route path="/pay/:token" element={<PayInvoice />} />
               <Route path="/job-gallery/:token" element={<JobGallery />} />
+              <Route path="/portal/:ownerId/login" element={<PortalLogin />} />
+              <Route path="/portal/:ownerId/verify" element={<PortalVerify />} />
+              <Route path="/portal/:ownerId" element={<PortalDashboard />} />
               <Route
                 path="/subscribe"
                 element={

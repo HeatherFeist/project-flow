@@ -720,6 +720,50 @@ supabase functions deploy job-photos-info
 
 No secret needed.
 
+### Client portal (sign in, approve quotes, pay milestones, request work)
+
+A persistent dashboard for clients — `/portal/:ownerId/login` — instead of
+only ever getting one-off links. **Not a Supabase Auth account** (no
+passwords, no new auth provider to configure): it's an email magic-link
+flow —
+
+1. Client enters their email → if it matches one of your clients, they get
+   an email with a one-time login link (sent via your connected Gmail,
+   same as everything else).
+2. Clicking it exchanges that one-time link for a 30-day session, stored
+   in the browser (not a cookie/Supabase session).
+3. The dashboard shows their jobs (with a link to that job's photo
+   gallery), quotes, and invoices — Accept/Decline and paying
+   (including milestones) link straight to the already-working
+   `/q/:token` and `/pay/:token` pages, so nothing about those flows was
+   duplicated or re-risked.
+4. A **"Need something else?"** box lets them ask for additional work —
+   it shows up as a **new request** on your Dashboard (with a "Mark
+   reviewed" button) rather than auto-creating a quote, since scoping and
+   pricing new work still needs you.
+
+Share the login link once — **Settings → Client Portal** has it, with a
+copy button.
+
+**1. Run the schema migration**
+
+Run
+[`docs/schema_v17_client_portal.sql`](docs/schema_v17_client_portal.sql)
+— adds `client_portal_login_tokens`, `client_portal_sessions`, and
+`service_requests`.
+
+**2. Supabase Edge Functions**
+
+```bash
+supabase functions deploy portal-login-request
+supabase functions deploy portal-verify
+supabase functions deploy portal-dashboard
+supabase functions deploy portal-request-service
+```
+
+No new secrets — this reuses your existing Google connection to send the
+login email.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -817,6 +861,10 @@ supabase/functions/
   platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
   app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant
   job-photos-info/      public: job title + photo timeline for the /job-gallery/:token page
+  portal-login-request/ public: emails a client a one-time login link
+  portal-verify/         public: exchanges a login link for a session token
+  portal-dashboard/      public (session-scoped): jobs/quotes/invoices for the portal
+  portal-request-service/ public (session-scoped): logs a client's "I'd also like..." request
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
@@ -833,4 +881,5 @@ docs/schema_v13_invoice_receipts.sql Private receipts Storage bucket, invoices.r
 docs/schema_v14_invoice_milestones.sql invoice_milestones table, invoice_payments.milestone_id
 docs/schema_v15_job_photos.sql   Public job-photos Storage bucket, owner-writable
 docs/schema_v16_job_photo_gallery.sql job_photos table, jobs.photo_share_token
+docs/schema_v17_client_portal.sql client_portal_login_tokens, client_portal_sessions, service_requests
 ```
