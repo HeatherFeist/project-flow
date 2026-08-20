@@ -614,6 +614,55 @@ review"** button appears on that job's detail page. It texts the client if
 they have a phone number and Twilio's connected, or emails them via Gmail
 otherwise.
 
+### Receipt photo uploads on invoices
+
+Each invoice now has its own detail page (click the eye icon on an
+invoice row) with a **Receipts** card — snap a photo of a materials
+receipt and it's attached right to that invoice, so job costs are on
+record alongside what was billed. Uses a **private** Storage bucket
+(unlike the public one the estimate chatbot uses) — only the signed-in
+owner can see their own receipts, resolved to short-lived signed URLs
+rather than public links.
+
+**Run the schema migration**
+
+Run
+[`docs/schema_v13_invoice_receipts.sql`](docs/schema_v13_invoice_receipts.sql)
+— creates the private `receipts` Storage bucket and adds
+`invoices.receipt_paths`. No edge function, no secret — this is pure
+Storage + RLS.
+
+### Payment milestones (deposit + progress payments)
+
+An invoice can optionally be split into a sequence of payments instead of
+one lump total — e.g. a deposit up front, a progress payment partway
+through, a final payment at completion. When creating an invoice, check
+**"Split into payment milestones"** and add rows (title + amount, must sum
+to the invoice total). The client then sees each milestone listed on the
+`/pay/:token` page and pays them **in order** — later ones stay locked
+until the one before it is paid. Invoices with no milestones keep working
+exactly as before (pay any partial amount, in any number of payments).
+
+**Run the schema migration**
+
+Run
+[`docs/schema_v14_invoice_milestones.sql`](docs/schema_v14_invoice_milestones.sql)
+— adds the `invoice_milestones` table and `invoice_payments.milestone_id`.
+
+**Redeploy the payment functions** (their logic changed to understand
+milestones):
+
+```bash
+supabase functions deploy create-invoice-checkout
+supabase functions deploy create-paypal-order
+supabase functions deploy capture-paypal-order
+supabase functions deploy invoice-pay-info
+supabase functions deploy stripe-webhook
+```
+
+No new secrets — this reuses the Stripe/PayPal setup from the sections
+above.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -722,4 +771,6 @@ docs/schema_v9_platform_subscriptions.sql subscriptions table, profiles.is_exemp
 docs/schema_v10_service_area.sql Adds profiles.service_area, for the Unit Cost Method pricing fallback
 docs/schema_v11_onboarding.sql   Adds profiles.onboarding_completed, for the setup wizard
 docs/schema_v12_google_review_link.sql Adds profiles.google_review_link, for review requests
+docs/schema_v13_invoice_receipts.sql Private receipts Storage bucket, invoices.receipt_paths
+docs/schema_v14_invoice_milestones.sql invoice_milestones table, invoice_payments.milestone_id
 ```

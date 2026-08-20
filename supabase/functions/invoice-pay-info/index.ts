@@ -32,10 +32,17 @@ Deno.serve(async (req) => {
       .eq("id", invoice.owner_id)
       .maybeSingle();
 
+    const { data: milestones } = await supabase
+      .from("invoice_milestones")
+      .select("id, title, amount_cents, sequence, status, paid_at")
+      .eq("invoice_id", invoice.id)
+      .order("sequence");
+
     const { owner_id: _owner_id, ...publicInvoice } = invoice;
-    return new Response(JSON.stringify({ invoice: publicInvoice, business: profile ?? null }), {
-      headers: jsonHeaders,
-    });
+    return new Response(
+      JSON.stringify({ invoice: publicInvoice, business: profile ?? null, milestones: milestones ?? [] }),
+      { headers: jsonHeaders },
+    );
   } catch (err) {
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }), {
       status: 500,

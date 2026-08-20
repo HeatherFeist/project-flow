@@ -17,6 +17,7 @@ import Schedule from "@/pages/Schedule";
 import JobDetail from "@/pages/JobDetail";
 import Quotes from "@/pages/Quotes";
 import Invoices from "@/pages/Invoices";
+import InvoiceDetail from "@/pages/InvoiceDetail";
 import SettingsPage from "@/pages/Settings";
 import PublicQuote from "@/pages/PublicQuote";
 import PriceBook from "@/pages/PriceBook";
@@ -75,6 +76,7 @@ function App() {
                 <Route path="/schedule/:id" element={<JobDetail />} />
                 <Route path="/quotes" element={<Quotes />} />
                 <Route path="/invoices" element={<Invoices />} />
+                <Route path="/invoices/:id" element={<InvoiceDetail />} />
                 <Route path="/price-book" element={<PriceBook />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>

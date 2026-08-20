@@ -139,7 +139,22 @@ export interface Invoice {
   pay_token: string;
   due_date: string | null;
   sent_at: string | null;
+  receipt_paths: string[];
   created_at: string;
   client?: Pick<Client, "id" | "name">;
   items?: LineItem[];
+}
+
+export type MilestoneStatus = "pending" | "paid";
+
+export interface InvoiceMilestone {
+  id: string;
+  invoice_id: string;
+  owner_id: string;
+  title: string;
+  amount_cents: number;
+  sequence: number;
+  status: MilestoneStatus;
+  paid_at: string | null;
+  created_at: string;
 }

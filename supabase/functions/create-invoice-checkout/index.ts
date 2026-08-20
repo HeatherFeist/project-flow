@@ -1,10 +1,12 @@
-// POST { token: string, amountCents: number }
+// POST { token: string, amountCents: number, milestoneId?: string }
 // Public (no auth), token-scoped. Creates a Stripe Checkout session for the
-// given amount (full balance or a partial/deposit payment) against the
-// invoice matching the token, and returns the hosted checkout URL.
+// given amount (full balance or a partial/deposit payment, or — if
+// milestoneId is given — that exact milestone) against the invoice
+// matching the token, and returns the hosted checkout URL.
 
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { createCheckoutSession } from "../_shared/stripe.ts";
+import { validateNextMilestone } from "../_shared/milestones.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -15,7 +17,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token, amountCents } = await req.json();
+    const { token, amountCents, milestoneId } = await req.json();
     if (!token || !Number.isInteger(amountCents) || amountCents <= 0) {
       return new Response(JSON.stringify({ error: "Invalid request" }), { status: 400, headers: jsonHeaders });
     }
@@ -45,7 +47,17 @@ Deno.serve(async (req) => {
         headers: jsonHeaders,
       });
     }
-    if (amountCents > remainingCents) {
+
+    if (milestoneId) {
+      try {
+        await validateNextMilestone(supabase, invoice.id, milestoneId, amountCents);
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Invalid milestone" }), {
+          status: 400,
+          headers: jsonHeaders,
+        });
+      }
+    } else if (amountCents > remainingCents) {
       return new Response(JSON.stringify({ error: "That's more than the remaining balance." }), {
         status: 400,
         headers: jsonHeaders,
@@ -61,7 +73,11 @@ Deno.serve(async (req) => {
       successUrl: `${siteUrl}/pay/${token}?paid=1`,
       cancelUrl: `${siteUrl}/pay/${token}`,
       customerEmail: invoice.client?.email ?? undefined,
-      metadata: { invoice_id: invoice.id, pay_token: token },
+      metadata: {
+        invoice_id: invoice.id,
+        pay_token: token,
+        ...(milestoneId ? { milestone_id: milestoneId } : {}),
+      },
     });
 
     return new Response(JSON.stringify({ url: session.url }), { headers: jsonHeaders });

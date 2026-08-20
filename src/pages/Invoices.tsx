@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, CreditCard, Plus } from "lucide-react";
+import { Copy, CreditCard, Eye, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
@@ -15,6 +15,7 @@ import type { InvoiceStatus, LineItem } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -59,10 +60,26 @@ export default function Invoices() {
   const [clientId, setClientId] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
+  const [useMilestones, setUseMilestones] = useState(false);
+  const [milestones, setMilestones] = useState<{ title: string; amount: string }[]>([
+    { title: "Deposit", amount: "" },
+    { title: "Final payment", amount: "" },
+  ]);
+
+  const totalCents = items.reduce((sum, item) => sum + item.quantity * item.unit_price_cents, 0);
+  const milestonesTotalCents = milestones.reduce(
+    (sum, m) => sum + Math.round((Number(m.amount) || 0) * 100),
+    0,
+  );
+  const milestonesValid = useMilestones ? milestonesTotalCents === totalCents && totalCents > 0 : true;
+
+  function updateMilestone(i: number, patch: Partial<{ title: string; amount: string }>) {
+    setMilestones((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)));
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !clientId || items.length === 0) return;
+    if (!user || !clientId || items.length === 0 || !milestonesValid) return;
     try {
       await createInvoice.mutateAsync({
         owner_id: user.id,
@@ -71,11 +88,21 @@ export default function Invoices() {
         quote_id: null,
         due_date: dueDate || null,
         items,
+        milestones: useMilestones
+          ? milestones
+              .filter((m) => m.title.trim() && Number(m.amount) > 0)
+              .map((m) => ({ title: m.title.trim(), amount_cents: Math.round(Number(m.amount) * 100) }))
+          : undefined,
       });
       toast.success("Invoice created");
       setClientId("");
       setDueDate("");
       setItems([]);
+      setUseMilestones(false);
+      setMilestones([
+        { title: "Deposit", amount: "" },
+        { title: "Final payment", amount: "" },
+      ]);
       setOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create invoice");
@@ -138,8 +165,65 @@ export default function Invoices() {
                 <Label>Line items</Label>
                 <LineItemsEditor items={items} onChange={setItems} />
               </div>
+
+              <div className="space-y-2 border-t pt-4">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Checkbox checked={useMilestones} onCheckedChange={(c) => setUseMilestones(!!c)} />
+                  Split into payment milestones (deposit + progress payments)
+                </label>
+                {useMilestones && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      The client pays these in order — each one unlocks after the previous is paid. Amounts
+                      must add up to the invoice total ({formatCurrency(totalCents)}).
+                    </p>
+                    {milestones.map((m, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Input
+                          placeholder="Milestone name"
+                          value={m.title}
+                          onChange={(e) => updateMilestone(i, { title: e.target.value })}
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          className="w-28"
+                          value={m.amount}
+                          onChange={(e) => updateMilestone(i, { amount: e.target.value })}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setMilestones((prev) => prev.filter((_, idx) => idx !== i))}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMilestones((prev) => [...prev, { title: "", amount: "" }])}
+                    >
+                      <Plus /> Add milestone
+                    </Button>
+                    <p className={milestonesValid ? "text-xs text-success" : "text-xs text-destructive"}>
+                      Milestones total: {formatCurrency(milestonesTotalCents)}{" "}
+                      {!milestonesValid && `— must equal ${formatCurrency(totalCents)}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <DialogFooter>
-                <Button type="submit" disabled={createInvoice.isPending || !clientId || items.length === 0}>
+                <Button
+                  type="submit"
+                  disabled={createInvoice.isPending || !clientId || items.length === 0 || !milestonesValid}
+                >
                   {createInvoice.isPending ? "Saving…" : "Create invoice"}
                 </Button>
               </DialogFooter>
@@ -229,6 +313,11 @@ export default function Invoices() {
                         onClick={() => copyLink(inv.pay_token)}
                       >
                         <Copy className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="View invoice" asChild>
+                        <Link to={`/invoices/${inv.id}`}>
+                          <Eye className="size-4" />
+                        </Link>
                       </Button>
                     </div>
                   </TableCell>

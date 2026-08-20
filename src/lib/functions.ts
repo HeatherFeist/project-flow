@@ -81,6 +81,15 @@ export function sendEstimateChatMessage(ownerId: string, messages: ChatMessage[]
   });
 }
 
+export interface InvoicePayMilestone {
+  id: string;
+  title: string;
+  amount_cents: number;
+  sequence: number;
+  status: "pending" | "paid";
+  paid_at: string | null;
+}
+
 export function fetchInvoicePayInfo(token: string) {
   return fetch(`${FUNCTIONS_URL}/invoice-pay-info?token=${encodeURIComponent(token)}`, {
     headers: { apikey: ANON_KEY ?? "" },
@@ -98,27 +107,28 @@ export function fetchInvoicePayInfo(token: string) {
         client: { name: string; email: string | null };
       };
       business: { business_name: string | null; phone: string | null; email: string | null } | null;
+      milestones: InvoicePayMilestone[];
     };
   });
 }
 
-export function createInvoiceCheckout(token: string, amountCents: number) {
+export function createInvoiceCheckout(token: string, amountCents: number, milestoneId?: string) {
   return callFunction<{ url: string }>("create-invoice-checkout", {
     method: "POST",
-    body: JSON.stringify({ token, amountCents }),
+    body: JSON.stringify({ token, amountCents, milestoneId }),
   });
 }
 
-export function createPaypalOrder(token: string, amountCents: number) {
+export function createPaypalOrder(token: string, amountCents: number, milestoneId?: string) {
   return callFunction<{ approveUrl: string }>("create-paypal-order", {
     method: "POST",
-    body: JSON.stringify({ token, amountCents }),
+    body: JSON.stringify({ token, amountCents, milestoneId }),
   });
 }
 
-export function capturePaypalOrder(token: string, paypalOrderId: string) {
+export function capturePaypalOrder(token: string, paypalOrderId: string, milestoneId?: string) {
   return callFunction<{ ok: true; alreadyRecorded?: boolean }>("capture-paypal-order", {
     method: "POST",
-    body: JSON.stringify({ token, paypalOrderId }),
+    body: JSON.stringify({ token, paypalOrderId, milestoneId }),
   });
 }

@@ -1,4 +1,4 @@
-// POST { token: string, paypalOrderId: string }
+// POST { token: string, paypalOrderId: string, milestoneId?: string }
 // Public (no auth), token-scoped. Called by the /pay/:token page right
 // after PayPal redirects the payer back. Captures the approved order,
 // records the payment, and updates the invoice's amount_paid_cents/status
@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token, paypalOrderId } = await req.json();
+    const { token, paypalOrderId, milestoneId } = await req.json();
     if (!token || !paypalOrderId) {
       return new Response(JSON.stringify({ error: "Missing token or paypalOrderId" }), {
         status: 400,
@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       provider: "paypal",
       paypal_order_id: paypalOrderId,
       status: "succeeded",
+      milestone_id: milestoneId ?? null,
     });
 
     const newAmountPaid = invoice.amount_paid_cents + capture.amountCents;
@@ -70,6 +71,13 @@ Deno.serve(async (req) => {
       newAmountPaid >= invoice.total_cents ? "paid" : newAmountPaid > 0 ? "partially_paid" : invoice.status;
 
     await supabase.from("invoices").update({ amount_paid_cents: newAmountPaid, status: newStatus }).eq("id", invoice.id);
+
+    if (milestoneId) {
+      await supabase
+        .from("invoice_milestones")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("id", milestoneId);
+    }
 
     return new Response(JSON.stringify({ ok: true }), { headers: jsonHeaders });
   } catch (err) {

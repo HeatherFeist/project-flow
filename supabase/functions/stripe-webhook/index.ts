@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
     const invoiceId = session.metadata?.invoice_id;
+    const milestoneId = session.metadata?.milestone_id as string | undefined;
     const amountCents = session.amount_total as number;
     const paymentIntentId = session.payment_intent as string | null;
 
@@ -56,6 +57,7 @@ Deno.serve(async (req) => {
           stripe_checkout_session_id: session.id,
           stripe_payment_intent_id: paymentIntentId,
           status: "succeeded",
+          milestone_id: milestoneId ?? null,
         });
 
         const newAmountPaid = invoice.amount_paid_cents + amountCents;
@@ -70,6 +72,13 @@ Deno.serve(async (req) => {
           .from("invoices")
           .update({ amount_paid_cents: newAmountPaid, status: newStatus })
           .eq("id", invoiceId);
+
+        if (milestoneId) {
+          await supabase
+            .from("invoice_milestones")
+            .update({ status: "paid", paid_at: new Date().toISOString() })
+            .eq("id", milestoneId);
+        }
       }
     }
   }
