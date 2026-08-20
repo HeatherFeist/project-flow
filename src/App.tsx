@@ -24,6 +24,8 @@ import SettingsPage from "@/pages/Settings";
 import PublicQuote from "@/pages/PublicQuote";
 import PriceBook from "@/pages/PriceBook";
 import Materials from "@/pages/Materials";
+import Expenses from "@/pages/Expenses";
+import Files from "@/pages/Files";
 import EstimateChat from "@/pages/EstimateChat";
 import EmbedGuide from "@/pages/EmbedGuide";
 import PayInvoice from "@/pages/PayInvoice";
@@ -92,6 +94,8 @@ function App() {
                 <Route path="/invoices/:id" element={<InvoiceDetail />} />
                 <Route path="/price-book" element={<PriceBook />} />
                 <Route path="/materials" element={<Materials />} />
+                <Route path="/expenses" element={<Expenses />} />
+                <Route path="/files" element={<Files />} />
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Routes>

@@ -194,6 +194,41 @@ export interface Material {
   created_at: string;
 }
 
+export interface JobChecklistItem {
+  id: string;
+  owner_id: string;
+  job_id: string;
+  text: string;
+  done: boolean;
+  position: number;
+  created_at: string;
+}
+
+export type ExpenseCategory =
+  | "material"
+  | "labor"
+  | "fuel"
+  | "tools_equipment"
+  | "permits_fees"
+  | "vehicle"
+  | "insurance"
+  | "office"
+  | "other";
+
+export interface Expense {
+  id: string;
+  owner_id: string;
+  job_id: string | null;
+  material_id: string | null;
+  category: ExpenseCategory;
+  description: string;
+  quantity: number;
+  amount_cents: number;
+  expense_date: string;
+  created_at: string;
+  job?: Pick<Job, "id" | "title"> | null;
+}
+
 export interface Invoice {
   id: string;
   owner_id: string;

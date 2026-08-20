@@ -12,6 +12,8 @@ import {
   Sparkles,
   Tags,
   Package,
+  DollarSign,
+  Images,
   Menu,
   ChevronLeft,
   X,
@@ -32,6 +34,8 @@ const NAV_ITEMS = [
   { to: "/invoices", label: "Invoices", icon: Receipt },
   { to: "/price-book", label: "Price Book", icon: Tags },
   { to: "/materials", label: "Materials", icon: Package },
+  { to: "/expenses", label: "Expenses", icon: DollarSign },
+  { to: "/files", label: "Files & Media", icon: Images },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

@@ -1088,6 +1088,61 @@ a new status in the list view, just faster when you're triaging a batch
 of quotes at once. No schema change, no new Edge Function — it's a second
 view over the existing `quotes.status` field.
 
+### Job checklists
+
+Every job detail page now has a **Checklist** card — a simple ordered
+list of checkboxes (a punch list, safety steps, anything you don't want
+missed) separate from the existing freeform Notes, since a checklist
+needs done/not-done state per line rather than a timestamped log.
+
+**Run the schema migration**
+
+[`docs/schema_v24_costing_checklists_expenses.sql`](docs/schema_v24_costing_checklists_expenses.sql)
+— adds `job_checklist_items`. No Edge Function, no secret.
+
+### Job costing & expense tracking
+
+Two features sharing one ledger table (`expenses`), since a job's cost
+and the business's general expenses are really the same kind of record —
+one is just tagged to a job and one isn't:
+
+- **Job Costing** — a new card on every job detail page. Log what a job
+  actually cost (materials — optionally pulled straight from your
+  Materials catalog so the price is already right, labor, fuel, permits,
+  whatever) and it's weighed against that job's revenue (its invoice
+  total if one exists, or its quote total if not) for a real profit/margin
+  number per job — not just a guess.
+- **Expenses** (new page in the sidebar) — the full ledger: every expense
+  across the business, job-tied or general overhead (insurance, office
+  supplies, a tool that isn't tied to one job), filterable by category,
+  with a running total. Add an expense from either place — a job-tied one
+  added from Expenses shows up on that job's Job Costing card too, and
+  vice versa, since it's the same table either way.
+
+**Run the schema migration**
+
+Same file as above —
+[`docs/schema_v24_costing_checklists_expenses.sql`](docs/schema_v24_costing_checklists_expenses.sql)
+also adds the `expenses` table and `expense_category` enum. No Edge
+Function, no secret — this is all client-side against the database
+directly, like Materials and Price Book.
+
+### Files & Media library
+
+A new **Files & Media** page in the sidebar pulls together every photo
+and file that already existed scattered across the app — job-site
+photos, invoice receipts, and AI project visualizations — into one
+searchable, browsable place instead of only ever being reachable one job
+or invoice at a time. Search filters by client or job name; each
+thumbnail links back to where it actually lives (the job, invoice, or
+quote).
+
+No schema migration, no new Edge Function — this reads the same
+`job_photos`, `invoices.receipt_paths`, and `quote_visualizations` data
+that already existed from earlier migrations, just presented as one
+library instead of requiring you to already know which job/invoice/quote
+to look under.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1220,4 +1275,5 @@ docs/schema_v20_quote_visualizations.sql quote_visualizations table + public quo
 docs/schema_v21_gemini_byok.sql  Adds profiles.gemini_api_key (bring-your-own-key)
 docs/schema_v22_payment_comms_byok.sql Adds twilio_settings SID/token + payment_settings table (bring-your-own-key)
 docs/schema_v23_reminders_leads.sql Adds scheduling_settings.reminder_hours_before + jobs.reminder_sent_at, pg_cron setup notes
+docs/schema_v24_costing_checklists_expenses.sql Adds job_checklist_items + expenses (job costing & expense tracking)
 ```
