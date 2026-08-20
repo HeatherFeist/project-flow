@@ -33,6 +33,8 @@ import JobGallery from "@/pages/JobGallery";
 import PortalLogin from "@/pages/PortalLogin";
 import PortalVerify from "@/pages/PortalVerify";
 import PortalDashboard from "@/pages/PortalDashboard";
+import Home from "@/pages/Home";
+import Privacy from "@/pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,8 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/q/:token" element={<PublicQuote />} />
               <Route path="/q/:token/:action" element={<PublicQuote />} />
@@ -82,7 +86,7 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/clients" element={<Clients />} />
                 <Route path="/clients/:id" element={<ClientDetail />} />
                 <Route path="/leads" element={<Leads />} />

@@ -24,7 +24,7 @@ export default function Subscribe() {
   const createCheckout = useCreateSubscriptionCheckout();
 
   useEffect(() => {
-    if (data?.isActive) navigate("/", { replace: true });
+    if (data?.isActive) navigate("/dashboard", { replace: true });
   }, [data?.isActive, navigate]);
 
   async function handleSubscribe() {

@@ -58,7 +58,7 @@ export default function Onboarding() {
     if (!user) return;
     try {
       await completeOnboarding.mutateAsync(user.id);
-      navigate("/", { replace: true });
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Couldn't finish setup — try again.");
     }

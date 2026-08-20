@@ -1143,6 +1143,36 @@ that already existed from earlier migrations, just presented as one
 library instead of requiring you to already know which job/invoice/quote
 to look under.
 
+### Public marketing homepage
+
+`/` is now a real public marketing page (`src/pages/Home.tsx`) instead of
+redirecting straight to the app — a single scrolling page with a section
+per feature group (Client Management, Scheduling & Field Work, Quotes &
+AI Visualizations, Invoicing & Payments, Price Book/Materials/Job
+Costing, AI Tools), an integrations strip, and a pricing section, all
+linking to `/login` to start a trial.
+
+**This moved Dashboard from `/` to `/dashboard`** — a signed-in visitor
+hitting `/` gets redirected straight to `/dashboard` automatically, so
+this isn't a breaking change for existing users, but any bookmarks or
+external links that pointed at the bare root as "the app" now land on the
+marketing page first. `/privacy` is now routed too — the privacy policy
+page that already existed in the codebase but had no route pointing at it.
+
+Visuals on the marketing page are icon-based gradient panels, not real
+photography — you asked for people/clipboard-style photos, but I
+couldn't verify any hotlinked stock-photo URL actually resolves from
+this environment (image CDNs were unreachable here), so shipping guessed
+URLs risked broken images in production. Two ways to add real photos
+whenever you're ready:
+1. **Real photos of Nick/the team/actual jobs** — genuinely better
+   marketing for a local service business than stock photography anyway;
+   send them over and I'll wire them in properly.
+2. **Pick stock photos yourself** (Unsplash/Pexels) and paste me the
+   URLs — I'll swap them into the relevant sections.
+
+No schema migration, no new Edge Function — pure frontend/routing.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.

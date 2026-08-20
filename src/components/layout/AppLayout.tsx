@@ -26,7 +26,7 @@ import { HelpChatWidget } from "@/components/HelpChatWidget";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/leads", label: "Leads & Requests", icon: Inbox },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
@@ -67,7 +67,7 @@ export function AppLayout() {
           the sidebar below is hidden here. Gives a back button (when not
           on a top-level page) plus a hamburger menu to jump anywhere. */}
       <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b bg-card px-2 sm:hidden">
-        {location.pathname !== "/" ? (
+        {location.pathname !== "/dashboard" ? (
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} title="Back">
             <ChevronLeft className="size-5" />
           </Button>
