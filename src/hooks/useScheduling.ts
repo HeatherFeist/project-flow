@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS: Omit<SchedulingSettings, "user_id"> = {
   work_end_minutes: 1020,
   slot_duration_minutes: 120,
   booking_horizon_days: 14,
+  reminder_hours_before: 24,
 };
 
 export function useGoogleConnection(userId: string | undefined) {

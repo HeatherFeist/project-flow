@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  Inbox,
   CalendarDays,
   FileText,
   Receipt,
@@ -25,6 +26,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/clients", label: "Clients", icon: Users },
+  { to: "/leads", label: "Leads & Requests", icon: Inbox },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/invoices", label: "Invoices", icon: Receipt },

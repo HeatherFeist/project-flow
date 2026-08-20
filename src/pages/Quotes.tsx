@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Eye, Mail, Plus, Search } from "lucide-react";
+import { Copy, Eye, Kanban, Mail, Plus, Search, Table as TableIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
@@ -9,6 +9,7 @@ import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import type { LineItem, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
+import { QuotesPipelineBoard } from "@/components/QuotesPipelineBoard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +50,7 @@ export default function Quotes() {
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"list" | "board">("list");
 
   const filteredQuotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -148,16 +150,39 @@ export default function Quotes() {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search quotes by client, status, notes…"
-          className="pl-8"
-        />
+      <div className="flex items-center justify-between gap-3">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search quotes by client, status, notes…"
+            className="pl-8"
+          />
+        </div>
+        <div className="flex items-center gap-1 rounded-md border p-1">
+          <Button
+            type="button"
+            variant={view === "list" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setView("list")}
+          >
+            <TableIcon /> List
+          </Button>
+          <Button
+            type="button"
+            variant={view === "board" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setView("board")}
+          >
+            <Kanban /> Pipeline
+          </Button>
+        </div>
       </div>
 
+      {view === "board" ? (
+        <QuotesPipelineBoard quotes={filteredQuotes} />
+      ) : (
       <Card>
         <CardContent className="px-0 pb-0">
           <Table>
@@ -264,6 +289,7 @@ export default function Quotes() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

@@ -218,7 +218,9 @@ export default function Settings() {
     saveSchedulingSettings.mutate({ ...schedulingSettings, user_id: user.id, work_days });
   }
 
-  function updateSetting<K extends "work_start_minutes" | "work_end_minutes" | "slot_duration_minutes">(
+  function updateSetting<
+    K extends "work_start_minutes" | "work_end_minutes" | "slot_duration_minutes" | "reminder_hours_before",
+  >(
     key: K,
     value: number,
   ) {
@@ -845,6 +847,30 @@ export default function Settings() {
                 </Select>
               </div>
               <p className="text-xs text-muted-foreground">Timezone: {schedulingSettings.timezone}</p>
+
+              <div className="space-y-1.5 border-t pt-4">
+                <Label>Automatic appointment reminders</Label>
+                <Select
+                  value={String(schedulingSettings.reminder_hours_before)}
+                  onValueChange={(v) => updateSetting("reminder_hours_before", Number(v))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Off — only send when I click "Text reminder"</SelectItem>
+                    <SelectItem value="2">2 hours before</SelectItem>
+                    <SelectItem value="4">4 hours before</SelectItem>
+                    <SelectItem value="24">24 hours before</SelectItem>
+                    <SelectItem value="48">2 days before</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  When on, clients get a text automatically ahead of their scheduled job — no need to
+                  remember to click "Text reminder" yourself. Runs on an hourly check, so the exact send
+                  time can be up to an hour later than the setting.
+                </p>
+              </div>
             </>
           )}
         </CardContent>

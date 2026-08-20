@@ -72,6 +72,7 @@ export interface Job {
   google_event_id: string | null;
   photo_urls: string[];
   photo_share_token: string;
+  reminder_sent_at: string | null;
   created_at: string;
   client?: Pick<Client, "id" | "name">;
 }
@@ -135,6 +136,7 @@ export interface SchedulingSettings {
   work_end_minutes: number;
   slot_duration_minutes: number;
   booking_horizon_days: number;
+  reminder_hours_before: number;
 }
 
 export interface GoogleConnection {

@@ -999,6 +999,95 @@ leave blank to keep using the platform's shared account for now):
   [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications))
   and sandbox/live mode.
 
+### Automatic appointment reminders
+
+The "Text reminder" button on a job (`send-job-reminder`) has always been
+a manual send. There's now a fully automatic version alongside it: turn
+on **Settings → Scheduling → Automatic appointment reminders** and pick
+how far ahead (2 hours, 4 hours, 24 hours, 2 days, or off), and Project
+Flow texts the client on its own — no one has to remember to click
+anything.
+
+**How it works:** a new Edge Function, `send-scheduled-reminders`, runs
+on an hourly schedule (not called from the app) and texts every job
+that's now within its owner's reminder window and hasn't been reminded
+yet. `jobs.reminder_sent_at` makes this safe to run every hour without
+double-texting anyone.
+
+**1. Run the schema migration**
+
+[`docs/schema_v23_reminders_leads.sql`](docs/schema_v23_reminders_leads.sql)
+— adds `scheduling_settings.reminder_hours_before` (0 = off, the default
+until you turn it on) and `jobs.reminder_sent_at`.
+
+**2. Deploy the Edge Function**
+
+```bash
+supabase functions deploy send-scheduled-reminders
+```
+
+**3. Schedule it to actually run** — this is the one genuinely new kind
+of setup step in the app so far: everything else runs when a user clicks
+something or a webhook fires, but this needs to run *on its own, once an
+hour*, forever. Supabase does this with `pg_cron` (a scheduler) +
+`pg_net` (lets Postgres make an HTTP call) — both are official Supabase
+Postgres extensions, no new service to sign up for.
+
+In the Supabase dashboard: **Database → Extensions**, enable `pg_cron`
+and `pg_net` if they aren't already. Then in the **SQL Editor**, run
+(swap in your project ref and `service_role` secret key — **Settings →
+API** — both are also detailed in the migration file's comments):
+
+```sql
+select cron.schedule(
+  'send-scheduled-reminders-hourly',
+  '0 * * * *',
+  $$
+  select net.http_post(
+    url := 'https://<PROJECT_REF>.supabase.co/functions/v1/send-scheduled-reminders',
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
+      'Content-Type', 'application/json'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+That's a one-time setup — it stays scheduled from then on. Nothing sends
+until an owner actually turns the setting on in Settings, so this is safe
+to set up ahead of anyone using it.
+
+### Leads & Requests
+
+A new **Leads & Requests** page in the sidebar pulls together everyone
+who's reached out but isn't a job yet:
+- **New leads** — clients auto-captured from a missed call, an inbound
+  text, or the estimate chatbot (the same capture flows that already
+  existed; this just gives them a dedicated place to be worked instead of
+  only showing up mixed into the full Clients list). A lead
+  automatically moves to "Already converted" the moment it has a real job
+  or quote.
+- **Service requests from clients** — the client portal's "I'd also like…"
+  requests (`service_requests` table) finally have somewhere to show up;
+  that data was already being captured but had no page to view it on
+  until now. Mark one reviewed once you've followed up.
+
+No schema migration — this is a new view over `clients.source` and the
+already-existing `service_requests` table, both from earlier migrations.
+No new Edge Function either, since it's a client-side page over data the
+app already has.
+
+### Quotes pipeline (board view)
+
+**Quotes** now has a **List / Pipeline** toggle. Pipeline shows the same
+quotes as four drag-and-drop columns (Draft, Sent, Accepted, Declined) —
+drag a card to a new column to change its status, same effect as picking
+a new status in the list view, just faster when you're triaging a batch
+of quotes at once. No schema change, no new Edge Function — it's a second
+view over the existing `quotes.status` field.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1011,7 +1100,11 @@ leave blank to keep using the platform's shared account for now):
   or creates the client per row).
 - **Quotes** — create with line items, auto-totaled, status tracking
   (draft/sent/accepted/declined), a "Send" button that emails the client
-  via Gmail with Accept/Decline links, and CSV import.
+  via Gmail with Accept/Decline links, CSV import, and a List/Pipeline
+  toggle for a drag-and-drop board view of the same statuses.
+- **Leads & Requests** — new leads auto-captured from missed calls/texts/
+  the chatbot, and "I'd also like…" requests from the client portal, both
+  in one place instead of buried in the full Clients list.
 - **Public quote page** (`/q/:token`, no login) — client accepts or
   declines, then picks an open slot; booking creates the Job, the Google
   Calendar event, and links back the auto-generated invoice.
@@ -1102,6 +1195,7 @@ supabase/functions/
   portal-request-service/ public (session-scoped): logs a client's "I'd also like..." request
   extract-receipt-items/ auth required: Claude vision pulls line items off a receipt photo
   extract-invoice-items/ auth required: Claude vision pulls service line items off a photographed old invoice
+  send-scheduled-reminders/ scheduled (pg_cron, not called from the app): auto-texts upcoming appointment reminders
   generate-quote-visualization/ auth required: Gemini image model generates an "after" visualization
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
@@ -1125,4 +1219,5 @@ docs/schema_v19_materials.sql    materials table (separate catalog from Price Bo
 docs/schema_v20_quote_visualizations.sql quote_visualizations table + public quote-visuals bucket
 docs/schema_v21_gemini_byok.sql  Adds profiles.gemini_api_key (bring-your-own-key)
 docs/schema_v22_payment_comms_byok.sql Adds twilio_settings SID/token + payment_settings table (bring-your-own-key)
+docs/schema_v23_reminders_leads.sql Adds scheduling_settings.reminder_hours_before + jobs.reminder_sent_at, pg_cron setup notes
 ```
