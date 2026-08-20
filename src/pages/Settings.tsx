@@ -121,6 +121,7 @@ export default function Settings() {
       email: profile.email ?? user.email ?? null,
       service_area: profile.service_area ?? null,
       google_review_link: profile.google_review_link ?? null,
+      gemini_api_key: profile.gemini_api_key ?? null,
     });
     setSaving(false);
     if (error) {
@@ -242,6 +243,48 @@ export default function Settings() {
                 Home, look for "Get more reviews" or "Ask for reviews" and copy the shareable link.
                 Project Flow can't post reviews for you (only Google itself can, and only through the
                 customer's own account) — this just makes it one tap for them.
+              </p>
+            </div>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Project Visualizations</CardTitle>
+          <CardDescription>
+            Generates an "after" image on a quote (upload a room photo + materials, describe the change).
+            Billed per image directly by Google to your own key — Project Flow doesn't mark it up or pay
+            for it on your behalf, so usage here doesn't affect anyone else's account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="gemini_api_key">Gemini API key</Label>
+              <Input
+                id="gemini_api_key"
+                type="password"
+                placeholder="AIza…"
+                value={profile.gemini_api_key ?? ""}
+                onChange={(e) => setProfile({ ...profile, gemini_api_key: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Get a free key at{" "}
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  aistudio.google.com
+                </a>{" "}
+                — click "Get API key" and paste it here. This is separate from the Google Calendar/Gmail
+                connection below; Google bills a small per-image amount (typically a few cents) directly
+                to this key. Leave blank to keep this feature turned off.
               </p>
             </div>
             <Button type="submit" disabled={saving}>

@@ -853,42 +853,45 @@ everywhere else — the estimate chatbot, the help assistant, receipt
 scanning) can *look at* images but can't generate or edit them. This uses
 **Google's Gemini image model** ("Nano Banana" / `gemini-2.5-flash-image`)
 instead — a separate product from the Google Calendar/Gmail OAuth
-connection elsewhere in this app, with its own plain API key (not OAuth)
-and its own per-image cost (roughly a few cents per generated image,
-billed by Google).
+connection elsewhere in this app, with its own plain API key (not OAuth).
 
-**1. Get a Gemini API key**
+**Bring-your-own-key, deliberately.** This is billed per image generated,
+not a flat cost — so unlike everything else in the app, there's **no
+platform-wide `GEMINI_API_KEY` secret to set**. Each owner enters their
+own key in **Settings → AI Project Visualizations**, and Google bills
+their usage (typically a few cents per image) directly to that key. This
+keeps one subscriber's generation habits from ever costing you (or anyone
+else) money — the feature is simply off until an owner adds their own key.
 
-Go to [aistudio.google.com](https://aistudio.google.com) → **Get API
-key** → create one. This is separate from anything else Google-related in
-this app.
-
-**2. Supabase Edge Function**
+**1. Supabase Edge Function**
 
 ```bash
 supabase functions deploy generate-quote-visualization
 ```
 
-Set this secret:
+No secret to set — see above.
 
-```
-GEMINI_API_KEY=...
-```
+**2. Run the extra schema migrations**
 
-**3. Run the extra schema migration**
+Run, in order:
+- [`docs/schema_v20_quote_visualizations.sql`](docs/schema_v20_quote_visualizations.sql)
+  — adds the `quote_visualizations` table and a public `quote-visuals`
+  Storage bucket (results need to show on the client-facing `/q/:token`
+  page; only the owning user can write to it, same pattern as job photos).
+- [`docs/schema_v21_gemini_byok.sql`](docs/schema_v21_gemini_byok.sql) —
+  adds `profiles.gemini_api_key`.
 
-Run
-[`docs/schema_v20_quote_visualizations.sql`](docs/schema_v20_quote_visualizations.sql)
-— adds the `quote_visualizations` table and a public `quote-visuals`
-Storage bucket (results need to show on the client-facing `/q/:token`
-page; only the owning user can write to it, same pattern as job photos).
-
-**4. Redeploy `quote-response`** (it now also returns visualizations for
+**3. Redeploy `quote-response`** (it now also returns visualizations for
 the public quote page):
 
 ```bash
 supabase functions deploy quote-response
 ```
+
+**4. Get a Gemini API key** (each owner does this themselves, in Settings)
+— go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+→ **Get API key** → paste it into **Settings → AI Project
+Visualizations**.
 
 That's it — open any quote (Quotes → the eye icon) and there's a "Project
 visualization" section: upload a before photo, optionally add reference
@@ -1023,4 +1026,5 @@ docs/schema_v17_client_portal.sql client_portal_login_tokens, client_portal_sess
 docs/schema_v18_client_messages.sql client_messages table (structured communications log)
 docs/schema_v19_materials.sql    materials table (separate catalog from Price Book)
 docs/schema_v20_quote_visualizations.sql quote_visualizations table + public quote-visuals bucket
+docs/schema_v21_gemini_byok.sql  Adds profiles.gemini_api_key (bring-your-own-key)
 ```

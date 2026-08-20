@@ -1,9 +1,13 @@
 // Shared helper for Google's Gemini image model ("Nano Banana" —
 // gemini-2.5-flash-image) — takes a base photo + reference photos +
-// a text prompt and returns a generated/edited image. Requires the
-// GEMINI_API_KEY secret (from Google AI Studio — a plain API key, NOT
-// the same OAuth connection used for Calendar/Gmail elsewhere in this
-// app; entirely separate Google product/auth mechanism).
+// a text prompt and returns a generated/edited image.
+//
+// BYOK (bring your own key), deliberately — this is a usage-billed
+// feature (per image generated), so each owner supplies their own
+// Google AI Studio API key (profiles.gemini_api_key) rather than the
+// platform footing every subscriber's generation costs on one shared
+// key with no cap. Not the same Google connection used for Calendar/
+// Gmail elsewhere in this app — entirely separate Google product/auth.
 //
 // NOTE: built against Google's documented v1beta generateContent REST
 // shape (camelCase JSON: inlineData/mimeType). Google's AI APIs move
@@ -18,12 +22,12 @@ export interface ImageInput {
 }
 
 export async function generateVisualization(params: {
+  apiKey: string;
   prompt: string;
   baseImage: ImageInput;
   referenceImages: ImageInput[];
 }): Promise<ImageInput> {
-  const apiKey = Deno.env.get("GEMINI_API_KEY");
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
+  const { apiKey } = params;
 
   const parts: Record<string, unknown>[] = [
     { text: params.prompt },

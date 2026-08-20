@@ -3,7 +3,8 @@
 // via Gemini from a room photo + optional reference/material photos +
 // a text prompt, uploads the result to the public quote-visuals bucket,
 // and records it against the quote so it can show on the client-facing
-// /q/:token page.
+// /q/:token page. Uses the owner's own Gemini API key (BYOK — see
+// _shared/gemini.ts) since this is a usage-billed feature.
 
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { generateVisualization } from "../_shared/gemini.ts";
@@ -45,7 +46,20 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Quote not found" }), { status: 404, headers: jsonHeaders });
     }
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("gemini_api_key")
+      .eq("id", ownerId)
+      .maybeSingle();
+    if (!profile?.gemini_api_key) {
+      return new Response(
+        JSON.stringify({ error: "Add your Gemini API key in Settings first." }),
+        { status: 400, headers: jsonHeaders },
+      );
+    }
+
     const result = await generateVisualization({
+      apiKey: profile.gemini_api_key,
       prompt,
       baseImage: { base64: baseImage.base64, mimeType: baseImage.mimeType || "image/jpeg" },
       referenceImages: Array.isArray(referenceImages)
