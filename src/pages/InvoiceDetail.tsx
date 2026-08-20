@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Copy, CreditCard, Loader2, Receipt, Trash2, Upload } from "lucide-react";
+import { Copy, CreditCard, ListPlus, Loader2, Receipt, Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteInvoice,
@@ -13,9 +13,12 @@ import {
   useUpdateInvoiceStatus,
   useUploadReceipt,
 } from "@/hooks/useInvoices";
+import { useExtractReceiptItems, type ExtractedReceipt } from "@/hooks/useReceiptExtraction";
 import { getReceiptSignedUrls } from "@/lib/receipts";
+import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
 import type { InvoiceStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { ReceiptItemsReviewDialog } from "@/components/ReceiptItemsReviewDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +46,10 @@ export default function InvoiceDetail() {
   const sendInvoiceEmail = useSendInvoiceEmail();
   const uploadReceipt = useUploadReceipt();
   const deleteReceipt = useDeleteReceipt();
+  const extractReceiptItems = useExtractReceiptItems();
   const [receiptUrls, setReceiptUrls] = useState<Record<string, string>>({});
+  const [scanningPath, setScanningPath] = useState<string | null>(null);
+  const [review, setReview] = useState<ExtractedReceipt | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -78,6 +84,39 @@ export default function InvoiceDetail() {
       toast.success("Receipt attached");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to upload receipt");
+      return;
+    }
+
+    // Best-effort — the receipt is already safely attached either way, so
+    // a failure here is just a missed convenience, not a lost upload.
+    try {
+      const [blob] = await fileToImageBlobs(file);
+      const base64 = await blobToBase64(blob);
+      const extracted = await extractReceiptItems.mutateAsync({ imageBase64: base64, mediaType: "image/jpeg" });
+      if (extracted.items.length > 0) setReview(extracted);
+    } catch {
+      // Silent — user can still click "Scan for materials" on the thumbnail manually.
+    }
+  }
+
+  async function handleScanReceipt(path: string) {
+    const url = receiptUrls[path];
+    if (!url) return;
+    setScanningPath(path);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const base64 = await blobToBase64(blob);
+      const extracted = await extractReceiptItems.mutateAsync({ imageBase64: base64, mediaType: blob.type || "image/jpeg" });
+      if (extracted.items.length === 0) {
+        toast.info("No line items found on that receipt.");
+      } else {
+        setReview(extracted);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to read receipt");
+    } finally {
+      setScanningPath(null);
     }
   }
 
@@ -239,7 +278,8 @@ export default function InvoiceDetail() {
           {invoice.receipt_paths.length === 0 && (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Receipt className="size-4" /> No receipts attached yet — snap a photo of a materials
-              receipt to keep it with this invoice.
+              receipt to keep it with this invoice. It's automatically scanned for line items you can
+              add straight to your Materials catalog.
             </p>
           )}
           {invoice.receipt_paths.map((path) => (
@@ -261,10 +301,25 @@ export default function InvoiceDetail() {
               >
                 <Trash2 className="size-3" />
               </button>
+              <button
+                type="button"
+                onClick={() => handleScanReceipt(path)}
+                disabled={!receiptUrls[path] || scanningPath === path}
+                className="absolute -left-1.5 -top-1.5 rounded-full bg-secondary p-1 text-secondary-foreground shadow disabled:opacity-50"
+                title="Scan for materials"
+              >
+                {scanningPath === path ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <ListPlus className="size-3" />
+                )}
+              </button>
             </div>
           ))}
         </CardContent>
       </Card>
+
+      {review && <ReceiptItemsReviewDialog extracted={review} onClose={() => setReview(null)} />}
     </div>
   );
 }

@@ -820,6 +820,26 @@ their Terms of Service, fragile, and risks getting blocked). Instead:
 Run [`docs/schema_v19_materials.sql`](docs/schema_v19_materials.sql) —
 creates the `materials` table. No edge function, no secret.
 
+### Scan receipts into Materials automatically
+
+Connects the two features above: every receipt photo attached to an
+invoice (Invoice detail page → Receipts) is automatically sent to Claude's
+vision to pull out line items — product name, price, and SKU if it's
+printed. Nothing is written to the database sight-unseen — a review dialog
+shows the extracted items first (editable, with a checkbox per row) so you
+can fix anything misread or uncheck lines that aren't real materials
+before they land in your Materials catalog. Already-uploaded receipts can
+be scanned any time via the small icon on their thumbnail.
+
+**1. Supabase Edge Function**
+
+```bash
+supabase functions deploy extract-receipt-items
+```
+
+No new secret — it reuses `ANTHROPIC_API_KEY` from the estimate chatbot
+setup. No schema migration.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -921,6 +941,7 @@ supabase/functions/
   portal-verify/         public: exchanges a login link for a session token
   portal-dashboard/      public (session-scoped): jobs/quotes/invoices for the portal
   portal-request-service/ public (session-scoped): logs a client's "I'd also like..." request
+  extract-receipt-items/ auth required: Claude vision pulls line items off a receipt photo
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
