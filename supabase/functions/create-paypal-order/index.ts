@@ -7,6 +7,7 @@
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { createPaypalOrder } from "../_shared/paypal.ts";
 import { validateNextMilestone } from "../_shared/milestones.ts";
+import { getPaypalCredentials } from "../_shared/paymentCredentials.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -26,7 +27,7 @@ Deno.serve(async (req) => {
 
     const { data: invoice, error } = await supabase
       .from("invoices")
-      .select("id, total_cents, amount_paid_cents")
+      .select("id, owner_id, total_cents, amount_paid_cents")
       .eq("pay_token", token)
       .single();
 
@@ -58,11 +59,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    const creds = await getPaypalCredentials(supabase, invoice.owner_id);
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ error: "This business hasn't connected PayPal yet." }),
+        { status: 400, headers: jsonHeaders },
+      );
+    }
+
     const siteUrl = Deno.env.get("SITE_URL") ?? "";
     const returnUrl = milestoneId
       ? `${siteUrl}/pay/${token}?provider=paypal&milestoneId=${milestoneId}`
       : `${siteUrl}/pay/${token}?provider=paypal`;
-    const order = await createPaypalOrder({
+    const order = await createPaypalOrder(creds, {
       amountCents,
       invoiceId: invoice.id,
       returnUrl,

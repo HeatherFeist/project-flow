@@ -1,25 +1,26 @@
 // Shared helpers for PayPal's REST API (Orders v2) from Supabase Edge
-// Functions. Requires PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET. Set
-// PAYPAL_MODE=live to hit PayPal's live API; anything else (or unset)
-// uses the sandbox for testing.
+// Functions. Credentials are per-owner (payment_settings.paypal_client_id
+// / paypal_client_secret / paypal_mode, with the platform PAYPAL_CLIENT_ID
+// / PAYPAL_CLIENT_SECRET / PAYPAL_MODE secrets as a fallback for owners
+// who haven't set their own yet) — BYOK on purpose (see docs/schema_v22):
+// a platform-wide key would mean every subscriber's client payments land
+// in the same PayPal account.
 
-function apiBase(): string {
-  return Deno.env.get("PAYPAL_MODE") === "live"
-    ? "https://api-m.paypal.com"
-    : "https://api-m.sandbox.paypal.com";
+export interface PaypalCredentials {
+  clientId: string;
+  clientSecret: string;
+  mode: string; // 'live' | anything else (sandbox)
 }
 
-async function getAccessToken(): Promise<string> {
-  const clientId = Deno.env.get("PAYPAL_CLIENT_ID");
-  const clientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-  if (!clientId || !clientSecret) {
-    throw new Error("PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET are not configured.");
-  }
+function apiBase(mode: string): string {
+  return mode === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
+}
 
-  const res = await fetch(`${apiBase()}/v1/oauth2/token`, {
+async function getAccessToken(creds: PaypalCredentials): Promise<string> {
+  const res = await fetch(`${apiBase(creds.mode)}/v1/oauth2/token`, {
     method: "POST",
     headers: {
-      Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      Authorization: `Basic ${btoa(`${creds.clientId}:${creds.clientSecret}`)}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "grant_type=client_credentials",
@@ -34,15 +35,18 @@ async function getAccessToken(): Promise<string> {
 }
 
 /** Creates a PayPal order (intent=CAPTURE); returns the id and the approval link to redirect the payer to. */
-export async function createPaypalOrder(params: {
-  amountCents: number;
-  returnUrl: string;
-  cancelUrl: string;
-  invoiceId: string;
-}): Promise<{ id: string; approveUrl: string }> {
-  const accessToken = await getAccessToken();
+export async function createPaypalOrder(
+  creds: PaypalCredentials,
+  params: {
+    amountCents: number;
+    returnUrl: string;
+    cancelUrl: string;
+    invoiceId: string;
+  },
+): Promise<{ id: string; approveUrl: string }> {
+  const accessToken = await getAccessToken(creds);
 
-  const res = await fetch(`${apiBase()}/v2/checkout/orders`, {
+  const res = await fetch(`${apiBase(creds.mode)}/v2/checkout/orders`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -79,10 +83,13 @@ export async function createPaypalOrder(params: {
 }
 
 /** Captures a previously-approved order; returns the captured amount in cents. */
-export async function capturePaypalOrder(orderId: string): Promise<{ amountCents: number; status: string }> {
-  const accessToken = await getAccessToken();
+export async function capturePaypalOrder(
+  creds: PaypalCredentials,
+  orderId: string,
+): Promise<{ amountCents: number; status: string }> {
+  const accessToken = await getAccessToken(creds);
 
-  const res = await fetch(`${apiBase()}/v2/checkout/orders/${orderId}/capture`, {
+  const res = await fetch(`${apiBase(creds.mode)}/v2/checkout/orders/${orderId}/capture`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,

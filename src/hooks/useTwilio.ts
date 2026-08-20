@@ -27,6 +27,8 @@ export function useSaveTwilioSettings() {
       twilio_phone_number: string;
       forward_to_phone: string | null;
       missed_call_message?: string;
+      twilio_account_sid?: string | null;
+      twilio_auth_token?: string | null;
     }) => {
       const { error } = await supabase
         .from("twilio_settings")

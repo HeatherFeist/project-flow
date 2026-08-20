@@ -7,26 +7,22 @@
 // you" message and log them as a lead in Clients (and log the missed call
 // + auto-text into the structured client_messages timeline either way —
 // new lead or existing client).
+//
+// Credentials are per-owner (twilio_settings.twilio_account_sid /
+// twilio_auth_token, falling back to the platform TWILIO_ACCOUNT_SID /
+// TWILIO_AUTH_TOKEN secrets for an owner who hasn't set their own yet —
+// see docs/schema_v22). Signature verification needs the owner's own
+// auth token, so the settings lookup (by the `To` number, which any
+// caller can identify) has to happen BEFORE verifying — that's fine,
+// looking up which owner a number belongs to isn't itself a secret.
 
 import { serviceClient } from "../_shared/google.ts";
 import { parseTwilioWebhook, sendSms, twimlResponse, verifyTwilioSignature, xmlEscape } from "../_shared/twilio.ts";
 import { logClientMessage } from "../_shared/clientMessages.ts";
 
 Deno.serve(async (req) => {
-  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN")!;
   const params = await parseTwilioWebhook(req);
   const signature = req.headers.get("X-Twilio-Signature");
-
-  const valid = await verifyTwilioSignature({
-    authToken,
-    url: req.url,
-    formParams: params,
-    signature,
-  });
-  if (!valid) {
-    return new Response("Invalid signature", { status: 403 });
-  }
-
   const supabase = serviceClient();
   const to = params.To; // the Twilio number that was called
   const from = params.From; // the caller
@@ -43,12 +39,23 @@ Deno.serve(async (req) => {
     );
   }
 
+  const accountSid = settings.twilio_account_sid || Deno.env.get("TWILIO_ACCOUNT_SID")!;
+  const authToken = settings.twilio_auth_token || Deno.env.get("TWILIO_AUTH_TOKEN")!;
+
+  const valid = await verifyTwilioSignature({
+    authToken,
+    url: req.url,
+    formParams: params,
+    signature,
+  });
+  if (!valid) {
+    return new Response("Invalid signature", { status: 403 });
+  }
+
   // Second stage: Twilio POSTs back here with DialCallStatus once the
   // <Dial> attempt below finishes.
   if (params.DialCallStatus) {
     if (params.DialCallStatus !== "completed" && params.DialCallStatus !== "answered") {
-      const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID")!;
-
       const siteUrl = Deno.env.get("SITE_URL") ?? "";
       const chatLink = `${siteUrl}/estimate/${settings.user_id}`;
       const textBody = `${settings.missed_call_message}\n\nGet a rough estimate & schedule a visit here: ${chatLink}`;

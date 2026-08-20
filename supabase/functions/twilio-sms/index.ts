@@ -4,16 +4,35 @@
 // client_messages timeline. New leads get an auto-reply pointing them at
 // the estimate chatbot; existing clients get no auto-reply, so an ongoing
 // conversation with the owner isn't interrupted.
+//
+// Signature verification needs the owner's own auth token (per-owner
+// credentials, see docs/schema_v22), so the settings lookup (by the `To`
+// number) happens before verifying — looking up which owner a number
+// belongs to isn't itself a secret.
 
 import { serviceClient } from "../_shared/google.ts";
 import { parseTwilioWebhook, twimlResponse, verifyTwilioSignature, xmlEscape } from "../_shared/twilio.ts";
 import { logClientMessage } from "../_shared/clientMessages.ts";
 
 Deno.serve(async (req) => {
-  const authToken = Deno.env.get("TWILIO_AUTH_TOKEN")!;
   const params = await parseTwilioWebhook(req);
   const signature = req.headers.get("X-Twilio-Signature");
+  const supabase = serviceClient();
+  const to = params.To;
+  const from = params.From;
+  const body = params.Body ?? "";
 
+  const { data: settings } = await supabase
+    .from("twilio_settings")
+    .select("user_id, twilio_auth_token")
+    .eq("twilio_phone_number", to)
+    .maybeSingle();
+
+  if (!settings) {
+    return twimlResponse(`<Response></Response>`);
+  }
+
+  const authToken = settings.twilio_auth_token || Deno.env.get("TWILIO_AUTH_TOKEN")!;
   const valid = await verifyTwilioSignature({
     authToken,
     url: req.url,
@@ -22,21 +41,6 @@ Deno.serve(async (req) => {
   });
   if (!valid) {
     return new Response("Invalid signature", { status: 403 });
-  }
-
-  const supabase = serviceClient();
-  const to = params.To;
-  const from = params.From;
-  const body = params.Body ?? "";
-
-  const { data: settings } = await supabase
-    .from("twilio_settings")
-    .select("user_id")
-    .eq("twilio_phone_number", to)
-    .maybeSingle();
-
-  if (!settings) {
-    return twimlResponse(`<Response></Response>`);
   }
 
   const { data: existing } = await supabase

@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { connectGoogle } from "@/lib/googleAuth";
 import { useGoogleConnection, useSaveSchedulingSettings, useSchedulingSettings } from "@/hooks/useScheduling";
 import { useSaveTwilioSettings, useTwilioSettings } from "@/hooks/useTwilio";
+import { usePaymentSettings, useSavePaymentSettings } from "@/hooks/usePaymentSettings";
 import { useCreateBillingPortalSession, useSubscription } from "@/hooks/useSubscription";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,8 +86,21 @@ export default function Settings() {
     twilio_phone_number: "",
     forward_to_phone: "",
     missed_call_message: "",
+    twilio_account_sid: "",
+    twilio_auth_token: "",
   });
   const [savingTwilio, setSavingTwilio] = useState(false);
+
+  const { data: paymentSettings, isLoading: paymentSettingsLoading } = usePaymentSettings(user?.id);
+  const savePaymentSettings = useSavePaymentSettings();
+  const [paymentForm, setPaymentForm] = useState({
+    stripe_secret_key: "",
+    stripe_webhook_secret: "",
+    paypal_client_id: "",
+    paypal_client_secret: "",
+    paypal_mode: "sandbox" as "sandbox" | "live",
+  });
+  const [savingPayments, setSavingPayments] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -107,8 +121,21 @@ export default function Settings() {
       twilio_phone_number: twilioSettings.twilio_phone_number,
       forward_to_phone: twilioSettings.forward_to_phone ?? "",
       missed_call_message: twilioSettings.missed_call_message,
+      twilio_account_sid: twilioSettings.twilio_account_sid ?? "",
+      twilio_auth_token: twilioSettings.twilio_auth_token ?? "",
     });
   }, [twilioSettings]);
+
+  useEffect(() => {
+    if (!paymentSettings) return;
+    setPaymentForm({
+      stripe_secret_key: paymentSettings.stripe_secret_key ?? "",
+      stripe_webhook_secret: paymentSettings.stripe_webhook_secret ?? "",
+      paypal_client_id: paymentSettings.paypal_client_id ?? "",
+      paypal_client_secret: paymentSettings.paypal_client_secret ?? "",
+      paypal_mode: paymentSettings.paypal_mode ?? "sandbox",
+    });
+  }, [paymentSettings]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -151,12 +178,35 @@ export default function Settings() {
         twilio_phone_number: twilioForm.twilio_phone_number,
         forward_to_phone: twilioForm.forward_to_phone || null,
         missed_call_message: twilioForm.missed_call_message || undefined,
+        twilio_account_sid: twilioForm.twilio_account_sid || null,
+        twilio_auth_token: twilioForm.twilio_auth_token || null,
       });
       toast.success("Twilio settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save Twilio settings");
     } finally {
       setSavingTwilio(false);
+    }
+  }
+
+  async function handleSavePayments(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    setSavingPayments(true);
+    try {
+      await savePaymentSettings.mutateAsync({
+        owner_id: user.id,
+        stripe_secret_key: paymentForm.stripe_secret_key || null,
+        stripe_webhook_secret: paymentForm.stripe_webhook_secret || null,
+        paypal_client_id: paymentForm.paypal_client_id || null,
+        paypal_client_secret: paymentForm.paypal_client_secret || null,
+        paypal_mode: paymentForm.paypal_mode,
+      });
+      toast.success("Payment settings saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save payment settings");
+    } finally {
+      setSavingPayments(false);
     }
   }
 
@@ -429,6 +479,38 @@ export default function Settings() {
                   placeholder="Sorry we missed your call! Reply here and let us know what you need."
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="twilio_account_sid">Twilio Account SID</Label>
+                <Input
+                  id="twilio_account_sid"
+                  type="password"
+                  placeholder="AC…"
+                  value={twilioForm.twilio_account_sid}
+                  onChange={(e) => setTwilioForm({ ...twilioForm, twilio_account_sid: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="twilio_auth_token">Twilio Auth Token</Label>
+                <Input
+                  id="twilio_auth_token"
+                  type="password"
+                  value={twilioForm.twilio_auth_token}
+                  onChange={(e) => setTwilioForm({ ...twilioForm, twilio_auth_token: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Find both on your{" "}
+                  <a
+                    href="https://console.twilio.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Twilio Console
+                  </a>{" "}
+                  dashboard. Calls and texts on this number are billed by Twilio directly to your own
+                  account. Leave blank to keep using Project Flow's shared Twilio account for now.
+                </p>
+              </div>
               {twilioSettings && (
                 <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm text-muted-foreground">
                   <PhoneCall className="size-4 text-success" />
@@ -448,9 +530,9 @@ export default function Settings() {
         <CardHeader>
           <CardTitle>Payments</CardTitle>
           <CardDescription>
-            Invoice "Pay Now" links accept card, Cash App Pay, and PayPal. Each processor is set up
-            with your own account's keys as server secrets — not connected here in the app (see the
-            README's setup steps for exactly what to configure).
+            Invoice "Pay Now" links accept card, Cash App Pay, and PayPal — paid directly into your own
+            Stripe and PayPal accounts, not Project Flow's. Your existing webhook URLs don't need to
+            change; leave a field blank to keep using Project Flow's shared account for now.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 pb-6">
@@ -470,6 +552,97 @@ export default function Settings() {
               </a>
             </Button>
           </div>
+
+          {paymentSettingsLoading ? (
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          ) : (
+            <form onSubmit={handleSavePayments} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="stripe_secret_key">Stripe secret key</Label>
+                <Input
+                  id="stripe_secret_key"
+                  type="password"
+                  placeholder="sk_live_…"
+                  value={paymentForm.stripe_secret_key}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, stripe_secret_key: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="stripe_webhook_secret">Stripe webhook signing secret</Label>
+                <Input
+                  id="stripe_webhook_secret"
+                  type="password"
+                  placeholder="whsec_…"
+                  value={paymentForm.stripe_webhook_secret}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, stripe_webhook_secret: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  From your{" "}
+                  <a
+                    href="https://dashboard.stripe.com/webhooks"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    Stripe Dashboard
+                  </a>{" "}
+                  → Developers → Webhooks. Point it at the same <code>stripe-webhook</code> Edge Function
+                  URL as before — it now checks incoming events against every connected account's secret,
+                  so nothing needs to change there.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paypal_client_id">PayPal client ID</Label>
+                <Input
+                  id="paypal_client_id"
+                  type="password"
+                  value={paymentForm.paypal_client_id}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, paypal_client_id: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paypal_client_secret">PayPal client secret</Label>
+                <Input
+                  id="paypal_client_secret"
+                  type="password"
+                  value={paymentForm.paypal_client_secret}
+                  onChange={(e) => setPaymentForm({ ...paymentForm, paypal_client_secret: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  From your{" "}
+                  <a
+                    href="https://developer.paypal.com/dashboard/applications"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    PayPal Developer Dashboard
+                  </a>
+                  , under Apps &amp; Credentials.
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="paypal_mode">PayPal mode</Label>
+                <Select
+                  value={paymentForm.paypal_mode}
+                  onValueChange={(value) =>
+                    setPaymentForm({ ...paymentForm, paypal_mode: value as "sandbox" | "live" })
+                  }
+                >
+                  <SelectTrigger id="paypal_mode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sandbox">Sandbox (testing)</SelectItem>
+                    <SelectItem value="live">Live (real payments)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button type="submit" disabled={savingPayments}>
+                {savingPayments ? "Saving…" : "Save"}
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
 

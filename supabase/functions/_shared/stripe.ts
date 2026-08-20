@@ -1,20 +1,25 @@
 // Shared helpers for Stripe's REST API from Supabase Edge Functions.
-// Plain HTTP + Bearer auth — no SDK needed. Requires STRIPE_SECRET_KEY and
-// (for webhook verification) STRIPE_WEBHOOK_SECRET.
+// Plain HTTP + Bearer auth — no SDK needed.
 //
 // Two entirely separate Stripe accounts are involved in this app, so two
-// separate sets of secrets exist on purpose:
-//   STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET       — each business owner's
-//     own Stripe account, used only for their customers' invoice payments
-//     (functions below this comment, used by create-invoice-checkout).
+// separate sets of credentials exist on purpose:
+//   Per-owner (payment_settings.stripe_secret_key / stripe_webhook_secret,
+//     with the platform STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET secrets
+//     as a fallback for owners who haven't set their own yet) — each
+//     business owner's own Stripe account, used only for their customers'
+//     invoice payments (functions below, used by create-invoice-checkout
+//     and stripe-webhook). BYOK on purpose (see docs/schema_v22) — a
+//     platform-wide key would mean every subscriber's client payments
+//     land in the same Stripe account.
 //   PLATFORM_STRIPE_SECRET_KEY / PLATFORM_STRIPE_WEBHOOK_SECRET /
-//   PLATFORM_STRIPE_PRICE_ID                        — Project Flow's own
-//     Stripe account, used to bill business owners the monthly Project Flow
-//     subscription itself (functions further below, used by
+//     PLATFORM_STRIPE_PRICE_ID — Project Flow's own Stripe account, used
+//     to bill business owners the monthly Project Flow subscription
+//     itself (functions further below, used by
 //     create-subscription-checkout / create-billing-portal-session /
 //     platform-stripe-webhook). Never mix these two up.
 
 export async function createCheckoutSession(params: {
+  secretKey: string;
   amountCents: number;
   description: string;
   successUrl: string;
@@ -22,8 +27,7 @@ export async function createCheckoutSession(params: {
   customerEmail?: string;
   metadata: Record<string, string>;
 }): Promise<{ id: string; url: string }> {
-  const secretKey = Deno.env.get("STRIPE_SECRET_KEY");
-  if (!secretKey) throw new Error("STRIPE_SECRET_KEY is not configured.");
+  const { secretKey } = params;
 
   const body = new URLSearchParams();
   body.set("mode", "payment");

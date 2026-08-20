@@ -8,6 +8,7 @@
 
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { capturePaypalOrder } from "../_shared/paypal.ts";
+import { getPaypalCredentials } from "../_shared/paymentCredentials.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -30,12 +31,20 @@ Deno.serve(async (req) => {
 
     const { data: invoice, error } = await supabase
       .from("invoices")
-      .select("id, total_cents, amount_paid_cents, status")
+      .select("id, owner_id, total_cents, amount_paid_cents, status")
       .eq("pay_token", token)
       .single();
 
     if (error || !invoice) {
       return new Response(JSON.stringify({ error: "Invoice not found" }), { status: 404, headers: jsonHeaders });
+    }
+
+    const creds = await getPaypalCredentials(supabase, invoice.owner_id);
+    if (!creds) {
+      return new Response(
+        JSON.stringify({ error: "This business hasn't connected PayPal yet." }),
+        { status: 400, headers: jsonHeaders },
+      );
     }
 
     // Idempotent: if this order was already captured (e.g. the page reloaded), don't double-count it.
@@ -49,7 +58,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: true, alreadyRecorded: true }), { headers: jsonHeaders });
     }
 
-    const capture = await capturePaypalOrder(paypalOrderId);
+    const capture = await capturePaypalOrder(creds, paypalOrderId);
     if (capture.status !== "COMPLETED") {
       return new Response(JSON.stringify({ error: `Payment not completed (status: ${capture.status})` }), {
         status: 400,

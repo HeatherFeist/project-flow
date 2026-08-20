@@ -7,6 +7,7 @@
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { createCheckoutSession } from "../_shared/stripe.ts";
 import { validateNextMilestone } from "../_shared/milestones.ts";
+import { getStripeSecretKey } from "../_shared/paymentCredentials.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -64,10 +65,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    const secretKey = await getStripeSecretKey(supabase, invoice.owner_id);
+    if (!secretKey) {
+      return new Response(
+        JSON.stringify({ error: "This business hasn't connected Stripe yet." }),
+        { status: 400, headers: jsonHeaders },
+      );
+    }
+
     const siteUrl = Deno.env.get("SITE_URL") ?? "";
     const businessName = profile?.business_name || "your contractor";
 
     const session = await createCheckoutSession({
+      secretKey,
       amountCents,
       description: `Invoice payment — ${businessName}`,
       successUrl: `${siteUrl}/pay/${token}?paid=1`,

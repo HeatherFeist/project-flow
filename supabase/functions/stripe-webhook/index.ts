@@ -1,27 +1,41 @@
-// POST — Stripe webhook. Configure this URL as a webhook endpoint in the
-// Stripe Dashboard, subscribed to `checkout.session.completed`.
-// Verifies Stripe's signature, records the payment, and updates the
-// invoice's amount_paid_cents + status (draft/sent -> partially_paid/paid).
+// POST — Stripe webhook. Each owner adds this SAME URL as a webhook
+// endpoint in their own Stripe Dashboard, subscribed to
+// `checkout.session.completed`. Verifies Stripe's signature, records the
+// payment, and updates the invoice's amount_paid_cents + status
+// (draft/sent -> partially_paid/paid).
+//
+// Multi-tenant signature verification: since every owner's Stripe account
+// sends events to this one URL, there's no single correct webhook secret
+// to check against up front — the event has to be tried against every
+// owner's stored secret (plus the platform fallback) until one matches.
+// A forged event can't pass this check without actually knowing one of
+// those secrets, so this is no less secure than a single-tenant setup.
 
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { verifyStripeSignature } from "../_shared/stripe.ts";
+import { getAllStripeWebhookSecrets } from "../_shared/paymentCredentials.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: CORS_HEADERS });
 
-  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-  if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET is not configured.");
+  const supabase = serviceClient();
+  const rawBody = await req.text();
+  const signatureHeader = req.headers.get("Stripe-Signature");
+
+  const candidateSecrets = await getAllStripeWebhookSecrets(supabase);
+  if (candidateSecrets.length === 0) {
+    console.error("No Stripe webhook secrets configured (platform or per-owner).");
     return new Response("Webhook not configured", { status: 500 });
   }
 
-  const rawBody = await req.text();
-  const valid = await verifyStripeSignature({
-    rawBody,
-    signatureHeader: req.headers.get("Stripe-Signature"),
-    webhookSecret,
-  });
+  let valid = false;
+  for (const webhookSecret of candidateSecrets) {
+    if (await verifyStripeSignature({ rawBody, signatureHeader, webhookSecret })) {
+      valid = true;
+      break;
+    }
+  }
   if (!valid) {
     return new Response("Invalid signature", { status: 403 });
   }
@@ -36,7 +50,6 @@ Deno.serve(async (req) => {
     const paymentIntentId = session.payment_intent as string | null;
 
     if (invoiceId && typeof amountCents === "number") {
-      const supabase = serviceClient();
 
       const { data: invoice, error } = await supabase
         .from("invoices")

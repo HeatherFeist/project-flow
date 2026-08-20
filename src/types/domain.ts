@@ -147,6 +147,18 @@ export interface TwilioSettings {
   twilio_phone_number: string;
   forward_to_phone: string | null;
   missed_call_message: string;
+  twilio_account_sid: string | null;
+  twilio_auth_token: string | null;
+}
+
+export interface PaymentSettings {
+  owner_id: string;
+  stripe_secret_key: string | null;
+  stripe_webhook_secret: string | null;
+  paypal_client_id: string | null;
+  paypal_client_secret: string | null;
+  paypal_mode: "sandbox" | "live";
+  updated_at: string;
 }
 
 export type PriceUnit = "flat" | "per hour" | "per sq ft" | "per linear ft";

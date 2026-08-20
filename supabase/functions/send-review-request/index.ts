@@ -61,15 +61,15 @@ Deno.serve(async (req) => {
     if (job.client?.phone) {
       const { data: twilioSettings } = await supabase
         .from("twilio_settings")
-        .select("twilio_phone_number")
+        .select("twilio_phone_number, twilio_account_sid, twilio_auth_token")
         .eq("user_id", ownerId)
         .maybeSingle();
 
       if (twilioSettings) {
         const body = `Hi ${clientName}, thanks for choosing ${businessName}! If you have a minute, we'd really appreciate a quick Google review: ${reviewLink}`;
         await sendSms({
-          accountSid: Deno.env.get("TWILIO_ACCOUNT_SID")!,
-          authToken: Deno.env.get("TWILIO_AUTH_TOKEN")!,
+          accountSid: twilioSettings.twilio_account_sid || Deno.env.get("TWILIO_ACCOUNT_SID")!,
+          authToken: twilioSettings.twilio_auth_token || Deno.env.get("TWILIO_AUTH_TOKEN")!,
           from: twilioSettings.twilio_phone_number,
           to: job.client.phone,
           body,

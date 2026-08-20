@@ -903,6 +903,73 @@ visualization — not a pixel-perfect CAD rendering. Treat it as "here's a
 strong sense of the direction," not an exact preview of every material
 detail.
 
+### Bring-your-own Twilio/Stripe/PayPal (multi-tenant credentials)
+
+Up through schema v21, Twilio (calls/texts), Stripe (invoice payments),
+and PayPal (invoice payments) were all **platform-wide secrets** — every
+subscriber's calls, texts, and client payments routed through the same
+account (Nick's). That's fine for a single-business tool, but wrong once
+there's more than one real subscriber: someone else's client
+communications and client money have no business flowing through
+someone else's Twilio/Stripe/PayPal account.
+
+**This is now bring-your-own-key, with a non-breaking fallback.** Each
+owner can enter their own Twilio/Stripe/PayPal credentials in
+**Settings**. If an owner hasn't set their own yet, the app keeps working
+exactly as before, falling back to the platform-wide secrets
+(`TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`, `STRIPE_SECRET_KEY`/
+`STRIPE_WEBHOOK_SECRET`, `PAYPAL_CLIENT_ID`/`PAYPAL_CLIENT_SECRET`) — so
+nothing breaks for Nick's existing account, and nothing has to be filled
+in immediately. For consistency (and so the platform secrets can
+eventually be retired), it's worth migrating Nick's own account to use
+its own credentials here too, whenever convenient.
+
+**No webhook URL changes needed.** Stripe webhooks for invoice payments
+still all point at the same `stripe-webhook` Edge Function URL, even
+though each owner now has their own Stripe account and (optionally) their
+own webhook signing secret — the function tries the incoming signature
+against every connected owner's secret (plus the platform fallback) until
+one validates. Forging a valid signature still requires actually knowing
+one of those real secrets, so this doesn't weaken verification.
+
+**Not touched:** the *platform* Stripe account used for Project Flow's
+own $49/mo subscription billing (`PLATFORM_STRIPE_SECRET_KEY` etc.) is a
+separate, genuinely platform-wide secret — that's Project Flow's own
+revenue, not a pass-through to a client, so it stays as-is.
+
+**1. Redeploy the affected Edge Functions**
+
+```bash
+supabase functions deploy create-invoice-checkout
+supabase functions deploy stripe-webhook
+supabase functions deploy create-paypal-order
+supabase functions deploy capture-paypal-order
+supabase functions deploy twilio-voice
+supabase functions deploy twilio-sms
+supabase functions deploy send-job-reminder
+supabase functions deploy send-review-request
+```
+
+**2. Run the schema migration**
+
+- [`docs/schema_v22_payment_comms_byok.sql`](docs/schema_v22_payment_comms_byok.sql)
+  — adds `twilio_settings.twilio_account_sid`/`twilio_auth_token`, and a
+  new `payment_settings` table (Stripe secret key + webhook secret,
+  PayPal client ID + secret + sandbox/live mode), owner-scoped by RLS.
+
+**3. Each owner fills in their own credentials in Settings** (optional —
+leave blank to keep using the platform's shared account for now):
+- **Calls & Texts (Twilio)** — Account SID and Auth Token, from the
+  [Twilio Console](https://console.twilio.com).
+- **Payments** — Stripe secret key (from the
+  [Stripe Dashboard](https://dashboard.stripe.com/apikeys)) and webhook
+  signing secret (from
+  [Dashboard → Developers → Webhooks](https://dashboard.stripe.com/webhooks) —
+  point it at the *same* `stripe-webhook` URL as before), plus PayPal
+  client ID/secret (from the
+  [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications))
+  and sandbox/live mode.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1027,4 +1094,5 @@ docs/schema_v18_client_messages.sql client_messages table (structured communicat
 docs/schema_v19_materials.sql    materials table (separate catalog from Price Book)
 docs/schema_v20_quote_visualizations.sql quote_visualizations table + public quote-visuals bucket
 docs/schema_v21_gemini_byok.sql  Adds profiles.gemini_api_key (bring-your-own-key)
+docs/schema_v22_payment_comms_byok.sql Adds twilio_settings SID/token + payment_settings table (bring-your-own-key)
 ```
