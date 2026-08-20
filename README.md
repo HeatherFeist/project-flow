@@ -679,6 +679,47 @@ creates the `job-photos` Storage bucket (public reads, like
 estimate-uploads, but only the owning user can add/remove files). No edge
 function, no secret.
 
+### Photo tagging, markup, and a client-facing gallery
+
+Three more CompanyCam-style pieces on top of the basic capture above:
+
+- **"Taken by" tagging.** Each photo can note who took it — type a name
+  when adding photos and it's remembered as a suggestion next time. This
+  is a plain text tag, not a real team-member account — Project Flow is
+  one login per business today, so there's no invite-a-crew-member/roles
+  system behind it, just a label on the photo.
+- **Markup/annotation.** Hover a photo → the pencil icon opens a simple
+  draw-and-label tool (freehand pen in a few colors, tap-to-place text
+  notes, undo/clear) right in the browser — no external editor needed.
+  Saving replaces that photo with the marked-up version.
+- **Client-facing gallery.** Once a job has photos, a **"Share gallery"**
+  button copies a no-login link (`/job-gallery/:token`) showing them in a
+  timeline, with captions — safe to text or email a client so they can
+  watch progress without an account. Captions are editable inline under
+  each photo thumbnail.
+
+This upgrades photo storage from a plain URL list to a real
+`job_photos` table (one row per photo, with a timestamp, caption, and
+"taken by"), so — unlike the section above — this one needs a schema
+migration plus a small public edge function for the gallery.
+
+**Run the schema migration**
+
+Run
+[`docs/schema_v16_job_photo_gallery.sql`](docs/schema_v16_job_photo_gallery.sql)
+— adds the `job_photos` table and `jobs.photo_share_token`. Existing
+photos from the estimate chatbot (`jobs.photo_urls`) are untouched and
+still show in their own read-only section on the Job page — they just
+don't appear in the new table/gallery since they predate it.
+
+**Supabase Edge Function**
+
+```bash
+supabase functions deploy job-photos-info
+```
+
+No secret needed.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -775,6 +816,7 @@ supabase/functions/
   create-billing-portal-session/   auth required: opens Stripe's Billing Portal for the owner
   platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
   app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant
+  job-photos-info/      public: job title + photo timeline for the /job-gallery/:token page
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
@@ -790,4 +832,5 @@ docs/schema_v12_google_review_link.sql Adds profiles.google_review_link, for rev
 docs/schema_v13_invoice_receipts.sql Private receipts Storage bucket, invoices.receipt_paths
 docs/schema_v14_invoice_milestones.sql invoice_milestones table, invoice_payments.milestone_id
 docs/schema_v15_job_photos.sql   Public job-photos Storage bucket, owner-writable
+docs/schema_v16_job_photo_gallery.sql job_photos table, jobs.photo_share_token
 ```

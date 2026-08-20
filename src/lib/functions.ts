@@ -132,3 +132,17 @@ export function capturePaypalOrder(token: string, paypalOrderId: string, milesto
     body: JSON.stringify({ token, paypalOrderId, milestoneId }),
   });
 }
+
+export function fetchJobPhotosInfo(token: string) {
+  return fetch(`${FUNCTIONS_URL}/job-photos-info?token=${encodeURIComponent(token)}`, {
+    headers: { apikey: ANON_KEY ?? "" },
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error ?? "Failed to load gallery");
+    return json as {
+      job: { title: string; client: { name: string } | null };
+      business: { business_name: string | null } | null;
+      photos: { id: string; url: string; caption: string | null; taken_by: string | null; created_at: string }[];
+    };
+  });
+}

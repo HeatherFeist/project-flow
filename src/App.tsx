@@ -24,6 +24,7 @@ import PriceBook from "@/pages/PriceBook";
 import EstimateChat from "@/pages/EstimateChat";
 import EmbedGuide from "@/pages/EmbedGuide";
 import PayInvoice from "@/pages/PayInvoice";
+import JobGallery from "@/pages/JobGallery";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ function App() {
               <Route path="/estimate/:ownerId" element={<EstimateChat />} />
               <Route path="/embed-guide/:ownerId" element={<EmbedGuide />} />
               <Route path="/pay/:token" element={<PayInvoice />} />
+              <Route path="/job-gallery/:token" element={<JobGallery />} />
               <Route
                 path="/subscribe"
                 element={

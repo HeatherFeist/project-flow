@@ -57,6 +57,7 @@ export interface Job {
   address: string | null;
   google_event_id: string | null;
   photo_urls: string[];
+  photo_share_token: string;
   created_at: string;
   client?: Pick<Client, "id" | "name">;
 }
@@ -65,6 +66,17 @@ export interface JobNote {
   id: string;
   job_id: string;
   note: string;
+  created_at: string;
+}
+
+export interface JobPhoto {
+  id: string;
+  job_id: string;
+  owner_id: string;
+  url: string;
+  storage_path: string;
+  taken_by: string | null;
+  caption: string | null;
   created_at: string;
 }
 

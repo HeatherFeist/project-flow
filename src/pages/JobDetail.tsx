@@ -1,24 +1,26 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Camera, Loader2, MessageSquare, Star, Trash2 } from "lucide-react";
+import { Camera, Copy, Loader2, MessageSquare, PenLine, Star, Trash2 } from "lucide-react";
+import { useAddJobNote, useDeleteJob, useJob, useJobNotes, useUpdateJobStatus } from "@/hooks/useJobs";
 import {
-  useAddJobNote,
   useAddJobPhoto,
-  useDeleteJob,
   useDeleteJobPhoto,
-  useJob,
-  useJobNotes,
-  useUpdateJobStatus,
-} from "@/hooks/useJobs";
+  useJobPhotos,
+  usePreviousPhotoTakers,
+  useReplaceJobPhotoImage,
+  useUpdateJobPhoto,
+} from "@/hooks/useJobPhotos";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSendJobReminder, useSendReviewRequest } from "@/hooks/useTwilio";
-import type { JobStatus } from "@/types/domain";
+import type { JobPhoto, JobStatus } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DeleteButton } from "@/components/DeleteButton";
+import { PhotoAnnotator } from "@/components/PhotoAnnotator";
 import { formatDateTime } from "@/lib/utils";
 
 const STATUSES: JobStatus[] = ["scheduled", "in_progress", "completed", "cancelled"];
@@ -29,6 +31,8 @@ export default function JobDetail() {
   const { user } = useAuth();
   const { data: job, isLoading } = useJob(id);
   const { data: notes } = useJobNotes(id);
+  const { data: photos } = useJobPhotos(id);
+  const { data: previousTakers } = usePreviousPhotoTakers(user?.id);
   const updateStatus = useUpdateJobStatus();
   const addNote = useAddJobNote();
   const deleteJob = useDeleteJob();
@@ -36,8 +40,12 @@ export default function JobDetail() {
   const sendReviewRequest = useSendReviewRequest();
   const addPhoto = useAddJobPhoto();
   const deletePhoto = useDeleteJobPhoto();
+  const updatePhoto = useUpdateJobPhoto();
+  const replacePhotoImage = useReplaceJobPhotoImage();
   const [note, setNote] = useState("");
   const [uploadingCount, setUploadingCount] = useState(0);
+  const [takenBy, setTakenBy] = useState("");
+  const [annotating, setAnnotating] = useState<JobPhoto | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSendReminder() {
@@ -66,12 +74,12 @@ export default function JobDetail() {
   async function handlePhotosSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (files.length === 0 || !user || !job) return;
+    if (files.length === 0 || !user || !id) return;
     setUploadingCount(files.length);
     let failures = 0;
     for (const file of files) {
       try {
-        await addPhoto.mutateAsync({ ownerId: user.id, job, file });
+        await addPhoto.mutateAsync({ ownerId: user.id, jobId: id, file, takenBy: takenBy.trim() || null });
       } catch {
         failures++;
       }
@@ -80,13 +88,18 @@ export default function JobDetail() {
     if (failures > 0) toast.error(`${failures} photo${failures === 1 ? "" : "s"} failed to upload`);
   }
 
-  async function handleDeletePhoto(url: string) {
-    if (!job) return;
+  async function handleDeletePhoto(photo: JobPhoto) {
     try {
-      await deletePhoto.mutateAsync({ job, url });
+      await deletePhoto.mutateAsync(photo);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to remove photo");
     }
+  }
+
+  function copyGalleryLink() {
+    if (!job) return;
+    navigator.clipboard.writeText(`${window.location.origin}/job-gallery/${job.photo_share_token}`);
+    toast.success("Gallery link copied — safe to text or email the client");
   }
 
   async function handleAddNote(e: React.FormEvent) {
@@ -180,57 +193,131 @@ export default function JobDetail() {
       )}
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
           <CardTitle className="text-sm">Photos</CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={uploadingCount > 0}
-            onClick={() => photoInputRef.current?.click()}
-          >
-            {uploadingCount > 0 ? (
-              <>
-                <Loader2 className="animate-spin" /> Uploading {uploadingCount}…
-              </>
-            ) : (
-              <>
-                <Camera /> Add photos
-              </>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={takenBy}
+              onChange={(e) => setTakenBy(e.target.value)}
+              placeholder="Taken by (optional)"
+              list="photo-takers"
+              className="h-8 w-40 text-xs"
+            />
+            <datalist id="photo-takers">
+              {(previousTakers ?? []).map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+            {(photos ?? []).length > 0 && (
+              <Button variant="outline" size="sm" onClick={copyGalleryLink} title="Copy a shareable link for the client">
+                <Copy className="size-3.5" /> Share gallery
+              </Button>
             )}
-          </Button>
-          <input
-            ref={photoInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            multiple
-            className="hidden"
-            onChange={handlePhotosSelected}
-          />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={uploadingCount > 0}
+              onClick={() => photoInputRef.current?.click()}
+            >
+              {uploadingCount > 0 ? (
+                <>
+                  <Loader2 className="animate-spin" /> Uploading {uploadingCount}…
+                </>
+              ) : (
+                <>
+                  <Camera /> Add photos
+                </>
+              )}
+            </Button>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={handlePhotosSelected}
+            />
+          </div>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2 pb-6">
-          {job.photo_urls.length === 0 && (
+        <CardContent className="flex flex-wrap gap-3 pb-6">
+          {(!photos || photos.length === 0) && (
             <p className="text-sm text-muted-foreground">
               No photos yet — snap before/during/after shots as you work the job.
             </p>
           )}
-          {job.photo_urls.map((url) => (
-            <div key={url} className="group relative">
-              <a href={url} target="_blank" rel="noreferrer">
-                <img src={url} alt="Job" className="size-24 rounded-md border object-cover" />
-              </a>
-              <button
-                type="button"
-                onClick={() => handleDeletePhoto(url)}
-                className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"
-                title="Remove photo"
-              >
-                <Trash2 className="size-3" />
-              </button>
+          {(photos ?? []).map((photo) => (
+            <div key={photo.id} className="group relative w-28">
+              <div className="relative">
+                <a href={photo.url} target="_blank" rel="noreferrer">
+                  <img src={photo.url} alt="Job" className="size-28 rounded-md border object-cover" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setAnnotating(photo)}
+                  className="absolute -left-1.5 -top-1.5 rounded-full bg-secondary p-1 text-secondary-foreground opacity-0 shadow group-hover:opacity-100"
+                  title="Mark up photo"
+                >
+                  <PenLine className="size-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeletePhoto(photo)}
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 shadow group-hover:opacity-100"
+                  title="Remove photo"
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              </div>
+              <input
+                defaultValue={photo.caption ?? ""}
+                placeholder="Caption…"
+                onBlur={(e) => {
+                  const value = e.target.value.trim() || null;
+                  if (value !== photo.caption) {
+                    updatePhoto.mutate({ id: photo.id, jobId: photo.job_id, caption: value });
+                  }
+                }}
+                className="mt-1 w-full rounded border-none bg-transparent px-0.5 text-xs text-muted-foreground focus:outline-none"
+              />
+              {photo.taken_by && <p className="truncate px-0.5 text-[10px] text-muted-foreground">{photo.taken_by}</p>}
             </div>
           ))}
         </CardContent>
       </Card>
+
+      {job.photo_urls.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Photos from the estimate chat</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2 pb-6">
+            {job.photo_urls.map((url) => (
+              <a key={url} href={url} target="_blank" rel="noreferrer">
+                <img src={url} alt="From estimate chat" className="size-24 rounded-md border object-cover" />
+              </a>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {annotating && (
+        <PhotoAnnotator
+          imageUrl={annotating.url}
+          saving={replacePhotoImage.isPending}
+          onCancel={() => setAnnotating(null)}
+          onSave={async (blob) => {
+            if (!user) return;
+            try {
+              await replacePhotoImage.mutateAsync({ photo: annotating, ownerId: user.id, blob });
+              toast.success("Photo updated");
+              setAnnotating(null);
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save markup");
+            }
+          }}
+        />
+      )}
 
       <Card>
         <CardHeader>

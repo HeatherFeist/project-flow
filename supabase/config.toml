@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.platform-stripe-webhook]
 verify_jwt = false
+
+[functions.job-photos-info]
+verify_jwt = false
