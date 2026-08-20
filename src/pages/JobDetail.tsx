@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Star } from "lucide-react";
 import { useAddJobNote, useDeleteJob, useJob, useJobNotes, useUpdateJobStatus } from "@/hooks/useJobs";
-import { useSendJobReminder } from "@/hooks/useTwilio";
+import { useSendJobReminder, useSendReviewRequest } from "@/hooks/useTwilio";
 import type { JobStatus } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default function JobDetail() {
   const addNote = useAddJobNote();
   const deleteJob = useDeleteJob();
   const sendReminder = useSendJobReminder();
+  const sendReviewRequest = useSendReviewRequest();
   const [note, setNote] = useState("");
 
   async function handleSendReminder() {
@@ -32,6 +33,16 @@ export default function JobDetail() {
       toast.success("Reminder texted to the client");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send reminder");
+    }
+  }
+
+  async function handleSendReviewRequest() {
+    if (!id) return;
+    try {
+      const result = await sendReviewRequest.mutateAsync(id);
+      toast.success(result.channel === "sms" ? "Review request texted to the client" : "Review request emailed to the client");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send review request");
     }
   }
 
@@ -82,6 +93,17 @@ export default function JobDetail() {
             >
               <MessageSquare /> Text reminder
             </Button>
+            {job.status === "completed" && (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={sendReviewRequest.isPending}
+                onClick={handleSendReviewRequest}
+                title="Send the client a direct link to leave a Google review"
+              >
+                <Star /> Request review
+              </Button>
+            )}
             <DeleteButton
               itemLabel={job.title}
               onConfirm={async () => {

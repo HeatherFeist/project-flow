@@ -120,6 +120,7 @@ export default function Settings() {
       phone: profile.phone ?? null,
       email: profile.email ?? user.email ?? null,
       service_area: profile.service_area ?? null,
+      google_review_link: profile.google_review_link ?? null,
     });
     setSaving(false);
     if (error) {
@@ -225,6 +226,22 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">
                 Used by the estimate chatbot to price jobs that aren't in your Price Book — it estimates a
                 rough labor + materials cost for this area instead of just saying "no pricing available."
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="google_review_link">Google review link</Label>
+              <Input
+                id="google_review_link"
+                placeholder="https://g.page/r/.../review"
+                value={profile.google_review_link ?? ""}
+                onChange={(e) => setProfile({ ...profile, google_review_link: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Lets you send a client a direct link to leave a Google review after a completed job (the
+                "Request review" button on a job). Find yours in your Google Business Profile — under
+                Home, look for "Get more reviews" or "Ask for reviews" and copy the shareable link.
+                Project Flow can't post reviews for you (only Google itself can, and only through the
+                customer's own account) — this just makes it one tap for them.
               </p>
             </div>
             <Button type="submit" disabled={saving}>

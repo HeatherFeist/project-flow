@@ -576,6 +576,44 @@ you can flip manually to skip it for an account:
 update profiles set onboarding_completed = true where id = '<user id>';
 ```
 
+### Google review requests (send clients a direct link after a job)
+
+**Important:** no app — Project Flow included — can post a review onto a
+Google Business Profile on a customer's behalf. Reviews can only be
+authored by the actual customer, signed into their own Google account,
+through Google's own review flow; anything that auto-posted reviews would
+violate Google's policies. What this does instead — the same thing
+Jobber/Housecall Pro/etc. do — is send the client a **direct link straight
+to your Google review form** once a job's marked completed, so leaving a
+review is one tap for them instead of them having to search for your
+business first.
+
+**1. Get your Google review link**
+
+In your Google Business Profile (business.google.com or the Business
+Profile app) → Home → look for **"Get more reviews"** or **"Ask for
+reviews"** → copy the shareable link it gives you (looks like
+`https://g.page/r/.../review`).
+
+**2. Paste it into Settings**
+
+**Settings → Business profile → Google review link.**
+
+**3. Supabase Edge Function**
+
+```bash
+supabase functions deploy send-review-request
+```
+
+No new secret needed — it reuses Twilio/Google credentials already set up
+above. No schema migration beyond
+[`docs/schema_v12_google_review_link.sql`](docs/schema_v12_google_review_link.sql).
+
+That's it — once a job's status is set to **Completed**, a **"Request
+review"** button appears on that job's detail page. It texts the client if
+they have a phone number and Twilio's connected, or emails them via Gmail
+otherwise.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -660,6 +698,7 @@ supabase/functions/
   twilio-voice/        Twilio Voice webhook: ring the owner, auto-text (+ chat link) + log a lead if missed
   twilio-sms/          Twilio Messaging webhook: logs inbound texts as leads, replies with the chat link
   send-job-reminder/   texts a client an appointment reminder for a job (auth required)
+  send-review-request/ auth required: texts/emails a client a direct link to leave a Google review
   estimate-chat/       public: Claude tool-using agent — price book lookup, slot check, booking
   send-invoice-email/  emails an invoice via the owner's Gmail with a Pay Now link (auth required)
   invoice-pay-info/    public: invoice details for the /pay/:token page
@@ -682,4 +721,5 @@ docs/schema_v8_estimate_uploads.sql Public estimate-uploads Storage bucket, jobs
 docs/schema_v9_platform_subscriptions.sql subscriptions table, profiles.is_exempt comp flag
 docs/schema_v10_service_area.sql Adds profiles.service_area, for the Unit Cost Method pricing fallback
 docs/schema_v11_onboarding.sql   Adds profiles.onboarding_completed, for the setup wizard
+docs/schema_v12_google_review_link.sql Adds profiles.google_review_link, for review requests
 ```

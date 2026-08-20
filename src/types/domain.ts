@@ -8,6 +8,7 @@ export interface Profile {
   phone: string | null;
   email: string | null;
   service_area: string | null;
+  google_review_link: string | null;
   is_exempt: boolean;
   onboarding_completed: boolean;
   created_at: string;

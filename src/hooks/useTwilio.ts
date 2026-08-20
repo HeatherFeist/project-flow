@@ -53,3 +53,20 @@ export function useSendJobReminder() {
     },
   });
 }
+
+export function useSendReviewRequest() {
+  return useMutation({
+    mutationFn: async (jobId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke<{ ok: true; channel: "sms" | "email" }>(
+        "send-review-request",
+        { body: { jobId }, headers: { Authorization: `Bearer ${sessionData.session?.access_token}` } },
+      );
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      if (!data || (data as unknown as { error?: string }).error) {
+        throw new Error((data as unknown as { error?: string })?.error ?? "Failed to send review request");
+      }
+      return data;
+    },
+  });
+}
