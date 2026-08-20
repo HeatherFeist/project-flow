@@ -45,6 +45,19 @@ export interface Client {
   created_at: string;
 }
 
+export type MessageChannel = "sms" | "call" | "email";
+export type MessageDirection = "inbound" | "outbound";
+
+export interface ClientMessage {
+  id: string;
+  owner_id: string;
+  client_id: string;
+  channel: MessageChannel;
+  direction: MessageDirection;
+  body: string;
+  created_at: string;
+}
+
 export interface Job {
   id: string;
   owner_id: string;

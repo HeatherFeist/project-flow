@@ -4,6 +4,7 @@
 
 import { CORS_HEADERS, serviceClient } from "../_shared/google.ts";
 import { sendSms } from "../_shared/twilio.ts";
+import { logClientMessage } from "../_shared/clientMessages.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -84,6 +85,14 @@ Deno.serve(async (req) => {
       authToken: Deno.env.get("TWILIO_AUTH_TOKEN")!,
       from: twilioSettings.twilio_phone_number,
       to: job.client.phone,
+      body,
+    });
+
+    await logClientMessage(supabase, {
+      ownerId,
+      clientId: job.client_id,
+      channel: "sms",
+      direction: "outbound",
       body,
     });
 

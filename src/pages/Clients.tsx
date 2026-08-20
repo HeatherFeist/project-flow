@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients, useCreateClient, useDeleteClient } from "@/hooks/useClients";
@@ -29,6 +29,15 @@ export default function Clients() {
   const deleteClient = useDeleteClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", notes: "" });
+  const [search, setSearch] = useState("");
+
+  const filteredClients = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients ?? [];
+    return (clients ?? []).filter((c) =>
+      [c.name, c.email, c.phone, c.address].some((field) => field?.toLowerCase().includes(q)),
+    );
+  }, [clients, search]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -125,6 +134,16 @@ export default function Clients() {
         </div>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search clients by name, email, phone, address…"
+          className="pl-8"
+        />
+      </div>
+
       <Card>
         <CardContent className="px-0 pb-0">
           <Table>
@@ -152,7 +171,14 @@ export default function Clients() {
                   </TableCell>
                 </TableRow>
               )}
-              {(clients ?? []).map((client) => (
+              {!isLoading && (clients ?? []).length > 0 && filteredClients.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-muted-foreground">
+                    No clients match "{search}".
+                  </TableCell>
+                </TableRow>
+              )}
+              {filteredClients.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">

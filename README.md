@@ -764,6 +764,39 @@ supabase functions deploy portal-request-service
 No new secrets — this reuses your existing Google connection to send the
 login email.
 
+### Structured communications log + search
+
+Two smaller but real gaps closed:
+
+- **Communications log.** Inbound texts used to just get appended as
+  plain-text lines onto `clients.notes` — functional, but not a real log.
+  Now every inbound/outbound text, missed call, and outbound review-request
+  email is written to a proper `client_messages` table and shown as a
+  timeline on the Client detail page (icon per channel, sent/received,
+  timestamped). Missed calls are now logged for **existing** clients too —
+  previously that only happened for brand-new leads.
+- **Search.** Clients, Schedule, Quotes, and Invoices all had plain
+  unfiltered lists with no way to find anything in a growing list. Each now
+  has a search box (client-side, instant) — Clients searches
+  name/email/phone/address, Schedule searches title/client/address/status,
+  Quotes searches client/status/notes, Invoices searches client/status.
+
+**Run the schema migration**
+
+Run [`docs/schema_v18_client_messages.sql`](docs/schema_v18_client_messages.sql)
+— adds the `client_messages` table.
+
+**Redeploy the Twilio + notification functions** (their logging changed):
+
+```bash
+supabase functions deploy twilio-sms
+supabase functions deploy twilio-voice
+supabase functions deploy send-job-reminder
+supabase functions deploy send-review-request
+```
+
+No new secrets.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -882,4 +915,5 @@ docs/schema_v14_invoice_milestones.sql invoice_milestones table, invoice_payment
 docs/schema_v15_job_photos.sql   Public job-photos Storage bucket, owner-writable
 docs/schema_v16_job_photo_gallery.sql job_photos table, jobs.photo_share_token
 docs/schema_v17_client_portal.sql client_portal_login_tokens, client_portal_sessions, service_requests
+docs/schema_v18_client_messages.sql client_messages table (structured communications log)
 ```

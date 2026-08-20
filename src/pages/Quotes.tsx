@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Mail, Plus } from "lucide-react";
+import { Copy, Mail, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
@@ -10,6 +10,7 @@ import type { LineItem, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,6 +48,15 @@ export default function Quotes() {
   const [clientId, setClientId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
+  const [search, setSearch] = useState("");
+
+  const filteredQuotes = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return quotes ?? [];
+    return (quotes ?? []).filter((quote) =>
+      [quote.client?.name, quote.status, quote.notes].some((field) => field?.toLowerCase().includes(q)),
+    );
+  }, [quotes, search]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -138,6 +148,16 @@ export default function Quotes() {
         </div>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search quotes by client, status, notes…"
+          className="pl-8"
+        />
+      </div>
+
       <Card>
         <CardContent className="px-0 pb-0">
           <Table>
@@ -166,7 +186,14 @@ export default function Quotes() {
                   </TableCell>
                 </TableRow>
               )}
-              {(quotes ?? []).map((q) => (
+              {!isLoading && (quotes ?? []).length > 0 && filteredQuotes.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-muted-foreground">
+                    No quotes match "{search}".
+                  </TableCell>
+                </TableRow>
+              )}
+              {filteredQuotes.map((q) => (
                 <TableRow key={q.id}>
                   <TableCell>
                     {q.client ? (

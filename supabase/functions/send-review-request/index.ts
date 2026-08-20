@@ -9,6 +9,7 @@
 
 import { CORS_HEADERS, getFreshAccessToken, sendGmail, serviceClient } from "../_shared/google.ts";
 import { sendSms } from "../_shared/twilio.ts";
+import { logClientMessage } from "../_shared/clientMessages.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS_HEADERS });
@@ -73,6 +74,13 @@ Deno.serve(async (req) => {
           to: job.client.phone,
           body,
         });
+        await logClientMessage(supabase, {
+          ownerId,
+          clientId: job.client_id,
+          channel: "sms",
+          direction: "outbound",
+          body,
+        });
         return new Response(JSON.stringify({ ok: true, channel: "sms" }), { headers: jsonHeaders });
       }
     }
@@ -99,6 +107,13 @@ Deno.serve(async (req) => {
           to: job.client.email,
           subject: `How did we do?`,
           html,
+        });
+        await logClientMessage(supabase, {
+          ownerId,
+          clientId: job.client_id,
+          channel: "email",
+          direction: "outbound",
+          body: "How did we do? (Google review request)",
         });
         return new Response(JSON.stringify({ ok: true, channel: "email" }), { headers: jsonHeaders });
       }

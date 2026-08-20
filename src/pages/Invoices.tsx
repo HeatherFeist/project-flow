@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, CreditCard, Eye, Plus, Trash2 } from "lucide-react";
+import { Copy, CreditCard, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
@@ -65,6 +65,15 @@ export default function Invoices() {
     { title: "Deposit", amount: "" },
     { title: "Final payment", amount: "" },
   ]);
+  const [search, setSearch] = useState("");
+
+  const filteredInvoices = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return invoices ?? [];
+    return (invoices ?? []).filter((inv) =>
+      [inv.client?.name, inv.status].some((field) => field?.toLowerCase().includes(q)),
+    );
+  }, [invoices, search]);
 
   const totalCents = items.reduce((sum, item) => sum + item.quantity * item.unit_price_cents, 0);
   const milestonesTotalCents = milestones.reduce(
@@ -232,6 +241,16 @@ export default function Invoices() {
         </Dialog>
       </div>
 
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search invoices by client, status…"
+          className="pl-8"
+        />
+      </div>
+
       <Card>
         <CardContent className="px-0 pb-0">
           <Table>
@@ -261,7 +280,14 @@ export default function Invoices() {
                   </TableCell>
                 </TableRow>
               )}
-              {(invoices ?? []).map((inv) => (
+              {!isLoading && (invoices ?? []).length > 0 && filteredInvoices.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-muted-foreground">
+                    No invoices match "{search}".
+                  </TableCell>
+                </TableRow>
+              )}
+              {filteredInvoices.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell>
                     {inv.client ? (

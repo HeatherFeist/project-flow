@@ -1,13 +1,22 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { Phone, PhoneMissed, MessageSquare, Mail } from "lucide-react";
 import { useClient, useDeleteClient } from "@/hooks/useClients";
 import { useJobs } from "@/hooks/useJobs";
 import { useQuotes } from "@/hooks/useQuotes";
 import { useInvoices } from "@/hooks/useInvoices";
+import { useClientMessages } from "@/hooks/useClientMessages";
+import type { ClientMessage } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/DeleteButton";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
+
+const CHANNEL_ICON: Record<ClientMessage["channel"], typeof Phone> = {
+  sms: MessageSquare,
+  call: Phone,
+  email: Mail,
+};
 
 export default function ClientDetail() {
   const { id } = useParams<{ id: string }>();
@@ -16,6 +25,7 @@ export default function ClientDetail() {
   const { data: jobs } = useJobs();
   const { data: quotes } = useQuotes();
   const { data: invoices } = useInvoices();
+  const { data: messages } = useClientMessages(id);
   const deleteClient = useDeleteClient();
 
   const clientJobs = (jobs ?? []).filter((j) => j.client_id === id);
@@ -60,6 +70,38 @@ export default function ClientDetail() {
           <CardContent className="pb-6 text-sm text-muted-foreground">{client.notes}</CardContent>
         </Card>
       )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Communications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 pb-6">
+          {(!messages || messages.length === 0) && (
+            <p className="text-sm text-muted-foreground">
+              No calls or texts logged yet — inbound/outbound texts and missed calls show up here
+              automatically once Twilio is connected.
+            </p>
+          )}
+          {(messages ?? []).map((m) => {
+            const Icon = CHANNEL_ICON[m.channel];
+            return (
+              <div key={m.id} className="flex items-start gap-2 rounded-md border px-3 py-2 text-sm">
+                {m.direction === "inbound" && m.channel === "call" ? (
+                  <PhoneMissed className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                ) : (
+                  <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="whitespace-pre-wrap">{m.body}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {m.direction === "inbound" ? "Received" : "Sent"} · {formatDateTime(m.created_at)}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

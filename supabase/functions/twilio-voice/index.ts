@@ -4,10 +4,13 @@
 //
 // Flow: incoming call → ring the owner's real phone for 20s → if answered,
 // done. If not answered/busy/failed, text the caller a "sorry we missed
-// you" message and log them as a lead in Clients.
+// you" message and log them as a lead in Clients (and log the missed call
+// + auto-text into the structured client_messages timeline either way —
+// new lead or existing client).
 
 import { serviceClient } from "../_shared/google.ts";
 import { parseTwilioWebhook, sendSms, twimlResponse, verifyTwilioSignature, xmlEscape } from "../_shared/twilio.ts";
+import { logClientMessage } from "../_shared/clientMessages.ts";
 
 Deno.serve(async (req) => {
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN")!;
@@ -48,20 +51,18 @@ Deno.serve(async (req) => {
 
       const siteUrl = Deno.env.get("SITE_URL") ?? "";
       const chatLink = `${siteUrl}/estimate/${settings.user_id}`;
+      const textBody = `${settings.missed_call_message}\n\nGet a rough estimate & schedule a visit here: ${chatLink}`;
 
       try {
-        await sendSms({
-          accountSid,
-          authToken,
-          from: to,
-          to: from,
-          body: `${settings.missed_call_message}\n\nGet a rough estimate & schedule a visit here: ${chatLink}`,
-        });
+        await sendSms({ accountSid, authToken, from: to, to: from, body: textBody });
       } catch (err) {
         console.error("Failed to send missed-call text:", err);
       }
 
-      // Log (or update) this caller as a lead.
+      // Log (or create) this caller as a client, then log the missed call
+      // + auto-text either way — this used to only log for brand-new
+      // leads, so an existing client's missed call left no record at all.
+      let clientId: string | undefined;
       const { data: existing } = await supabase
         .from("clients")
         .select("id")
@@ -69,13 +70,36 @@ Deno.serve(async (req) => {
         .eq("phone", from)
         .maybeSingle();
 
-      if (!existing) {
-        await supabase.from("clients").insert({
-          owner_id: settings.user_id,
-          name: `New lead (${from})`,
-          phone: from,
-          source: "missed_call",
-          notes: `Missed call at ${new Date().toISOString()}. Auto-texted a callback link.`,
+      if (existing) {
+        clientId = existing.id;
+      } else {
+        const { data: created } = await supabase
+          .from("clients")
+          .insert({
+            owner_id: settings.user_id,
+            name: `New lead (${from})`,
+            phone: from,
+            source: "missed_call",
+          })
+          .select("id")
+          .single();
+        clientId = created?.id;
+      }
+
+      if (clientId) {
+        await logClientMessage(supabase, {
+          ownerId: settings.user_id,
+          clientId,
+          channel: "call",
+          direction: "inbound",
+          body: "Missed call",
+        });
+        await logClientMessage(supabase, {
+          ownerId: settings.user_id,
+          clientId,
+          channel: "sms",
+          direction: "outbound",
+          body: textBody,
         });
       }
     }
