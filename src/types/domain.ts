@@ -116,6 +116,16 @@ export interface Quote {
   items?: LineItem[];
 }
 
+export interface QuoteVisualization {
+  id: string;
+  quote_id: string;
+  owner_id: string;
+  prompt: string;
+  result_path: string;
+  result_url: string;
+  created_at: string;
+}
+
 export interface SchedulingSettings {
   user_id: string;
   timezone: string;

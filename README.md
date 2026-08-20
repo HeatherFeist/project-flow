@@ -840,6 +840,66 @@ supabase functions deploy extract-receipt-items
 No new secret — it reuses `ANTHROPIC_API_KEY` from the estimate chatbot
 setup. No schema migration.
 
+### AI project visualizations on quotes ("what it'll look like when done")
+
+Upload a photo of the space (a bathroom, say) plus optional reference
+photos of the exact tile/flooring/fixtures you're proposing, describe the
+changes in a prompt, and generate an "after" image — attached right to
+the quote, so the client sees it alongside the numbers on the same link
+they already get.
+
+**This is a different AI than everything else in the app.** Claude (used
+everywhere else — the estimate chatbot, the help assistant, receipt
+scanning) can *look at* images but can't generate or edit them. This uses
+**Google's Gemini image model** ("Nano Banana" / `gemini-2.5-flash-image`)
+instead — a separate product from the Google Calendar/Gmail OAuth
+connection elsewhere in this app, with its own plain API key (not OAuth)
+and its own per-image cost (roughly a few cents per generated image,
+billed by Google).
+
+**1. Get a Gemini API key**
+
+Go to [aistudio.google.com](https://aistudio.google.com) → **Get API
+key** → create one. This is separate from anything else Google-related in
+this app.
+
+**2. Supabase Edge Function**
+
+```bash
+supabase functions deploy generate-quote-visualization
+```
+
+Set this secret:
+
+```
+GEMINI_API_KEY=...
+```
+
+**3. Run the extra schema migration**
+
+Run
+[`docs/schema_v20_quote_visualizations.sql`](docs/schema_v20_quote_visualizations.sql)
+— adds the `quote_visualizations` table and a public `quote-visuals`
+Storage bucket (results need to show on the client-facing `/q/:token`
+page; only the owning user can write to it, same pattern as job photos).
+
+**4. Redeploy `quote-response`** (it now also returns visualizations for
+the public quote page):
+
+```bash
+supabase functions deploy quote-response
+```
+
+That's it — open any quote (Quotes → the eye icon) and there's a "Project
+visualization" section: upload a before photo, optionally add reference
+photos of materials/fixtures, write what should change, and generate.
+Results show automatically on the client's quote link.
+
+**A note on quality:** this produces a genuinely useful, compelling
+visualization — not a pixel-perfect CAD rendering. Treat it as "here's a
+strong sense of the direction," not an exact preview of every material
+detail.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -942,6 +1002,7 @@ supabase/functions/
   portal-dashboard/      public (session-scoped): jobs/quotes/invoices for the portal
   portal-request-service/ public (session-scoped): logs a client's "I'd also like..." request
   extract-receipt-items/ auth required: Claude vision pulls line items off a receipt photo
+  generate-quote-visualization/ auth required: Gemini image model generates an "after" visualization
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
@@ -961,4 +1022,5 @@ docs/schema_v16_job_photo_gallery.sql job_photos table, jobs.photo_share_token
 docs/schema_v17_client_portal.sql client_portal_login_tokens, client_portal_sessions, service_requests
 docs/schema_v18_client_messages.sql client_messages table (structured communications log)
 docs/schema_v19_materials.sql    materials table (separate catalog from Price Book)
+docs/schema_v20_quote_visualizations.sql quote_visualizations table + public quote-visuals bucket
 ```

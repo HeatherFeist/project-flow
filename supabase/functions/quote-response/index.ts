@@ -39,9 +39,20 @@ Deno.serve(async (req) => {
         .eq("quote_id", quote.id)
         .maybeSingle();
 
+      const { data: visualizations } = await supabase
+        .from("quote_visualizations")
+        .select("id, prompt, result_url, created_at")
+        .eq("quote_id", quote.id)
+        .order("created_at", { ascending: false });
+
       const { owner_id: _owner_id, ...publicQuote } = quote;
       return new Response(
-        JSON.stringify({ quote: publicQuote, business: profile ?? null, job: job ?? null }),
+        JSON.stringify({
+          quote: publicQuote,
+          business: profile ?? null,
+          job: job ?? null,
+          visualizations: visualizations ?? [],
+        }),
         { headers: jsonHeaders },
       );
     }

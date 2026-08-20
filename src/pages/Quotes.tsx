@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Mail, Plus, Search } from "lucide-react";
+import { Copy, Eye, Mail, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
@@ -237,6 +237,11 @@ export default function Quotes() {
                       </Button>
                       <Button variant="ghost" size="icon" title="Copy client link" onClick={() => copyLink(q.accept_token)}>
                         <Copy className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" title="View quote" asChild>
+                        <Link to={`/quotes/${q.id}`}>
+                          <Eye className="size-4" />
+                        </Link>
                       </Button>
                     </div>
                   </TableCell>

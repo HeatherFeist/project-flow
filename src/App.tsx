@@ -16,6 +16,7 @@ import ClientDetail from "@/pages/ClientDetail";
 import Schedule from "@/pages/Schedule";
 import JobDetail from "@/pages/JobDetail";
 import Quotes from "@/pages/Quotes";
+import QuoteDetail from "@/pages/QuoteDetail";
 import Invoices from "@/pages/Invoices";
 import InvoiceDetail from "@/pages/InvoiceDetail";
 import SettingsPage from "@/pages/Settings";
@@ -84,6 +85,7 @@ function App() {
                 <Route path="/schedule" element={<Schedule />} />
                 <Route path="/schedule/:id" element={<JobDetail />} />
                 <Route path="/quotes" element={<Quotes />} />
+                <Route path="/quotes/:id" element={<QuoteDetail />} />
                 <Route path="/invoices" element={<Invoices />} />
                 <Route path="/invoices/:id" element={<InvoiceDetail />} />
                 <Route path="/price-book" element={<PriceBook />} />

@@ -41,6 +41,7 @@ export function fetchQuote(token: string) {
       };
       business: { business_name: string | null; phone: string | null; email: string | null } | null;
       job: { scheduled_at: string; address: string | null } | null;
+      visualizations: { id: string; prompt: string; result_url: string; created_at: string }[];
     };
   });
 }

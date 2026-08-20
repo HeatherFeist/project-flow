@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { resolveClientIds } from "@/lib/importClientMatching";
-import type { LineItem, Quote, QuoteStatus } from "@/types/domain";
+import { edgeFunctionErrorMessage } from "@/lib/utils";
+import type { LineItem, Quote, QuoteStatus, QuoteVisualization } from "@/types/domain";
 
 export interface QuoteImportRow {
   clientName: string;
@@ -138,6 +139,65 @@ export function useImportQuotes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
+export function useQuoteVisualizations(quoteId: string | undefined) {
+  return useQuery({
+    queryKey: ["quote_visualizations", quoteId],
+    enabled: !!quoteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quote_visualizations")
+        .select("*")
+        .eq("quote_id", quoteId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as QuoteVisualization[];
+    },
+  });
+}
+
+export function useGenerateQuoteVisualization() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      quoteId: string;
+      prompt: string;
+      baseImage: { base64: string; mimeType: string };
+      referenceImages: { base64: string; mimeType: string }[];
+    }) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke<{ visualization: QuoteVisualization }>(
+        "generate-quote-visualization",
+        {
+          body: input,
+          headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+        },
+      );
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      if (!data || (data as unknown as { error?: string }).error) {
+        throw new Error((data as unknown as { error?: string })?.error ?? "Failed to generate visualization");
+      }
+      return data.visualization;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["quote_visualizations", variables.quoteId] });
+    },
+  });
+}
+
+export function useDeleteQuoteVisualization() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (viz: QuoteVisualization) => {
+      await supabase.storage.from("quote-visuals").remove([viz.result_path]);
+      const { error } = await supabase.from("quote_visualizations").delete().eq("id", viz.id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, viz) => {
+      queryClient.invalidateQueries({ queryKey: ["quote_visualizations", viz.quote_id] });
     },
   });
 }
