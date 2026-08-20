@@ -663,6 +663,22 @@ supabase functions deploy stripe-webhook
 No new secrets — this reuses the Stripe/PayPal setup from the sections
 above.
 
+### Job-site photo capture (CompanyCam-style)
+
+`jobs.photo_urls` already existed (schema_v8), but the only way photos got
+into it was a customer attaching one through the public estimate chatbot
+before a job even existed. Now there's an **"Add photos"** button right on
+the Job detail page — snap unlimited before/during/after shots as you work
+a job, same idea as CompanyCam: organized automatically (they're already
+scoped to the job), instantly viewable, easy to remove a bad shot.
+
+**Run the schema migration**
+
+Run [`docs/schema_v15_job_photos.sql`](docs/schema_v15_job_photos.sql) —
+creates the `job-photos` Storage bucket (public reads, like
+estimate-uploads, but only the owning user can add/remove files). No edge
+function, no secret.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -773,4 +789,5 @@ docs/schema_v11_onboarding.sql   Adds profiles.onboarding_completed, for the set
 docs/schema_v12_google_review_link.sql Adds profiles.google_review_link, for review requests
 docs/schema_v13_invoice_receipts.sql Private receipts Storage bucket, invoices.receipt_paths
 docs/schema_v14_invoice_milestones.sql invoice_milestones table, invoice_payments.milestone_id
+docs/schema_v15_job_photos.sql   Public job-photos Storage bucket, owner-writable
 ```

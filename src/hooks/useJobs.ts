@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { resolveClientIds } from "@/lib/importClientMatching";
 import { edgeFunctionErrorMessage } from "@/lib/utils";
+import { deleteJobPhoto, uploadJobPhoto } from "@/lib/jobPhotos";
 import type { Job, JobNote, JobStatus } from "@/types/domain";
 
 export interface JobImportRow {
@@ -198,6 +199,45 @@ export function useAddJobNote() {
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["jobs", variables.jobId, "notes"] });
+    },
+  });
+}
+
+// Job-site photo capture (CompanyCam-style — unlimited photos per job,
+// snapped by the owner, not just what a customer attaches via the
+// estimate chatbot). One file per call so the UI can show per-photo
+// upload progress when adding several at once.
+export function useAddJobPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ownerId, job, file }: { ownerId: string; job: Job; file: File }) => {
+      const url = await uploadJobPhoto(ownerId, job.id, file);
+      const { error } = await supabase
+        .from("jobs")
+        .update({ photo_urls: [...job.photo_urls, url] })
+        .eq("id", job.id);
+      if (error) throw error;
+      return url;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs", variables.job.id] });
+    },
+  });
+}
+
+export function useDeleteJobPhoto() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ job, url }: { job: Job; url: string }) => {
+      await deleteJobPhoto(url);
+      const { error } = await supabase
+        .from("jobs")
+        .update({ photo_urls: job.photo_urls.filter((u) => u !== url) })
+        .eq("id", job.id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs", variables.job.id] });
     },
   });
 }

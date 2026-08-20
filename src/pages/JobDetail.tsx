@@ -1,8 +1,17 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { MessageSquare, Star } from "lucide-react";
-import { useAddJobNote, useDeleteJob, useJob, useJobNotes, useUpdateJobStatus } from "@/hooks/useJobs";
+import { Camera, Loader2, MessageSquare, Star, Trash2 } from "lucide-react";
+import {
+  useAddJobNote,
+  useAddJobPhoto,
+  useDeleteJob,
+  useDeleteJobPhoto,
+  useJob,
+  useJobNotes,
+  useUpdateJobStatus,
+} from "@/hooks/useJobs";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSendJobReminder, useSendReviewRequest } from "@/hooks/useTwilio";
 import type { JobStatus } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +26,7 @@ const STATUSES: JobStatus[] = ["scheduled", "in_progress", "completed", "cancell
 export default function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: job, isLoading } = useJob(id);
   const { data: notes } = useJobNotes(id);
   const updateStatus = useUpdateJobStatus();
@@ -24,7 +34,11 @@ export default function JobDetail() {
   const deleteJob = useDeleteJob();
   const sendReminder = useSendJobReminder();
   const sendReviewRequest = useSendReviewRequest();
+  const addPhoto = useAddJobPhoto();
+  const deletePhoto = useDeleteJobPhoto();
   const [note, setNote] = useState("");
+  const [uploadingCount, setUploadingCount] = useState(0);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   async function handleSendReminder() {
     if (!id) return;
@@ -48,6 +62,32 @@ export default function JobDetail() {
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (!job) return <p className="text-muted-foreground">Job not found.</p>;
+
+  async function handlePhotosSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0 || !user || !job) return;
+    setUploadingCount(files.length);
+    let failures = 0;
+    for (const file of files) {
+      try {
+        await addPhoto.mutateAsync({ ownerId: user.id, job, file });
+      } catch {
+        failures++;
+      }
+      setUploadingCount((n) => n - 1);
+    }
+    if (failures > 0) toast.error(`${failures} photo${failures === 1 ? "" : "s"} failed to upload`);
+  }
+
+  async function handleDeletePhoto(url: string) {
+    if (!job) return;
+    try {
+      await deletePhoto.mutateAsync({ job, url });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove photo");
+    }
+  }
 
   async function handleAddNote(e: React.FormEvent) {
     e.preventDefault();
@@ -139,20 +179,58 @@ export default function JobDetail() {
         </Card>
       )}
 
-      {job.photo_urls && job.photo_urls.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Photos</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-2 pb-6">
-            {job.photo_urls.map((url) => (
-              <a key={url} href={url} target="_blank" rel="noreferrer">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-sm">Photos</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={uploadingCount > 0}
+            onClick={() => photoInputRef.current?.click()}
+          >
+            {uploadingCount > 0 ? (
+              <>
+                <Loader2 className="animate-spin" /> Uploading {uploadingCount}…
+              </>
+            ) : (
+              <>
+                <Camera /> Add photos
+              </>
+            )}
+          </Button>
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            className="hidden"
+            onChange={handlePhotosSelected}
+          />
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2 pb-6">
+          {job.photo_urls.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No photos yet — snap before/during/after shots as you work the job.
+            </p>
+          )}
+          {job.photo_urls.map((url) => (
+            <div key={url} className="group relative">
+              <a href={url} target="_blank" rel="noreferrer">
                 <img src={url} alt="Job" className="size-24 rounded-md border object-cover" />
               </a>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <button
+                type="button"
+                onClick={() => handleDeletePhoto(url)}
+                className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"
+                title="Remove photo"
+              >
+                <Trash2 className="size-3" />
+              </button>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
