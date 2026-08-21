@@ -149,12 +149,12 @@ export default function Home() {
     <div className="min-h-svh bg-background">
       {/* Top nav */}
       <header className="sticky top-0 z-30 border-b bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+        <div className="mx-auto flex max-w-[90rem] items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-8 xl:px-12">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-5 text-primary" />
-            <span className="gradient-text text-lg font-semibold">Project Flow</span>
+            <Sparkles className="size-5 text-primary xl:size-6" />
+            <span className="gradient-text text-lg font-semibold xl:text-xl">Project Flow</span>
           </div>
-          <nav className="hidden items-center gap-5 text-sm text-muted-foreground lg:flex">
+          <nav className="hidden items-center gap-6 text-sm text-muted-foreground xl:flex">
             {SECTIONS.map((s) => (
               <a key={s.id} href={`#${s.id}`} className="hover:text-foreground">
                 {s.eyebrow}
@@ -164,35 +164,41 @@ export default function Home() {
               Pricing
             </a>
           </nav>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="hidden sm:block">
+              <ThemeToggle />
+            </div>
             <Button variant="ghost" asChild>
               <Link to="/login">Sign in</Link>
             </Button>
             <Button asChild>
               <Link to="/login">
-                Start free trial <ArrowRight />
+                <span className="sm:hidden">Start trial</span>
+                <span className="hidden sm:inline">Start free trial</span>
+                <ArrowRight />
               </Link>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 lg:grid-cols-2 lg:py-24">
-        <div>
+      {/* Hero — sized to fill most of the first screen on desktop, like a
+          typical SaaS homepage, without forcing a scroll on shorter laptop
+          screens. */}
+      <section className="mx-auto grid max-w-[90rem] items-center gap-10 px-6 py-14 sm:px-8 lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-2 lg:gap-16 lg:py-20 xl:gap-24 xl:px-12">
+        <div className="mx-auto max-w-xl lg:mx-0">
           <Badge variant="secondary" className="mb-4">
             7-day free trial · $49/month · cancel anytime
           </Badge>
-          <h1 className="text-4xl font-semibold tracking-tight lg:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl xl:text-6xl xl:leading-[1.05]">
             Run your whole handyman business from <span className="gradient-text">one place</span>.
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-5 text-lg text-muted-foreground xl:text-xl">
             Clients, scheduling, quotes, invoicing, payments, and an AI estimator that works the phones
             for you — built specifically for handyman and home service businesses, not adapted from
             something bigger.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="mt-7 flex flex-wrap items-center gap-3">
             <Button size="lg" asChild>
               <Link to="/login">
                 Start your free trial <ArrowRight />
@@ -202,9 +208,9 @@ export default function Home() {
               <a href="#clients">See what's included</a>
             </Button>
           </div>
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {TRUST_POINTS.map((t) => (
-              <div key={t.label} className="flex items-start gap-2 text-xs text-muted-foreground">
+              <div key={t.label} className="flex items-start gap-2 text-xs text-muted-foreground xl:text-sm">
                 <t.icon className="mt-0.5 size-4 shrink-0 text-primary" />
                 {t.label}
               </div>
@@ -216,20 +222,20 @@ export default function Home() {
       </section>
 
       {/* Feature sections */}
-      <div className="space-y-20 px-6 py-10 lg:space-y-28">
+      <div className="space-y-24 px-6 py-16 sm:px-8 lg:space-y-32 lg:py-24 xl:px-12">
         {SECTIONS.map((section, i) => (
           <section
             key={section.id}
             id={section.id}
-            className="mx-auto grid max-w-6xl scroll-mt-20 items-center gap-10 lg:grid-cols-2"
+            className="mx-auto grid max-w-[90rem] scroll-mt-20 items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-24"
           >
             <div className={i % 2 === 1 ? "lg:order-2" : ""}>
-              <p className="text-sm font-medium text-primary">{section.eyebrow}</p>
-              <h2 className="mt-1 text-3xl font-semibold tracking-tight">{section.title}</h2>
-              <p className="mt-3 text-muted-foreground">{section.description}</p>
-              <ul className="mt-5 space-y-2.5">
+              <p className="text-sm font-medium text-primary xl:text-base">{section.eyebrow}</p>
+              <h2 className="mt-1 text-3xl font-semibold tracking-tight xl:text-4xl">{section.title}</h2>
+              <p className="mt-3 text-muted-foreground xl:text-lg">{section.description}</p>
+              <ul className="mt-6 space-y-3">
                 {section.bullets.map((b) => (
-                  <li key={b} className="flex items-start gap-2 text-sm">
+                  <li key={b} className="flex items-start gap-2 text-sm xl:text-base">
                     <Check className="mt-0.5 size-4 shrink-0 text-success" />
                     <span>{b}</span>
                   </li>
@@ -244,10 +250,12 @@ export default function Home() {
       </div>
 
       {/* Integrations strip */}
-      <section className="border-y bg-muted/30 py-12">
-        <div className="mx-auto max-w-6xl px-6 text-center">
-          <p className="text-sm font-medium text-muted-foreground">Connects with the tools you already use</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-lg font-medium text-muted-foreground/80">
+      <section className="border-y bg-muted/30 py-14">
+        <div className="mx-auto max-w-[90rem] px-6 text-center sm:px-8 xl:px-12">
+          <p className="text-sm font-medium text-muted-foreground xl:text-base">
+            Connects with the tools you already use
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-lg font-medium text-muted-foreground/80 xl:text-xl">
             <span>Google Calendar</span>
             <span>Gmail</span>
             <span>Twilio</span>
@@ -259,14 +267,14 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-2xl scroll-mt-20 px-6 py-20 text-center">
-        <h2 className="text-3xl font-semibold tracking-tight">One plan. Everything included.</h2>
-        <p className="mt-3 text-muted-foreground">
+      <section id="pricing" className="mx-auto max-w-2xl scroll-mt-20 px-6 py-24 text-center sm:px-8">
+        <h2 className="text-3xl font-semibold tracking-tight xl:text-4xl">One plan. Everything included.</h2>
+        <p className="mt-3 text-muted-foreground xl:text-lg">
           No feature tiers, no per-seat pricing games — every feature on this page, from day one.
         </p>
-        <div className="mt-8 rounded-2xl border bg-card p-8 shadow-sm">
+        <div className="mt-8 rounded-2xl border bg-card p-8 shadow-sm xl:p-10">
           <p className="text-sm text-muted-foreground">7 days free, then</p>
-          <p className="mt-1 text-5xl font-semibold">
+          <p className="mt-1 text-5xl font-semibold xl:text-6xl">
             $49<span className="text-lg font-normal text-muted-foreground">/month</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground">Cancel anytime.</p>
@@ -280,7 +288,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 text-sm text-muted-foreground sm:flex-row">
+        <div className="mx-auto flex max-w-[90rem] flex-col items-center justify-between gap-4 px-6 text-sm text-muted-foreground sm:flex-row sm:px-8 xl:px-12">
           <div className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" />
             <span className="font-medium text-foreground">Project Flow</span>
@@ -306,19 +314,19 @@ export default function Home() {
 // accent chips, standing in for a product screenshot without needing one.
 function HeroVisual() {
   return (
-    <div className="relative mx-auto aspect-[4/3] w-full max-w-md">
+    <div className="relative mx-auto aspect-[4/3] w-full max-w-md lg:max-w-none">
       <div
         className="absolute inset-0 rounded-3xl shadow-xl"
         style={{ background: "var(--gradient-primary)" }}
       />
-      <Camera className="absolute inset-0 m-auto size-24 text-white/90" strokeWidth={1.25} />
-      <div className="absolute -left-4 top-8 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
+      <Camera className="absolute inset-0 m-auto size-24 text-white/90 xl:size-32" strokeWidth={1.25} />
+      <div className="absolute -left-4 top-8 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md xl:px-4 xl:py-2.5 xl:text-sm">
         <Check className="size-3.5 text-success" /> Quote accepted
       </div>
-      <div className="absolute -right-4 bottom-10 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
+      <div className="absolute -right-4 bottom-10 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md xl:px-4 xl:py-2.5 xl:text-sm">
         <Banknote className="size-3.5 text-primary" /> Invoice paid — $1,240
       </div>
-      <div className="absolute bottom-[-1rem] left-8 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md">
+      <div className="absolute bottom-[-1rem] left-8 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md xl:px-4 xl:py-2.5 xl:text-sm">
         <ClipboardCheck className="size-3.5 text-primary" /> 6/6 checklist done
       </div>
     </div>
@@ -329,7 +337,7 @@ function FeatureVisual({ icon: Icon }: { icon: LucideIcon }) {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border bg-muted/40 shadow-sm">
       <div className="absolute inset-0 opacity-90" style={{ background: "var(--gradient-primary)" }} />
-      <Icon className="absolute inset-0 m-auto size-20 text-white/90" strokeWidth={1.25} />
+      <Icon className="absolute inset-0 m-auto size-20 text-white/90 xl:size-28" strokeWidth={1.25} />
     </div>
   );
 }
