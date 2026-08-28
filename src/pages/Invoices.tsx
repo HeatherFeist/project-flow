@@ -172,7 +172,7 @@ export default function Invoices() {
               </div>
               <div className="space-y-1.5">
                 <Label>Line items</Label>
-                <LineItemsEditor items={items} onChange={setItems} />
+                <LineItemsEditor items={items} onChange={setItems} ownerId={user?.id} />
               </div>
 
               <div className="space-y-2 border-t pt-4">

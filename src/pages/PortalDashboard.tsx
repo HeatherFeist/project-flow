@@ -105,7 +105,11 @@ export default function PortalDashboard() {
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-5 text-primary" />
+            {data.business?.logo_url ? (
+              <img src={data.business.logo_url} alt={businessName} className="max-h-9 max-w-24 object-contain" />
+            ) : (
+              <Sparkles className="size-5 text-primary" />
+            )}
             <div>
               <p className="font-semibold">{businessName}</p>
               <p className="text-xs text-muted-foreground">Hi {data.client.name}</p>

@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, ScanLine, Sparkles } from "lucide-react";
+import { Calculator, Loader2, Pencil, Plus, ScanLine, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  hasPriceBookBreakdown,
   useCreatePriceBookItem,
   useDeletePriceBookItem,
   usePriceBook,
@@ -16,10 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportPriceHistoryDialog } from "@/components/ImportPriceHistoryDialog";
 import { InvoiceScanReviewDialog } from "@/components/InvoiceScanReviewDialog";
+import { PriceBookCalculatorDialog } from "@/components/PriceBookCalculatorDialog";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +37,29 @@ import { formatCurrency } from "@/lib/utils";
 
 const UNITS: PriceUnit[] = ["flat", "per hour", "per sq ft", "per linear ft"];
 
-const EMPTY_FORM = { category: "", item_name: "", unit: "flat" as PriceUnit, low: "", high: "", notes: "" };
+const EMPTY_FORM = {
+  category: "",
+  item_name: "",
+  unit: "flat" as PriceUnit,
+  low: "",
+  high: "",
+  notes: "",
+  description: "",
+  materialLow: "",
+  materialHigh: "",
+  materialQty: "",
+  laborLow: "",
+  laborHigh: "",
+  laborQty: "",
+  suppliesLow: "",
+  suppliesHigh: "",
+};
+
+function toCentsOrNull(value: string): number | null {
+  if (!value.trim()) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.round(n * 100) : null;
+}
 
 export default function PriceBook() {
   const { user } = useAuth();
@@ -50,10 +75,19 @@ export default function PriceBook() {
   const [scanning, setScanning] = useState(false);
   const [scanReview, setScanReview] = useState<ExtractedInvoice | null>(null);
   const scanInputRef = useRef<HTMLInputElement>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [viewingCalculator, setViewingCalculator] = useState<PriceBookItem | null>(null);
+
+  const breakdownTotal = useMemo(() => {
+    const low = (toCentsOrNull(form.materialLow) ?? 0) + (toCentsOrNull(form.laborLow) ?? 0) + (toCentsOrNull(form.suppliesLow) ?? 0);
+    const high = (toCentsOrNull(form.materialHigh) ?? 0) + (toCentsOrNull(form.laborHigh) ?? 0) + (toCentsOrNull(form.suppliesHigh) ?? 0);
+    return { low, high };
+  }, [form.materialLow, form.materialHigh, form.laborLow, form.laborHigh, form.suppliesLow, form.suppliesHigh]);
 
   function openCreate() {
     setEditing(null);
     setForm(EMPTY_FORM);
+    setShowBreakdown(false);
     setOpen(true);
   }
 
@@ -66,8 +100,22 @@ export default function PriceBook() {
       low: (item.low_cents / 100).toString(),
       high: (item.high_cents / 100).toString(),
       notes: item.notes ?? "",
+      description: item.description ?? "",
+      materialLow: item.material_low_cents !== null ? (item.material_low_cents / 100).toString() : "",
+      materialHigh: item.material_high_cents !== null ? (item.material_high_cents / 100).toString() : "",
+      materialQty: item.material_quantity_label ?? "",
+      laborLow: item.labor_low_cents !== null ? (item.labor_low_cents / 100).toString() : "",
+      laborHigh: item.labor_high_cents !== null ? (item.labor_high_cents / 100).toString() : "",
+      laborQty: item.labor_quantity_label ?? "",
+      suppliesLow: item.supplies_low_cents !== null ? (item.supplies_low_cents / 100).toString() : "",
+      suppliesHigh: item.supplies_high_cents !== null ? (item.supplies_high_cents / 100).toString() : "",
     });
+    setShowBreakdown(hasPriceBookBreakdown(item));
     setOpen(true);
+  }
+
+  function applyBreakdownTotal() {
+    setForm((f) => ({ ...f, low: (breakdownTotal.low / 100).toString(), high: (breakdownTotal.high / 100).toString() }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -80,6 +128,15 @@ export default function PriceBook() {
       low_cents: Math.round(Number(form.low) * 100),
       high_cents: Math.round(Number(form.high) * 100),
       notes: form.notes || null,
+      description: showBreakdown ? form.description || null : null,
+      material_low_cents: showBreakdown ? toCentsOrNull(form.materialLow) : null,
+      material_high_cents: showBreakdown ? toCentsOrNull(form.materialHigh) : null,
+      material_quantity_label: showBreakdown ? form.materialQty || null : null,
+      labor_low_cents: showBreakdown ? toCentsOrNull(form.laborLow) : null,
+      labor_high_cents: showBreakdown ? toCentsOrNull(form.laborHigh) : null,
+      labor_quantity_label: showBreakdown ? form.laborQty || null : null,
+      supplies_low_cents: showBreakdown ? toCentsOrNull(form.suppliesLow) : null,
+      supplies_high_cents: showBreakdown ? toCentsOrNull(form.suppliesHigh) : null,
     };
     try {
       if (editing) {
@@ -244,6 +301,79 @@ export default function PriceBook() {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   />
                 </div>
+
+                <label className="flex items-center gap-2 border-t pt-4 text-sm font-medium">
+                  <Checkbox checked={showBreakdown} onCheckedChange={(c) => setShowBreakdown(!!c)} />
+                  Add a cost breakdown (Material / Labor / Supplies)
+                </label>
+
+                {showBreakdown && (
+                  <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Shows a detailed calculator for this item — Homewyse-style, but your own numbers and
+                      wording. Leave a category blank to skip it.
+                    </p>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="description">Client-facing description (optional)</Label>
+                      <Textarea
+                        id="description"
+                        placeholder="What's included in this job — shown to the client on the calculator."
+                        value={form.description}
+                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      />
+                    </div>
+
+                    {(
+                      [
+                        { label: "Material, Fixtures", lowKey: "materialLow", highKey: "materialHigh", qtyKey: "materialQty", qtyPlaceholder: "e.g. 85 sq ft" },
+                        { label: "Project Labor", lowKey: "laborLow", highKey: "laborHigh", qtyKey: "laborQty", qtyPlaceholder: "e.g. 12 hrs" },
+                        { label: "Project Supplies", lowKey: "suppliesLow", highKey: "suppliesHigh", qtyKey: null, qtyPlaceholder: "" },
+                      ] as const
+                    ).map((row) => (
+                      <div key={row.label} className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">{row.label}</Label>
+                          {row.qtyKey && (
+                            <Input
+                              placeholder={row.qtyPlaceholder}
+                              value={form[row.qtyKey]}
+                              onChange={(e) => setForm({ ...form, [row.qtyKey]: e.target.value })}
+                              className="h-8 text-xs"
+                            />
+                          )}
+                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="Low $"
+                          value={form[row.lowKey]}
+                          onChange={(e) => setForm({ ...form, [row.lowKey]: e.target.value })}
+                          className="h-8 self-end"
+                        />
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          placeholder="High $"
+                          value={form[row.highKey]}
+                          onChange={(e) => setForm({ ...form, [row.highKey]: e.target.value })}
+                          className="h-8 self-end"
+                        />
+                      </div>
+                    ))}
+
+                    <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2 text-sm">
+                      <span>
+                        Breakdown total: {formatCurrency(breakdownTotal.low)} – {formatCurrency(breakdownTotal.high)}
+                      </span>
+                      <Button type="button" variant="outline" size="sm" onClick={applyBreakdownTotal}>
+                        Use as Low/High above
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <DialogFooter>
                   <Button type="submit" disabled={createItem.isPending || updateItem.isPending}>
                     {createItem.isPending || updateItem.isPending
@@ -304,6 +434,16 @@ export default function PriceBook() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      {hasPriceBookBreakdown(item) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="View cost calculator"
+                          onClick={() => setViewingCalculator(item)}
+                        >
+                          <Calculator className="size-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" title="Edit item" onClick={() => openEdit(item)}>
                         <Pencil className="size-4" />
                       </Button>
@@ -328,6 +468,9 @@ export default function PriceBook() {
       </Card>
 
       {scanReview && <InvoiceScanReviewDialog extracted={scanReview} onClose={() => setScanReview(null)} />}
+      {viewingCalculator && (
+        <PriceBookCalculatorDialog item={viewingCalculator} onClose={() => setViewingCalculator(null)} />
+      )}
     </div>
   );
 }

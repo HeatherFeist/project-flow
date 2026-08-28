@@ -24,7 +24,24 @@ export function useCreatePriceBookItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (
-      input: Pick<PriceBookItem, "category" | "item_name" | "unit" | "low_cents" | "high_cents" | "notes"> & {
+      input: Pick<
+        PriceBookItem,
+        | "category"
+        | "item_name"
+        | "unit"
+        | "low_cents"
+        | "high_cents"
+        | "notes"
+        | "description"
+        | "material_low_cents"
+        | "material_high_cents"
+        | "material_quantity_label"
+        | "labor_low_cents"
+        | "labor_high_cents"
+        | "labor_quantity_label"
+        | "supplies_low_cents"
+        | "supplies_high_cents"
+      > & {
         owner_id: string;
       },
     ) => {
@@ -48,6 +65,11 @@ export function useUpdatePriceBookItem() {
       queryClient.invalidateQueries({ queryKey: ["price_book"] });
     },
   });
+}
+
+/** True once at least one cost-calculator breakdown category has been filled in for this item. */
+export function hasPriceBookBreakdown(item: PriceBookItem): boolean {
+  return item.material_low_cents !== null || item.labor_low_cents !== null || item.supplies_low_cents !== null;
 }
 
 export function useDeletePriceBookItem() {

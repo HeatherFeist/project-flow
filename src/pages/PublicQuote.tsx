@@ -117,7 +117,11 @@ export default function PublicQuote() {
     <Centered wide>
       <Card className="w-full">
         <CardHeader className="items-center text-center">
-          <Sparkles className="mb-1 size-6 text-primary" />
+          {business?.logo_url ? (
+            <img src={business.logo_url} alt={businessName} className="mb-1 max-h-14 max-w-40 object-contain" />
+          ) : (
+            <Sparkles className="mb-1 size-6 text-primary" />
+          )}
           <CardTitle>Quote from {businessName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pb-6">

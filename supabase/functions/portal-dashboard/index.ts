@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const [{ data: client }, { data: profile }, { data: jobs }, { data: quotes }, { data: invoices }] =
       await Promise.all([
         supabase.from("clients").select("id, name, email").eq("id", clientId).single(),
-        supabase.from("profiles").select("business_name, phone, email").eq("id", ownerId).maybeSingle(),
+        supabase.from("profiles").select("business_name, phone, email, logo_url").eq("id", ownerId).maybeSingle(),
         supabase
           .from("jobs")
           .select("id, title, status, scheduled_at, address, photo_share_token")

@@ -1238,6 +1238,77 @@ whenever you're ready:
 
 No schema migration, no new Edge Function — pure frontend/routing.
 
+### Price Book cost calculator (Material / Labor / Supplies breakdown)
+
+A Price Book item can now optionally carry a detailed cost breakdown —
+Material, Labor, and Supplies, each with its own low/high range (and a
+quantity label like "85 sq ft" or "12 hrs") — instead of just one
+overall price range. Click the calculator icon next to any item that has
+one to see the full breakdown, Total row included. This is Project
+Flow's own version of that familiar "line item / quantity / lower /
+higher" layout — **built from scratch with independently-written numbers
+and wording, not copied from Homewyse or any other third party's
+proprietary data** (their cost-estimation data is their commercial
+product, and scraping/reusing it would be a real legal problem, not
+just bad form — see the note in
+[`docs/schema_v26_price_book_calculator.sql`](docs/schema_v26_price_book_calculator.sql)).
+
+**Adding a breakdown to an item:** edit any Price Book item → check "Add
+a cost breakdown" → fill in whichever of Material/Labor/Supplies apply
+(leave a category blank to skip it) → optionally write a client-facing
+description of what's included → "Use as Low/High above" copies the
+breakdown's total into the item's regular price range so estimate
+chatbot pricing stays consistent either way.
+
+**Using it on a quote or invoice:** the line-items editor (New quote /
+New invoice) now has an "Add from Price Book" button — pick an item and
+it's inserted as a line item at that item's high estimate (edit the
+price after if you want the low end or something in between). Items with
+a breakdown show a calculator icon there too, so you can review the full
+detail before adding.
+
+**Where this can go next:** right now breakdown numbers are entered by
+hand, written from general knowledge same as the existing starter Price
+Book. Once there's enough real Job Costing history (material/labor/other
+costs actually logged per job), a natural next step is suggesting
+breakdown numbers from that real data instead of writing them from
+scratch — genuinely more accurate for your specific market and rates
+than any generic source. Not built yet; flagging it as the obvious next
+step if it'd be useful.
+
+**Run the schema migration**
+
+[`docs/schema_v26_price_book_calculator.sql`](docs/schema_v26_price_book_calculator.sql)
+— adds the optional breakdown columns to `price_book_items`. No Edge
+Function, no secret — same as the rest of the Price Book.
+
+### Business logo upload
+
+**Settings → Business profile → Business logo** — upload your logo once
+and it shows up everywhere a client actually sees your business: the
+public quote page, the invoice pay page, the client portal, and the
+quote/invoice emails. PNG, JPEG, WebP, or SVG (SVG is safe here since
+it's only ever rendered via `<img src>`, never inlined into the page).
+
+**1. Run the schema migration**
+
+[`docs/schema_v27_business_logo.sql`](docs/schema_v27_business_logo.sql)
+— creates the public `business-logos` Storage bucket (owner-writable,
+same pattern as job photos) and adds `profiles.logo_url` /
+`profiles.logo_path`.
+
+**2. Redeploy the functions that hand the logo to public pages:**
+
+```bash
+supabase functions deploy quote-response
+supabase functions deploy invoice-pay-info
+supabase functions deploy portal-dashboard
+supabase functions deploy send-quote-email
+supabase functions deploy send-invoice-email
+```
+
+No new secrets.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1373,4 +1444,6 @@ docs/schema_v22_payment_comms_byok.sql Adds twilio_settings SID/token + payment_
 docs/schema_v23_reminders_leads.sql Adds scheduling_settings.reminder_hours_before + jobs.reminder_sent_at, pg_cron setup notes
 docs/schema_v24_costing_checklists_expenses.sql Adds job_checklist_items + expenses (job costing & expense tracking)
 docs/schema_v25_home_depot_search.sql Adds profiles.serpapi_key (bring-your-own-key, Home Depot product search)
+docs/schema_v26_price_book_calculator.sql Adds optional Material/Labor/Supplies breakdown to price_book_items
+docs/schema_v27_business_logo.sql Adds public business-logos bucket + profiles.logo_url/logo_path
 ```

@@ -70,8 +70,13 @@ Deno.serve(async (req) => {
       )
       .join("");
 
+    const logoHtml = profile?.logo_url
+      ? `<img src="${profile.logo_url}" alt="${businessName}" style="max-height:56px;max-width:200px;margin-bottom:12px;" />`
+      : "";
+
     const html = `
       <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;color:#111;">
+        ${logoHtml}
         <h2 style="margin-bottom:0;">Quote from ${businessName}</h2>
         <p style="color:#555;margin-top:4px;">Hi ${quote.client.name}, here's your quote${quote.notes ? `: ${quote.notes}` : "."}</p>
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">

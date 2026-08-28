@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("business_name, phone, email")
+        .select("business_name, phone, email, logo_url")
         .eq("id", quote.owner_id)
         .maybeSingle();
 

@@ -133,7 +133,7 @@ export default function Quotes() {
               </div>
               <div className="space-y-1.5">
                 <Label>Line items</Label>
-                <LineItemsEditor items={items} onChange={setItems} />
+                <LineItemsEditor items={items} onChange={setItems} ownerId={user?.id} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="notes">Notes</Label>

@@ -9,6 +9,8 @@ export interface Profile {
   email: string | null;
   service_area: string | null;
   google_review_link: string | null;
+  logo_url: string | null;
+  logo_path: string | null;
   gemini_api_key: string | null;
   serpapi_key: string | null;
   is_exempt: boolean;
@@ -176,6 +178,18 @@ export interface PriceBookItem {
   high_cents: number;
   notes: string | null;
   created_at: string;
+  // Optional cost-calculator breakdown (docs/schema_v26) — all null unless
+  // an owner has opted this specific item into a Material/Labor/Supplies
+  // breakdown view instead of just a single low/high range.
+  description: string | null;
+  material_low_cents: number | null;
+  material_high_cents: number | null;
+  material_quantity_label: string | null;
+  labor_low_cents: number | null;
+  labor_high_cents: number | null;
+  labor_quantity_label: string | null;
+  supplies_low_cents: number | null;
+  supplies_high_cents: number | null;
 }
 
 // Separate from the Price Book: the Price Book is what you charge

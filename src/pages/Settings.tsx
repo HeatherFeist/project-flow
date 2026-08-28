@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarCheck2, Copy, ExternalLink, Loader2, MessageCircle, PhoneCall } from "lucide-react";
+import { CalendarCheck2, Copy, ExternalLink, ImageUp, Loader2, MessageCircle, PhoneCall, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { connectGoogle } from "@/lib/googleAuth";
+import { deleteLogoFile, uploadLogo } from "@/lib/logo";
 import { useGoogleConnection, useSaveSchedulingSettings, useSchedulingSettings } from "@/hooks/useScheduling";
 import { useSaveTwilioSettings, useTwilioSettings } from "@/hooks/useTwilio";
 import { usePaymentSettings, useSavePaymentSettings } from "@/hooks/usePaymentSettings";
@@ -50,6 +51,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: subscriptionData, isLoading: subscriptionLoading } = useSubscription(user?.id);
   const billingPortal = useCreateBillingPortalSession();
@@ -159,6 +162,40 @@ export default function Settings() {
     toast.success("Settings saved");
   }
 
+  async function handleLogoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    setUploadingLogo(true);
+    try {
+      const { url, path } = await uploadLogo(user.id, file);
+      const oldPath = profile.logo_path;
+      const { error } = await supabase.from("profiles").update({ logo_url: url, logo_path: path }).eq("id", user.id);
+      if (error) throw error;
+      setProfile({ ...profile, logo_url: url, logo_path: path });
+      if (oldPath) deleteLogoFile(oldPath).catch(() => {}); // best-effort — the new logo is already live either way
+      toast.success("Logo uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload logo");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function handleRemoveLogo() {
+    if (!user) return;
+    const path = profile.logo_path;
+    try {
+      const { error } = await supabase.from("profiles").update({ logo_url: null, logo_path: null }).eq("id", user.id);
+      if (error) throw error;
+      setProfile({ ...profile, logo_url: null, logo_path: null });
+      if (path) await deleteLogoFile(path);
+      toast.success("Logo removed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove logo");
+    }
+  }
+
   async function handleConnectGoogle() {
     setConnecting(true);
     try {
@@ -243,6 +280,47 @@ export default function Settings() {
           <CardDescription>Shown on quotes and invoices you send to clients.</CardDescription>
         </CardHeader>
         <CardContent className="pb-6">
+          <div className="mb-5 space-y-1.5">
+            <Label>Business logo</Label>
+            <div className="flex items-center gap-4">
+              <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+                {profile.logo_url ? (
+                  <img src={profile.logo_url} alt="Business logo" className="size-full object-contain" />
+                ) : (
+                  <ImageUp className="size-6 text-muted-foreground" />
+                )}
+              </div>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="hidden"
+                onChange={handleLogoSelected}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingLogo}
+                  onClick={() => logoInputRef.current?.click()}
+                >
+                  {uploadingLogo ? <Loader2 className="animate-spin" /> : <ImageUp />}
+                  {profile.logo_url ? "Replace logo" : "Upload logo"}
+                </Button>
+                {profile.logo_url && (
+                  <Button type="button" variant="ghost" size="sm" onClick={handleRemoveLogo}>
+                    <X /> Remove
+                  </Button>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Shown on the quote/invoice pages and emails your clients see, and in the client portal. PNG,
+              JPEG, WebP, or SVG — a square or wide logo with a transparent background looks best.
+            </p>
+          </div>
+
           <form onSubmit={handleSave} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="business_name">Business name</Label>
