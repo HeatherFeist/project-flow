@@ -14,11 +14,13 @@ import {
   Package,
   DollarSign,
   Images,
+  Headset,
   Menu,
   ChevronLeft,
   X,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useSupportTickets";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -39,11 +41,15 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
+const ADMIN_NAV_ITEM = { to: "/admin/support", label: "Support Inbox", icon: Headset, end: false };
+
 export function AppLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { data: isAdmin } = useIsAdmin(user?.id);
+  const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
 
   // Close the mobile drawer automatically whenever the route changes (link
   // tap, back button, etc.) so it never lingers open over the new page.
@@ -52,7 +58,7 @@ export function AppLayout() {
   }, [location.pathname]);
 
   const initials = (user?.email ?? "?").slice(0, 2).toUpperCase();
-  const currentLabel = NAV_ITEMS.find((item) =>
+  const currentLabel = navItems.find((item) =>
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to),
   )?.label;
 
@@ -97,7 +103,7 @@ export function AppLayout() {
               </Button>
             </div>
             <nav className="flex-1 space-y-1 px-2">
-              {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+              {navItems.map(({ to, label, icon: Icon, end }) => (
                 <NavLink
                   key={to}
                   to={to}
@@ -139,7 +145,7 @@ export function AppLayout() {
           <span className="gradient-text font-semibold">Project Flow</span>
         </div>
         <nav className="flex-1 space-y-1 px-2">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

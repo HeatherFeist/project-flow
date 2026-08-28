@@ -11,7 +11,11 @@ export function useHelpChat() {
   return useMutation({
     mutationFn: async (messages: ChatMessage[]) => {
       const { data: sessionData } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke<{ reply: string }>("app-help-chat", {
+      const { data, error } = await supabase.functions.invoke<{
+        reply: string;
+        escalated?: boolean;
+        ticketId?: string;
+      }>("app-help-chat", {
         body: { messages },
         headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
       });

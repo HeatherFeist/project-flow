@@ -14,6 +14,7 @@ export interface Profile {
   gemini_api_key: string | null;
   serpapi_key: string | null;
   is_exempt: boolean;
+  is_admin: boolean;
   onboarding_completed: boolean;
   created_at: string;
 }
@@ -273,5 +274,28 @@ export interface InvoiceMilestone {
   sequence: number;
   status: MilestoneStatus;
   paid_at: string | null;
+  created_at: string;
+}
+
+export type SupportTicketStatus = "open" | "answered" | "closed";
+
+export interface SupportTicket {
+  id: string;
+  owner_id: string;
+  owner_email: string | null;
+  subject: string;
+  status: SupportTicketStatus;
+  transcript: { role: "user" | "assistant"; content: string }[];
+  created_at: string;
+  updated_at: string;
+  // Only present on the admin inbox query, which joins in the owner's business name.
+  owner?: { business_name: string | null } | null;
+}
+
+export interface SupportTicketReply {
+  id: string;
+  ticket_id: string;
+  author: "owner" | "support";
+  body: string;
   created_at: string;
 }

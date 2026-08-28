@@ -6,6 +6,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { RequireSubscription } from "@/components/layout/RequireSubscription";
 import { RequireOnboarding } from "@/components/layout/RequireOnboarding";
+import { RequireAdmin } from "@/components/layout/RequireAdmin";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Login from "@/pages/Login";
 import Subscribe from "@/pages/Subscribe";
@@ -35,6 +36,7 @@ import PortalVerify from "@/pages/PortalVerify";
 import PortalDashboard from "@/pages/PortalDashboard";
 import Home from "@/pages/Home";
 import Privacy from "@/pages/Privacy";
+import SupportInbox from "@/pages/SupportInbox";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +103,21 @@ function App() {
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/files" element={<Files />} />
                 <Route path="/settings" element={<SettingsPage />} />
+              </Route>
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <RequireSubscription>
+                      <RequireOnboarding>
+                        <RequireAdmin>
+                          <AppLayout />
+                        </RequireAdmin>
+                      </RequireOnboarding>
+                    </RequireSubscription>
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/admin/support" element={<SupportInbox />} />
               </Route>
             </Routes>
           </BrowserRouter>

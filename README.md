@@ -1309,6 +1309,54 @@ supabase functions deploy send-invoice-email
 
 No new secrets.
 
+### Support chat escalation + admin inbox
+
+The existing in-app Help Assistant (the "Help & Q&A" chat widget every
+signed-in owner sees) now has an escalation path instead of just
+answering as best it can forever. When it judges something is genuinely
+outside what it can resolve — an account/billing issue, a bug report, or
+someone explicitly asking for a person — it creates a real support
+ticket and tells the owner so, right in the chat. The owner can check on
+it any time from the widget's new **Support** tab (a second tab next to
+the chat, showing their own tickets and any reply).
+
+**Where you answer these:** a new **Support Inbox** page
+(`/admin/support`), only visible in the sidebar to an account with
+`profiles.is_admin` set — every subscriber's escalated conversations
+land there in one place, with the transcript that led to the ticket, a
+reply box, and a status (open/answered/closed). This is the one place in
+the whole schema where an account can see across every subscriber's
+data, deliberately narrow (just this one table pair) and gated by a
+dedicated admin flag, not the billing-exemption flag.
+
+**What it's not (yet):** replies only surface back to the owner *inside
+the app* (the Support tab polls for updates) — there's no outbound email
+notification when you reply, since that would need a real platform email
+sending setup (e.g. Resend) that doesn't exist yet; each owner's Gmail
+connection is only usable for emails *they* send to *their* clients, not
+for Project Flow itself emailing them. Worth adding if replies need to
+reach someone faster than "next time they open the app."
+
+**1. Run the schema migration**
+
+[`docs/schema_v28_support_inbox.sql`](docs/schema_v28_support_inbox.sql)
+— adds `profiles.is_admin`, `support_tickets`, `support_ticket_replies`,
+and their RLS policies.
+
+**2. Make your own account an admin**
+
+```sql
+update profiles set is_admin = true where id = '<your user id>';
+```
+
+**3. Redeploy the Edge Function**
+
+```bash
+supabase functions deploy app-help-chat
+```
+
+No new secret — it reuses `ANTHROPIC_API_KEY`, same as before.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1408,7 +1456,7 @@ supabase/functions/
   create-subscription-checkout/    auth required: starts the platform $49/mo subscription checkout
   create-billing-portal-session/   auth required: opens Stripe's Billing Portal for the owner
   platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
-  app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant
+  app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant, escalates to a support ticket when it can't help
   job-photos-info/      public: job title + photo timeline for the /job-gallery/:token page
   portal-login-request/ public: emails a client a one-time login link
   portal-verify/         public: exchanges a login link for a session token
@@ -1446,4 +1494,5 @@ docs/schema_v24_costing_checklists_expenses.sql Adds job_checklist_items + expen
 docs/schema_v25_home_depot_search.sql Adds profiles.serpapi_key (bring-your-own-key, Home Depot product search)
 docs/schema_v26_price_book_calculator.sql Adds optional Material/Labor/Supplies breakdown to price_book_items
 docs/schema_v27_business_logo.sql Adds public business-logos bucket + profiles.logo_url/logo_path
+docs/schema_v28_support_inbox.sql Adds profiles.is_admin, support_tickets, support_ticket_replies
 ```
