@@ -830,6 +830,19 @@ and lets you add a result straight into your Materials catalog — real
 current price, product link, and model number, in one click instead of
 typing it in by hand or exporting a CSV.
 
+**"Select all" + "Open on homedepot.com"** — check off several results
+and open all their real product pages on homedepot.com in new tabs at
+once, so adding a whole materials list to your actual Home Depot cart is
+a handful of clicks instead of one search at a time. This is as close as
+the app gets to "add to cart" — there's no way to log into your Home
+Depot account or touch your real cart from inside Project Flow itself
+(no official API supports that, and building around your real password
+would be a security and Terms-of-Service risk not worth taking). Once
+the tabs are open, you're just clicking "Add to Cart" yourself on Home
+Depot's own site, already signed in as you. Browsers sometimes block a
+few of these as popups — a heads-up toast tells you to allow popups for
+the site if that happens.
+
 **How this actually works:** there's no official Home Depot product API
 open to third parties, so this uses [SerpApi](https://serpapi.com) — a
 service that specializes in fetching structured data from search results

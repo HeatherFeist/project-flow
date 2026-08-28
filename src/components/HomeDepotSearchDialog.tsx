@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Loader2, Plus, Search, Store } from "lucide-react";
+import { ExternalLink, Loader2, Plus, Search, SquareArrowOutUpRight, Store } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateMaterial } from "@/hooks/useMaterials";
 import { useSearchHomeDepot, type HomeDepotProduct } from "@/hooks/useHomeDepotSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
 
@@ -21,6 +22,44 @@ export function HomeDepotSearchDialog() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<HomeDepotProduct[] | null>(null);
   const [addedUrls, setAddedUrls] = useState<Set<string>>(new Set());
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
+
+  const selectableResults = (results ?? []).filter((p) => !!p.productUrl);
+  const allSelected = selectableResults.length > 0 && selectableResults.every((p) => selectedUrls.has(p.productUrl!));
+
+  function toggleSelected(url: string) {
+    setSelectedUrls((prev) => {
+      const next = new Set(prev);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedUrls(new Set());
+    } else {
+      setSelectedUrls(new Set(selectableResults.map((p) => p.productUrl!)));
+    }
+  }
+
+  function handleOpenSelected() {
+    if (selectedUrls.size === 0) return;
+    // Most browsers only allow one or two window.open() calls per click
+    // before treating the rest as popups and blocking them — staggering
+    // them slightly (still well within the same user gesture window in
+    // most browsers) gets noticeably more of them through than firing
+    // all at once. Worth telling the user to allow popups either way.
+    let i = 0;
+    for (const url of selectedUrls) {
+      setTimeout(() => window.open(url, "_blank", "noopener,noreferrer"), i * 120);
+      i++;
+    }
+    toast.info(
+      `Opening ${selectedUrls.size} product page${selectedUrls.size === 1 ? "" : "s"} — if your browser blocks some as popups, allow popups for this site and try again.`,
+    );
+  }
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -28,6 +67,7 @@ export function HomeDepotSearchDialog() {
     try {
       const products = await search.mutateAsync(query.trim());
       setResults(products);
+      setSelectedUrls(new Set());
       if (products.length === 0) toast.info("No results found.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Search failed");
@@ -64,6 +104,7 @@ export function HomeDepotSearchDialog() {
           setResults(null);
           setQuery("");
           setAddedUrls(new Set());
+          setSelectedUrls(new Set());
         }
       }}
     >
@@ -90,6 +131,18 @@ export function HomeDepotSearchDialog() {
           </Button>
         </form>
 
+        {results && results.length > 0 && (
+          <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
+            <label className="flex items-center gap-2">
+              <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
+              Select all
+            </label>
+            <Button size="sm" variant="outline" disabled={selectedUrls.size === 0} onClick={handleOpenSelected}>
+              <SquareArrowOutUpRight /> Open {selectedUrls.size || ""} on homedepot.com
+            </Button>
+          </div>
+        )}
+
         {results && (
           <div className="max-h-96 space-y-2 overflow-auto">
             {results.length === 0 && (
@@ -97,8 +150,12 @@ export function HomeDepotSearchDialog() {
             )}
             {results.map((product, i) => {
               const alreadyAdded = product.productUrl ? addedUrls.has(product.productUrl) : false;
+              const isSelected = product.productUrl ? selectedUrls.has(product.productUrl) : false;
               return (
                 <div key={i} className="flex items-center gap-3 rounded-md border p-2">
+                  {product.productUrl && (
+                    <Checkbox checked={isSelected} onCheckedChange={() => toggleSelected(product.productUrl!)} />
+                  )}
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt="" className="size-14 shrink-0 rounded object-contain" />
                   ) : (
