@@ -149,6 +149,7 @@ export default function Settings() {
       service_area: profile.service_area ?? null,
       google_review_link: profile.google_review_link ?? null,
       gemini_api_key: profile.gemini_api_key ?? null,
+      serpapi_key: profile.serpapi_key ?? null,
     });
     setSaving(false);
     if (error) {
@@ -337,6 +338,44 @@ export default function Settings() {
                 — click "Get API key" and paste it here. This is separate from the Google Calendar/Gmail
                 connection below; Google bills a small per-image amount (typically a few cents) directly
                 to this key. Leave blank to keep this feature turned off.
+              </p>
+            </div>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Home Depot Product Search</CardTitle>
+          <CardDescription>
+            Search Home Depot's catalog from Materials and add real products (with current price) in one
+            click, instead of typing them in by hand. Billed per search directly by SerpApi to your own
+            key — Project Flow doesn't mark it up or pay for it on your behalf.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="serpapi_key">SerpApi key</Label>
+              <Input
+                id="serpapi_key"
+                type="password"
+                placeholder="Your SerpApi private API key"
+                value={profile.serpapi_key ?? ""}
+                onChange={(e) => setProfile({ ...profile, serpapi_key: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Get a key at{" "}
+                <a href="https://serpapi.com" target="_blank" rel="noreferrer" className="underline">
+                  serpapi.com
+                </a>{" "}
+                — sign up, then copy your key from the dashboard. There's no official Home Depot API for
+                third parties, so this uses SerpApi's Home Depot search engine instead, which charges per
+                search (SerpApi's free tier includes a limited number of searches per month). Leave blank
+                to keep this feature turned off.
               </p>
             </div>
             <Button type="submit" disabled={saving}>

@@ -10,6 +10,7 @@ export interface Profile {
   service_area: string | null;
   google_review_link: string | null;
   gemini_api_key: string | null;
+  serpapi_key: string | null;
   is_exempt: boolean;
   onboarding_completed: boolean;
   created_at: string;

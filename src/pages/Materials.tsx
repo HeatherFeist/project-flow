@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportMaterialsDialog } from "@/components/ImportMaterialsDialog";
+import { HomeDepotSearchDialog } from "@/components/HomeDepotSearchDialog";
 import {
   Dialog,
   DialogContent,
@@ -117,6 +118,7 @@ export default function Materials() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <HomeDepotSearchDialog />
           <ImportMaterialsDialog />
           <Dialog
             open={open}

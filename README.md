@@ -805,10 +805,13 @@ separate catalog with product name, category, supplier, SKU/item #, cost,
 unit, and an optional product-page URL so reordering the exact same item
 later on homedepot.com/lowes.com is one click instead of a re-search.
 
-**No live Home Depot/Lowe's API** — neither retailer offers one to third
-parties, and scraping their sites isn't something this app will do (against
-their Terms of Service, fragile, and risks getting blocked). Instead:
+**No official Home Depot/Lowe's API** — neither retailer offers one to
+third parties directly, and this app doesn't scrape either site itself.
+Three ways to get products into Materials instead:
 
+- **Search Home Depot from inside Materials** (see below) — via SerpApi,
+  a third-party service that does the scraping on your behalf and hands
+  back structured results.
 - **Add manually** as you go, or
 - **Import a CSV** — if Nick has a Home Depot Pro Xtra or Lowe's Pro
   account, both let you export purchase history to CSV. Same
@@ -819,6 +822,55 @@ their Terms of Service, fragile, and risks getting blocked). Instead:
 
 Run [`docs/schema_v19_materials.sql`](docs/schema_v19_materials.sql) —
 creates the `materials` table. No edge function, no secret.
+
+### Search Home Depot's catalog from Materials (SerpApi)
+
+**Materials → "Search Home Depot"** searches Home Depot's live catalog
+and lets you add a result straight into your Materials catalog — real
+current price, product link, and model number, in one click instead of
+typing it in by hand or exporting a CSV.
+
+**How this actually works:** there's no official Home Depot product API
+open to third parties, so this uses [SerpApi](https://serpapi.com) — a
+service that specializes in fetching structured data from search results
+(Google, Amazon, Home Depot, and others) so an app like this one doesn't
+have to scrape sites directly itself. SerpApi handles the actual fetching
+against Home Depot's public search pages; Project Flow just calls
+SerpApi's API and parses what it returns.
+
+**Bring-your-own-key, same reasoning as Gemini/Twilio/Stripe/PayPal.**
+This is billed per search directly to whoever's SerpApi account is
+connected — so each owner adds their own key in Settings, and it stays
+off until they do. SerpApi's free tier includes a limited number of
+searches per month; paid plans raise that if it's used heavily.
+
+**1. Supabase Edge Function**
+
+```bash
+supabase functions deploy search-home-depot-products
+```
+
+No platform secret to set — see above.
+
+**2. Run the schema migration**
+
+[`docs/schema_v25_home_depot_search.sql`](docs/schema_v25_home_depot_search.sql)
+— adds `profiles.serpapi_key`.
+
+**3. Get a SerpApi key** (each owner does this themselves, in Settings)
+— sign up at [serpapi.com](https://serpapi.com), copy the API key from
+the dashboard, paste it into **Settings → Home Depot Product Search**.
+
+**A note on the integration's accuracy:** SerpApi's exact response field
+names for this engine weren't independently verified against their live
+docs while building this (network access to serpapi.com wasn't available
+in the build environment) — the parsing code normalizes several likely
+field-name variants defensively, but if a real search comes back with
+missing prices or images, that's the first thing to check: compare a raw
+response against SerpApi's docs/playground and adjust
+`supabase/functions/search-home-depot-products/index.ts`'s
+`normalizeProduct` function accordingly. Worth testing once after first
+deploying, rather than assuming it's exactly right.
 
 ### Scan receipts into Materials automatically
 
@@ -1281,6 +1333,7 @@ supabase/functions/
   extract-receipt-items/ auth required: Claude vision pulls line items off a receipt photo
   extract-invoice-items/ auth required: Claude vision pulls service line items off a photographed old invoice
   send-scheduled-reminders/ scheduled (pg_cron, not called from the app): auto-texts upcoming appointment reminders
+  search-home-depot-products/ auth required: searches Home Depot's catalog via SerpApi (bring-your-own-key)
   generate-quote-visualization/ auth required: Gemini image model generates an "after" visualization
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
@@ -1306,4 +1359,5 @@ docs/schema_v21_gemini_byok.sql  Adds profiles.gemini_api_key (bring-your-own-ke
 docs/schema_v22_payment_comms_byok.sql Adds twilio_settings SID/token + payment_settings table (bring-your-own-key)
 docs/schema_v23_reminders_leads.sql Adds scheduling_settings.reminder_hours_before + jobs.reminder_sent_at, pg_cron setup notes
 docs/schema_v24_costing_checklists_expenses.sql Adds job_checklist_items + expenses (job costing & expense tracking)
+docs/schema_v25_home_depot_search.sql Adds profiles.serpapi_key (bring-your-own-key, Home Depot product search)
 ```
