@@ -1363,6 +1363,54 @@ supabase functions deploy app-help-chat
 
 No new secret — it reuses `ANTHROPIC_API_KEY`, same as before.
 
+### Team accounts (Phase 1 — invite & manage; data access propagation still pending)
+
+Up through v28, Project Flow was strictly one login per business. This
+adds `team_members` and rewrites every table's RLS policy to allow
+trusted team members in, not just the exact account holder. **For a
+solo owner with no team, nothing changes** — the new checks resolve to
+"is this you," identical to before.
+
+Two roles: **Admin** (full access, same as the owner) and **Field
+Tech** (Clients, Schedule, job photos/checklists only — not quotes,
+invoices, payments, materials cost data, expenses, Settings, or team
+management itself).
+
+**What's actually usable right now:** Settings → Team — invite someone
+by email and role, get a shareable invite link (copy it and send it
+yourself — text, email, whatever), manage roles, remove people. The
+invited person visits the link, signs up or signs in, and becomes an
+active team member.
+
+**What's explicitly NOT done yet:** none of the app's existing pages or
+Edge Functions have been updated to actually look up *which business*
+the signed-in user belongs to — they all still query by the signed-in
+user's own ID directly. `src/contexts/TeamContext.tsx` (`useTeam()`,
+giving `ownerId`/`role`/`isAdmin`) and
+`supabase/functions/_shared/team.ts` (`resolveOwnerId`, for Edge
+Functions) exist and resolve this correctly, but almost nothing in the
+app calls them yet. **Practical effect: an invited team member can sign
+up and join today, but will land on an empty Dashboard** — the security
+groundwork (who's *allowed* to see what) is solid, but the plumbing that
+makes each page actually ask "whose business is this" isn't wired up
+across the ~40 frontend files and ~30 Edge Functions yet. That's the
+next piece of work, tracked as a follow-up rather than rushed here.
+
+**1. Run the schema migration**
+
+[`docs/schema_v29_team_accounts.sql`](docs/schema_v29_team_accounts.sql)
+— adds `team_members`, the `is_team_member`/`is_team_admin` helper
+functions, and rewrites RLS on every owner-scoped table.
+
+**2. Deploy the two new Edge Functions**
+
+```bash
+supabase functions deploy invite-team-member
+supabase functions deploy accept-team-invite
+```
+
+No new secrets.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1463,6 +1511,8 @@ supabase/functions/
   create-billing-portal-session/   auth required: opens Stripe's Billing Portal for the owner
   platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
   app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant, escalates to a support ticket when it can't help
+  invite-team-member/   auth required (owner/admin): creates a team invite, returns a shareable link
+  accept-team-invite/   auth required: links the signed-in user to an invite by token
   job-photos-info/      public: job title + photo timeline for the /job-gallery/:token page
   portal-login-request/ public: emails a client a one-time login link
   portal-verify/         public: exchanges a login link for a session token
@@ -1501,4 +1551,5 @@ docs/schema_v25_home_depot_search.sql Adds profiles.serpapi_key (bring-your-own-
 docs/schema_v26_price_book_calculator.sql Adds optional Material/Labor/Supplies breakdown to price_book_items
 docs/schema_v27_business_logo.sql Adds public business-logos bucket + profiles.logo_url/logo_path
 docs/schema_v28_support_inbox.sql Adds profiles.is_admin, support_tickets, support_ticket_replies
+docs/schema_v29_team_accounts.sql Adds team_members + rewrites RLS across owner-scoped tables (Phase 1)
 ```

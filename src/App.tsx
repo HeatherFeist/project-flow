@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { TeamProvider } from "@/contexts/TeamContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import { RequireSubscription } from "@/components/layout/RequireSubscription";
 import { RequireOnboarding } from "@/components/layout/RequireOnboarding";
@@ -37,6 +38,7 @@ import PortalDashboard from "@/pages/PortalDashboard";
 import Home from "@/pages/Home";
 import Privacy from "@/pages/Privacy";
 import SupportInbox from "@/pages/SupportInbox";
+import TeamJoin from "@/pages/TeamJoin";
 
 const queryClient = new QueryClient();
 
@@ -45,11 +47,13 @@ function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <TeamProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/team/join/:token" element={<TeamJoin />} />
               <Route path="/q/:token" element={<PublicQuote />} />
               <Route path="/q/:token/:action" element={<PublicQuote />} />
               <Route path="/estimate/:ownerId" element={<EstimateChat />} />
@@ -122,6 +126,7 @@ function App() {
             </Routes>
           </BrowserRouter>
           <Toaster position="top-right" />
+          </TeamProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ThemeProvider>

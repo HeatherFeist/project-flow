@@ -10,6 +10,8 @@ import { useGoogleConnection, useSaveSchedulingSettings, useSchedulingSettings }
 import { useSaveTwilioSettings, useTwilioSettings } from "@/hooks/useTwilio";
 import { usePaymentSettings, useSavePaymentSettings } from "@/hooks/usePaymentSettings";
 import { useCreateBillingPortalSession, useSubscription } from "@/hooks/useSubscription";
+import { useTeam } from "@/contexts/TeamContext";
+import { TeamSettingsCard } from "@/components/TeamSettingsCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,6 +48,7 @@ const TIME_OPTIONS = timeOptions();
 
 export default function Settings() {
   const { user } = useAuth();
+  const { isAdmin } = useTeam();
   const queryClient = useQueryClient();
   const [profile, setProfile] = useState<Partial<Profile>>({});
   const [loading, setLoading] = useState(true);
@@ -462,6 +465,8 @@ export default function Settings() {
           </form>
         </CardContent>
       </Card>
+
+      {isAdmin && <TeamSettingsCard />}
 
       <Card>
         <CardHeader>
