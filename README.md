@@ -896,6 +896,12 @@ can fix anything misread or uncheck lines that aren't real materials
 before they land in your Materials catalog. Already-uploaded receipts can
 be scanned any time via the small icon on their thumbnail.
 
+**Materials → "Scan receipt"** is the same scanner without needing an
+invoice first — for a general supply run that isn't tied to one specific
+client/job, snap or upload the receipt photo straight from the Materials
+page and it goes through the same extract → review → add-to-Materials
+flow above. No new setup — same Edge Function, same secret.
+
 **1. Supabase Edge Function**
 
 ```bash

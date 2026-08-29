@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Pencil, Plus, Search } from "lucide-react";
+import { ExternalLink, Loader2, Pencil, Plus, ScanLine, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useCreateMaterial,
@@ -8,6 +8,8 @@ import {
   useMaterials,
   useUpdateMaterial,
 } from "@/hooks/useMaterials";
+import { useExtractReceiptItems, type ExtractedReceipt } from "@/hooks/useReceiptExtraction";
+import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
 import type { Material } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportMaterialsDialog } from "@/components/ImportMaterialsDialog";
 import { HomeDepotSearchDialog } from "@/components/HomeDepotSearchDialog";
+import { ReceiptItemsReviewDialog } from "@/components/ReceiptItemsReviewDialog";
 import {
   Dialog,
   DialogContent,
@@ -49,6 +52,10 @@ export default function Materials() {
   const [editing, setEditing] = useState<Material | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState("");
+  const extractReceiptItems = useExtractReceiptItems();
+  const [scanning, setScanning] = useState(false);
+  const [scanReview, setScanReview] = useState<ExtractedReceipt | null>(null);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
 
   const filteredMaterials = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -108,6 +115,27 @@ export default function Materials() {
     }
   }
 
+  async function handleReceiptSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setScanning(true);
+    try {
+      const [blob] = await fileToImageBlobs(file);
+      const base64 = await blobToBase64(blob);
+      const extracted = await extractReceiptItems.mutateAsync({ imageBase64: base64, mediaType: "image/jpeg" });
+      if (extracted.items.length === 0) {
+        toast.info("No line items found on that receipt.");
+      } else {
+        setScanReview(extracted);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to read receipt");
+    } finally {
+      setScanning(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -120,6 +148,18 @@ export default function Materials() {
         <div className="flex items-center gap-2">
           <HomeDepotSearchDialog />
           <ImportMaterialsDialog />
+          <input
+            ref={receiptInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleReceiptSelected}
+          />
+          <Button variant="outline" onClick={() => receiptInputRef.current?.click()} disabled={scanning}>
+            {scanning ? <Loader2 className="animate-spin" /> : <ScanLine />}
+            {scanning ? "Reading…" : "Scan receipt"}
+          </Button>
           <Dialog
             open={open}
             onOpenChange={(next) => {
@@ -334,6 +374,8 @@ export default function Materials() {
           </Table>
         </CardContent>
       </Card>
+
+      {scanReview && <ReceiptItemsReviewDialog extracted={scanReview} onClose={() => setScanReview(null)} />}
     </div>
   );
 }
