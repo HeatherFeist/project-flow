@@ -1600,6 +1600,29 @@ supabase functions deploy send-quote-sms
 No schema migration — this only adds `phone` to a client select that
 was already reading `id, name`.
 
+### Display size: Mobile vs Web
+
+A toggle (phone/monitor icon, next to the dark-mode toggle in the
+sidebar/menu) lets each signed-in user choose how big everything on
+screen is — independent of what device they're actually using:
+
+- **Mobile** (the default, today's sizing) — larger text and touch
+  targets, comfortable for a phone or on a job site.
+- **Web** — a smaller, denser sizing that fits more on screen at once,
+  closer to what a typical desktop web app looks like.
+
+It's a personal, per-browser preference (stored in `localStorage`, not
+synced to the account), so a mouse-and-keyboard desktop user and a
+phone-in-hand field user can each have it set the way they like. Under
+the hood it's a single `font-size` change on the page's root element —
+since nearly every spacing, radius, and text size in the app's design
+system is defined in `rem` rather than fixed pixels, that one change
+scales almost the entire UI proportionally instead of needing every
+component's sizing to be re-done twice.
+
+No schema migration, no Edge Function — purely a `src/index.css` rule
+plus `src/hooks/useDisplaySize.ts` / `src/components/DisplaySizeToggle.tsx`.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
