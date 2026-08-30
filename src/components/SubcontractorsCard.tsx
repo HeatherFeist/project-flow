@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { HandCoins, Plus, Trash2 } from "lucide-react";
+import { Calculator, HandCoins, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTeam } from "@/contexts/TeamContext";
 import { useCreateSubcontractor, useDeleteSubcontractor, useSubcontractors } from "@/hooks/useSubcontractors";
+import { calculatePayGuideline, usePayGuidelines } from "@/hooks/usePayGuidelines";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +26,17 @@ interface SubcontractorsCardProps {
 // docs/schema_v30_subcontractors.sql).
 export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
   const { user } = useAuth();
+  const { ownerId } = useTeam();
+  const { data: guidelines } = usePayGuidelines(ownerId);
   const { data: subs } = useSubcontractors(quoteId);
   const createSub = useCreateSubcontractor();
   const deleteSub = useDeleteSubcontractor();
   const [form, setForm] = useState(EMPTY_FORM);
   const [adding, setAdding] = useState(false);
+  const [materialCost, setMaterialCost] = useState("");
+
+  const guideline =
+    guidelines && materialCost ? calculatePayGuideline(guidelines, Math.round(Number(materialCost) * 100)) : null;
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +52,7 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
         cashapp_handle: form.cashapp_handle.trim() || null,
       });
       setForm(EMPTY_FORM);
+      setMaterialCost("");
       setAdding(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add subcontractor");
@@ -135,6 +144,50 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
               />
               <p className="text-xs text-muted-foreground">Shown to the client, along with their name.</p>
             </div>
+
+            <div className="space-y-1.5 rounded-md border bg-background p-2.5">
+              <Label className="flex items-center gap-1.5 text-xs">
+                <Calculator className="size-3.5" /> Suggested pay (optional reference)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Material cost for this scope ($)"
+                  value={materialCost}
+                  onChange={(e) => setMaterialCost(e.target.value)}
+                  className="h-8"
+                />
+              </div>
+              {guideline && (
+                <div className="space-y-1 pt-1 text-xs text-muted-foreground">
+                  <p>
+                    Suggested total: <span className="font-medium text-foreground">{formatCurrency(guideline.totalCents)}</span>{" "}
+                    (materials {formatCurrency(guideline.materialsCents)}, overhead {formatCurrency(guideline.overheadCents)},
+                    your share {formatCurrency(guideline.gcCents)})
+                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p>
+                      Suggested sub pay: <span className="font-medium text-foreground">{formatCurrency(guideline.subCents)}</span>
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7"
+                      onClick={() => setForm({ ...form, pay: (guideline.subCents / 100).toString() })}
+                    >
+                      Use this amount
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Based on your Settings → Subcontractor Pay Guidelines — just a reference, never required.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs">PayPal (optional)</Label>

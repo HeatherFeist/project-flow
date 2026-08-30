@@ -12,6 +12,7 @@ import { usePaymentSettings, useSavePaymentSettings } from "@/hooks/usePaymentSe
 import { useCreateBillingPortalSession, useSubscription } from "@/hooks/useSubscription";
 import { useTeam } from "@/contexts/TeamContext";
 import { TeamSettingsCard } from "@/components/TeamSettingsCard";
+import { PayGuidelinesCard } from "@/components/PayGuidelinesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -467,6 +468,7 @@ export default function Settings() {
       </Card>
 
       {isAdmin && <TeamSettingsCard />}
+      {isAdmin && <PayGuidelinesCard />}
 
       <Card>
         <CardHeader>

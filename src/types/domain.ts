@@ -314,3 +314,14 @@ export interface Subcontractor {
   cashapp_handle: string | null;
   created_at: string;
 }
+
+// A reference calculator (docs/schema_v31_pay_guidelines.sql), not an
+// enforced rule — see calculatePayGuideline in hooks/usePayGuidelines.ts.
+export interface PayGuidelines {
+  owner_id: string;
+  materials_multiplier: number;
+  materials_pct: number;
+  overhead_pct: number;
+  gc_labor_share_pct: number;
+  updated_at: string;
+}

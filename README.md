@@ -1450,6 +1450,40 @@ supabase functions deploy invoice-pay-info
 
 No new secrets.
 
+### Subcontractor pay guidelines (reference calculator, not enforced)
+
+**Settings → Subcontractor Pay Guidelines** — a business sets its own
+default split for what a subcontractor's scope of work should
+reasonably pay, given a material cost:
+
+```
+suggested total   = material cost × materials multiplier   (default 4x)
+materials share    = total × materials %                    (default 25%)
+overhead share      = total × overhead %                     (default 25%)
+labor pool          = total − materials share − overhead share
+your (GC) share    = labor pool × your labor share %         (default 50% of the pool)
+suggested sub pay  = labor pool − your share
+```
+
+Worked example with the defaults: $100 in materials → $400 suggested
+total → $100 materials, $100 overhead, $200 labor pool → $100 to you,
+$100 to the sub.
+
+This shows up as a small calculator right on the subcontractor add form
+(Quote detail → Subcontractors → Add): type in the material cost for
+that scope of work, see the suggested breakdown, and optionally click
+"Use this amount" to fill the Pay field — or ignore it entirely and type
+whatever was actually agreed. **Nothing here is required or enforced** —
+it exists so a business has a consistent, transparent number to start
+from instead of a different guess every time, not a rule the app makes
+anyone follow.
+
+**Run the schema migration**
+
+[`docs/schema_v31_pay_guidelines.sql`](docs/schema_v31_pay_guidelines.sql)
+— adds the `pay_guidelines` table. No Edge Function, no secret — same as
+the rest of Settings.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1592,4 +1626,5 @@ docs/schema_v27_business_logo.sql Adds public business-logos bucket + profiles.l
 docs/schema_v28_support_inbox.sql Adds profiles.is_admin, support_tickets, support_ticket_replies
 docs/schema_v29_team_accounts.sql Adds team_members + rewrites RLS across owner-scoped tables (Phase 1)
 docs/schema_v30_subcontractors.sql Adds subcontractors table (name/scope public, pay/PayPal/Cash App GC-only)
+docs/schema_v31_pay_guidelines.sql Adds pay_guidelines table (reference calculator for subcontractor pay, not enforced)
 ```
