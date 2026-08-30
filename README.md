@@ -1484,6 +1484,46 @@ anyone follow.
 — adds the `pay_guidelines` table. No Edge Function, no secret — same as
 the rest of Settings.
 
+### Installable app (PWA)
+
+Project Flow can now be installed like an app — a real icon on the home
+screen, opens full-screen with no browser address bar, and the app
+shell still loads even on a flaky connection. This is the same web app,
+same deploy, same codebase — nothing was rewritten. A signed-in user
+sees an **"Install app"** option at the bottom of the sidebar:
+
+- **Android/Chrome/Edge**: one tap installs it directly.
+- **iPhone (Safari)**: iOS doesn't allow a website to trigger its own
+  install prompt, so the button instead shows the manual steps (Share →
+  Add to Home Screen) — three taps, same result.
+
+**What is and isn't cached:** only the app shell (the built JS/CSS/HTML
+and icons) is precached, so the app *opens* even offline or on a bad
+connection. Nothing from Supabase — no client data, job data, invoices,
+payment info — is ever cached by the service worker; every data request
+still goes live to the network, every time. This is deliberate: a job
+site app showing stale client/payment data would be worse than one that
+just doesn't load without a connection.
+
+**This is Tier 1 of "can this be a phone app"** — installable, but
+still fundamentally a website running in a specialized browser view, not
+a true native app. It does **not** unlock native-only capabilities like
+LiDAR/ARCore depth sensing (see the "AI video walkthrough" discussion in
+project history) — that requires an actual native app (Capacitor-wrapped,
+sideloadable on Android; App Store-distributed on iPhone, since Apple
+doesn't allow sideloading in the US) as a separate, larger undertaking.
+
+No schema migration, no Edge Function. Build-time only:
+- `vite-plugin-pwa` added as a dev dependency, configured in
+  `vite.config.ts` (generates the manifest + service worker, precaching
+  only static assets — see the plugin config's comments for exactly why
+  Supabase requests are deliberately never touched)
+- `public/icons/` — app icons (also replaced the leftover, off-brand
+  default favicon with the app's actual teal/cyan mark)
+- `index.html` — iOS-specific meta tags (manifest alone doesn't cover
+  iOS Safari's own home-screen behavior)
+- `src/hooks/useInstallPrompt.ts`, `src/components/InstallAppButton.tsx`
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.

@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Flow</title>
     <meta name="description" content="Job management for handyman & field-service businesses — clients, scheduling, quotes, and invoicing." />
+
+    <!-- Installable app (PWA) — manifest is injected by vite-plugin-pwa at
+         build time. These tags cover what the manifest alone doesn't:
+         Android's address-bar tint, and iOS Safari's own (non-manifest)
+         "Add to Home Screen" behavior. -->
+    <meta name="theme-color" content="#0d9488" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Project Flow" />
   </head>
   <body>
     <div id="root"></div>
