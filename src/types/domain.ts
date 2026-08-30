@@ -118,7 +118,7 @@ export interface Quote {
   sent_at: string | null;
   responded_at: string | null;
   created_at: string;
-  client?: Pick<Client, "id" | "name">;
+  client?: Pick<Client, "id" | "name" | "phone">;
   items?: LineItem[];
 }
 
@@ -272,8 +272,24 @@ export interface InvoiceMilestone {
   title: string;
   amount_cents: number;
   sequence: number;
+  due_date: string | null;
   status: MilestoneStatus;
   paid_at: string | null;
+  created_at: string;
+}
+
+// A planned payment schedule on the estimate itself — before there's an
+// invoice to attach real (payable) milestones to. Carried over into
+// InvoiceMilestone rows automatically when the client accepts (see
+// docs/schema_v32_sub_approval_and_milestones.sql).
+export interface QuoteMilestone {
+  id: string;
+  owner_id: string;
+  quote_id: string;
+  title: string;
+  amount_cents: number;
+  sequence: number;
+  due_date: string | null;
   created_at: string;
 }
 
@@ -312,6 +328,11 @@ export interface Subcontractor {
   pay_cents: number | null;
   paypal_handle: string | null;
   cashapp_handle: string | null;
+  email: string | null;
+  phone: string | null;
+  approve_token: string;
+  signed_name: string | null;
+  signed_at: string | null;
   created_at: string;
 }
 

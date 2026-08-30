@@ -24,7 +24,9 @@ import { useIsAdmin } from "@/hooks/useSupportTickets";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DisplaySizeToggle } from "@/components/DisplaySizeToggle";
 import { HelpChatWidget } from "@/components/HelpChatWidget";
+import { InstallAppButton } from "@/components/InstallAppButton";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
@@ -122,6 +124,9 @@ export function AppLayout() {
                 </NavLink>
               ))}
             </nav>
+            <div className="px-2 pb-1">
+              <InstallAppButton />
+            </div>
             <div className="flex items-center gap-2 border-t px-4 py-3">
               <Avatar className="size-8">
                 <AvatarFallback>{initials}</AvatarFallback>
@@ -129,6 +134,7 @@ export function AppLayout() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{user?.email}</p>
               </div>
+              <DisplaySizeToggle />
               <ThemeToggle />
               <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
                 <LogOut className="size-4" />
@@ -164,6 +170,9 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
+        <div className="px-2 pb-1">
+          <InstallAppButton />
+        </div>
         <div className="flex items-center gap-2 border-t px-4 py-3">
           <Avatar className="size-8">
             <AvatarFallback>{initials}</AvatarFallback>
@@ -171,6 +180,7 @@ export function AppLayout() {
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{user?.email}</p>
           </div>
+          <DisplaySizeToggle />
           <ThemeToggle />
           <Button variant="ghost" size="icon" onClick={handleSignOut} title="Sign out">
             <LogOut className="size-4" />

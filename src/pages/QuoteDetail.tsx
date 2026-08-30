@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Copy, Loader2, Mail, Sparkles, Trash2, Wand2, X } from "lucide-react";
+import { Copy, Loader2, Mail, MessageSquareText, Sparkles, Trash2, Wand2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteQuote,
@@ -12,9 +12,11 @@ import {
   useUpdateQuoteStatus,
 } from "@/hooks/useQuotes";
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
+import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { fileToImageBlobs, blobToBase64 } from "@/lib/estimateMedia";
 import type { QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { QuoteMilestonesCard } from "@/components/QuoteMilestonesCard";
 import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +55,7 @@ export default function QuoteDetail() {
   const updateStatus = useUpdateQuoteStatus();
   const deleteQuote = useDeleteQuote();
   const sendQuoteEmail = useSendQuoteEmail();
+  const sendQuoteSms = useSendQuoteSms();
   const generateViz = useGenerateQuoteVisualization();
   const deleteViz = useDeleteQuoteVisualization();
 
@@ -69,6 +72,16 @@ export default function QuoteDetail() {
       toast.success("Quote emailed to the client");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send quote email");
+    }
+  }
+
+  async function handleSendSms() {
+    if (!id) return;
+    try {
+      await sendQuoteSms.mutateAsync(id);
+      toast.success("Quote texted to the client");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to text the quote");
     }
   }
 
@@ -153,7 +166,21 @@ export default function QuoteDetail() {
               disabled={sendQuoteEmail.isPending || quote.status === "accepted" || quote.status === "declined"}
               onClick={handleSend}
             >
-              <Mail /> {quote.status === "draft" ? "Send" : "Resend"}
+              <Mail /> {quote.status === "draft" ? "Send" : "Resend"} email
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={
+                sendQuoteSms.isPending ||
+                !quote.client?.phone ||
+                quote.status === "accepted" ||
+                quote.status === "declined"
+              }
+              title={quote.client?.phone ? undefined : "This client has no phone number on file"}
+              onClick={handleSendSms}
+            >
+              <MessageSquareText /> {quote.status === "draft" ? "Text" : "Re-text"}
             </Button>
             <Button variant="outline" size="icon" title="Copy client link" onClick={copyLink}>
               <Copy className="size-4" />
@@ -190,6 +217,8 @@ export default function QuoteDetail() {
           ))}
         </CardContent>
       </Card>
+
+      {quote.id && <QuoteMilestonesCard quoteId={quote.id} />}
 
       {quote.id && <SubcontractorsCard quoteId={quote.id} mode="edit" />}
 

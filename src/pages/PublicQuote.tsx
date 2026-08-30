@@ -4,7 +4,7 @@ import { CheckCircle2, Loader2, Sparkles, XCircle } from "lucide-react";
 import { bookSlot, fetchAvailableSlots, fetchQuote, respondToQuote } from "@/lib/functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 
 type QuoteData = Awaited<ReturnType<typeof fetchQuote>>;
 
@@ -110,7 +110,7 @@ export default function PublicQuote() {
 
   if (!data) return null;
 
-  const { quote, business, job, visualizations, subcontractors } = data;
+  const { quote, business, job, visualizations, subcontractors, milestones } = data;
   const businessName = business?.business_name || "your contractor";
 
   return (
@@ -150,6 +150,23 @@ export default function PublicQuote() {
                   <div key={sub.id} className="px-3 py-2">
                     <p className="font-medium">{sub.name}</p>
                     <p className="text-muted-foreground">{sub.scope_of_work}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {milestones.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Payment timeline</p>
+              <div className="divide-y rounded-md border text-sm">
+                {milestones.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between px-3 py-2">
+                    <div>
+                      <p>{m.title}</p>
+                      {m.due_date && <p className="text-xs text-muted-foreground">Due {formatDate(m.due_date)}</p>}
+                    </div>
+                    <span>{formatCurrency(m.amount_cents)}</span>
                   </div>
                 ))}
               </div>

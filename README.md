@@ -1450,6 +1450,58 @@ supabase functions deploy invoice-pay-info
 
 No new secrets.
 
+### Subcontractor sign-off + payment timeline on the estimate
+
+Two additions on top of the subcontractors feature above, both still pure
+information — the client still only ever pays you, one lump sum, exactly
+like before.
+
+**Sign-off, before the client ever sees the estimate.** On the Quote
+detail page, each subcontractor now has a **Send for approval** button.
+It texts and/or emails that sub a link to their own private page
+(`/sub/:token`) showing just their scope of work, their pay, who else is
+on the job (name + scope only), and the payment timeline (see below) —
+nothing about your pricing to the client, nothing about another sub's
+pay. They type their name to agree, and the quote's Subcontractors card
+shows a **Signed** / **Not signed** badge for each one, with who signed
+and when. Signing is never required to send the estimate to the client —
+same "reference, not required" approach as the pay guidelines — it's
+just there so everyone's already agreed before the client sees the plan.
+
+**A payment timeline on the estimate itself.** Payment milestones
+(deposit, progress payments, final) used to only exist once an invoice
+was created — now there's a **Payment timeline** card right on the
+Quote detail page: add each milestone with an amount and an (optional,
+editable) due date. The client sees this timeline on the public quote
+page before they even accept, and any sub reviewing their approval link
+sees it too, so everyone knows the full schedule up front. Once the
+client accepts, the same schedule carries over automatically to the
+invoice's real, payable milestones — nothing has to be re-entered, and
+due dates now show up on the invoice, the client's pay page, and the
+client portal wherever a milestone hasn't been paid yet.
+
+**Run the schema migration**
+
+[`docs/schema_v32_sub_approval_and_milestones.sql`](docs/schema_v32_sub_approval_and_milestones.sql)
+— adds `email`, `phone`, `approve_token`, `signed_name`, `signed_at` to
+`subcontractors`; adds the `quote_milestones` table; adds `due_date` to
+`invoice_milestones`.
+
+**Deploy the new function, and redeploy the ones whose payloads changed:**
+
+```bash
+supabase functions deploy send-sub-approval
+supabase functions deploy subcontractor-response
+supabase functions deploy quote-response
+supabase functions deploy invoice-pay-info
+supabase functions deploy portal-dashboard
+```
+
+No new secrets — sending for approval reuses whichever of Gmail/Twilio
+you've already connected (same as quote emails/texts); if a sub has an
+email but you haven't connected Gmail, or a phone but no Twilio, it just
+sends through whichever channel is actually available and tells you so.
+
 ### Subcontractor pay guidelines (reference calculator, not enforced)
 
 **Settings → Subcontractor Pay Guidelines** — a business sets its own
@@ -1483,6 +1535,93 @@ anyone follow.
 [`docs/schema_v31_pay_guidelines.sql`](docs/schema_v31_pay_guidelines.sql)
 — adds the `pay_guidelines` table. No Edge Function, no secret — same as
 the rest of Settings.
+
+### Installable app (PWA)
+
+Project Flow can now be installed like an app — a real icon on the home
+screen, opens full-screen with no browser address bar, and the app
+shell still loads even on a flaky connection. This is the same web app,
+same deploy, same codebase — nothing was rewritten. A signed-in user
+sees an **"Install app"** option at the bottom of the sidebar:
+
+- **Android/Chrome/Edge**: one tap installs it directly.
+- **iPhone (Safari)**: iOS doesn't allow a website to trigger its own
+  install prompt, so the button instead shows the manual steps (Share →
+  Add to Home Screen) — three taps, same result.
+
+**What is and isn't cached:** only the app shell (the built JS/CSS/HTML
+and icons) is precached, so the app *opens* even offline or on a bad
+connection. Nothing from Supabase — no client data, job data, invoices,
+payment info — is ever cached by the service worker; every data request
+still goes live to the network, every time. This is deliberate: a job
+site app showing stale client/payment data would be worse than one that
+just doesn't load without a connection.
+
+**This is Tier 1 of "can this be a phone app"** — installable, but
+still fundamentally a website running in a specialized browser view, not
+a true native app. It does **not** unlock native-only capabilities like
+LiDAR/ARCore depth sensing (see the "AI video walkthrough" discussion in
+project history) — that requires an actual native app (Capacitor-wrapped,
+sideloadable on Android; App Store-distributed on iPhone, since Apple
+doesn't allow sideloading in the US) as a separate, larger undertaking.
+
+No schema migration, no Edge Function. Build-time only:
+- `vite-plugin-pwa` added as a dev dependency, configured in
+  `vite.config.ts` (generates the manifest + service worker, precaching
+  only static assets — see the plugin config's comments for exactly why
+  Supabase requests are deliberately never touched)
+- `public/icons/` — app icons (also replaced the leftover, off-brand
+  default favicon with the app's actual teal/cyan mark)
+- `index.html` — iOS-specific meta tags (manifest alone doesn't cover
+  iOS Safari's own home-screen behavior)
+- `src/hooks/useInstallPrompt.ts`, `src/components/InstallAppButton.tsx`
+
+### Send a quote by text message
+
+Quotes could already be emailed to a client — now they can also be
+texted. On the Quotes list and the Quote detail page there's a **Text /
+Re-text** button right next to **Send / Resend email**; it sends the
+client a text with a direct link to the same public quote page the
+email links to (`/q/:token`), using the owner's own connected Twilio
+number. The button is disabled with an explanatory tooltip when the
+client has no phone number on file.
+
+This reuses the exact Twilio setup already documented above under
+"Twilio setup" — no new secrets, no new provider. Sending a quote by
+text and sending it by email are independent; a contractor can do
+either, both, or neither, same as before.
+
+**Redeploy the new function:**
+
+```bash
+supabase functions deploy send-quote-sms
+```
+
+No schema migration — this only adds `phone` to a client select that
+was already reading `id, name`.
+
+### Display size: Mobile vs Web
+
+A toggle (phone/monitor icon, next to the dark-mode toggle in the
+sidebar/menu) lets each signed-in user choose how big everything on
+screen is — independent of what device they're actually using:
+
+- **Mobile** (the default, today's sizing) — larger text and touch
+  targets, comfortable for a phone or on a job site.
+- **Web** — a smaller, denser sizing that fits more on screen at once,
+  closer to what a typical desktop web app looks like.
+
+It's a personal, per-browser preference (stored in `localStorage`, not
+synced to the account), so a mouse-and-keyboard desktop user and a
+phone-in-hand field user can each have it set the way they like. Under
+the hood it's a single `font-size` change on the page's root element —
+since nearly every spacing, radius, and text size in the app's design
+system is defined in `rem` rather than fixed pixels, that one change
+scales almost the entire UI proportionally instead of needing every
+component's sizing to be re-done twice.
+
+No schema migration, no Edge Function — purely a `src/index.css` rule
+plus `src/hooks/useDisplaySize.ts` / `src/components/DisplaySizeToggle.tsx`.
 
 ## What's built
 
@@ -1565,7 +1704,10 @@ supabase/functions/
   google-oauth-start/    auth required: creates a one-time state row, returns the Google consent URL
   google-oauth-callback/ public (state-token scoped): exchanges the code, saves the connection
   send-quote-email/    emails a quote via the owner's Gmail (auth required)
-  quote-response/      public accept/decline + auto-creates the invoice on accept
+  send-quote-sms/      texts a quote link via the owner's Twilio number (auth required)
+  quote-response/      public accept/decline + auto-creates the invoice (+ its milestones) on accept
+  send-sub-approval/    auth required: sends a subcontractor their own /sub/:token approval link
+  subcontractor-response/ public: a sub's own scope/pay/timeline + typed-name sign-off
   available-slots/     public: business hours minus Google Calendar busy times
   book-slot/           public: creates the Job + the real Google Calendar event
   create-job/          auth required: dashboard/Schedule "New job" — same Calendar sync as book-slot
@@ -1627,4 +1769,5 @@ docs/schema_v28_support_inbox.sql Adds profiles.is_admin, support_tickets, suppo
 docs/schema_v29_team_accounts.sql Adds team_members + rewrites RLS across owner-scoped tables (Phase 1)
 docs/schema_v30_subcontractors.sql Adds subcontractors table (name/scope public, pay/PayPal/Cash App GC-only)
 docs/schema_v31_pay_guidelines.sql Adds pay_guidelines table (reference calculator for subcontractor pay, not enforced)
+docs/schema_v32_sub_approval_and_milestones.sql Adds sub sign-off fields + quote_milestones table + invoice_milestones.due_date
 ```

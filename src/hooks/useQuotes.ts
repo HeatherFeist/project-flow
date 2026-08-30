@@ -20,7 +20,7 @@ export function useQuotes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quotes")
-        .select("*, client:clients(id, name)")
+        .select("*, client:clients(id, name, phone)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as Quote[];
@@ -35,7 +35,7 @@ export function useQuote(id: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quotes")
-        .select("*, client:clients(id, name)")
+        .select("*, client:clients(id, name, phone)")
         .eq("id", id)
         .single();
       if (error) throw error;

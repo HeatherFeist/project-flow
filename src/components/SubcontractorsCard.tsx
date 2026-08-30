@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Calculator, HandCoins, Plus, Trash2 } from "lucide-react";
+import { Calculator, CheckCircle2, Clock, HandCoins, Plus, Send, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
-import { useCreateSubcontractor, useDeleteSubcontractor, useSubcontractors } from "@/hooks/useSubcontractors";
+import { useCreateSubcontractor, useDeleteSubcontractor, useSendSubApproval, useSubcontractors } from "@/hooks/useSubcontractors";
 import { calculatePayGuideline, usePayGuidelines } from "@/hooks/usePayGuidelines";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 
-const EMPTY_FORM = { name: "", scope_of_work: "", pay: "", paypal_handle: "", cashapp_handle: "" };
+const EMPTY_FORM = {
+  name: "",
+  scope_of_work: "",
+  pay: "",
+  paypal_handle: "",
+  cashapp_handle: "",
+  email: "",
+  phone: "",
+};
 
 interface SubcontractorsCardProps {
   quoteId: string;
@@ -31,9 +40,11 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
   const { data: subs } = useSubcontractors(quoteId);
   const createSub = useCreateSubcontractor();
   const deleteSub = useDeleteSubcontractor();
+  const sendApproval = useSendSubApproval();
   const [form, setForm] = useState(EMPTY_FORM);
   const [adding, setAdding] = useState(false);
   const [materialCost, setMaterialCost] = useState("");
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const guideline =
     guidelines && materialCost ? calculatePayGuideline(guidelines, Math.round(Number(materialCost) * 100)) : null;
@@ -50,12 +61,26 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
         pay_cents: form.pay ? Math.round(Number(form.pay) * 100) : null,
         paypal_handle: form.paypal_handle.trim() || null,
         cashapp_handle: form.cashapp_handle.trim() || null,
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
       });
       setForm(EMPTY_FORM);
       setMaterialCost("");
       setAdding(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to add subcontractor");
+    }
+  }
+
+  async function handleSendApproval(subId: string) {
+    setSendingId(subId);
+    try {
+      const result = await sendApproval.mutateAsync(subId);
+      toast.success(`Sent for approval via ${(result.sentVia as string[]).join(" & ")}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send for approval");
+    } finally {
+      setSendingId(null);
     }
   }
 
@@ -82,8 +107,30 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
         {(subs ?? []).map((sub) => (
           <div key={sub.id} className="flex items-start justify-between gap-3 rounded-md border p-3 text-sm">
             <div className="min-w-0">
-              <p className="font-medium">{sub.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-medium">{sub.name}</p>
+                {sub.signed_at ? (
+                  <Badge variant="success" className="gap-1">
+                    <CheckCircle2 className="size-3" /> Signed
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="gap-1 text-muted-foreground">
+                    <Clock className="size-3" /> Not signed
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground">{sub.scope_of_work}</p>
+              {sub.signed_at && (
+                <p className="text-xs text-muted-foreground">
+                  Agreed as "{sub.signed_name}" · {formatDateTime(sub.signed_at)}
+                </p>
+              )}
+              {mode === "edit" && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  {sub.email && <span>{sub.email}</span>}
+                  {sub.phone && <span>{sub.phone}</span>}
+                </div>
+              )}
               {mode === "reference" && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs">
                   {sub.pay_cents !== null && (
@@ -97,14 +144,22 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
               )}
             </div>
             {mode === "edit" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0"
-                onClick={() => deleteSub.mutate({ id: sub.id, quoteId })}
-              >
-                <Trash2 className="size-4" />
-              </Button>
+              <div className="flex shrink-0 items-center gap-1">
+                {!sub.signed_at && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={sendingId === sub.id || (!sub.email && !sub.phone)}
+                    title={sub.email || sub.phone ? "Send this sub a link to review and sign off" : "Add an email or phone number first"}
+                    onClick={() => handleSendApproval(sub.id)}
+                  >
+                    <Send className="size-3.5" /> {sendingId === sub.id ? "Sending…" : "Send for approval"}
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => deleteSub.mutate({ id: sub.id, quoteId })}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             )}
           </div>
         ))}
@@ -203,6 +258,26 @@ export function SubcontractorsCard({ quoteId, mode }: SubcontractorsCardProps) {
                   placeholder="$cashtag"
                   value={form.cashapp_handle}
                   onChange={(e) => setForm({ ...form, cashapp_handle: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Sub's email (to send for approval)</Label>
+                <Input
+                  type="email"
+                  placeholder="sub@example.com"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Sub's phone (to text for approval)</Label>
+                <Input
+                  type="tel"
+                  placeholder="(555) 555-5555"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
               </div>
             </div>

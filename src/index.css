@@ -101,6 +101,15 @@
   }
 }
 
+/* "Web" display size (see useDisplaySize.ts / DisplaySizeToggle) — nearly
+   every spacing, radius, and text-size value in this design system is set
+   in rem, so scaling the root font-size scales the whole app's density in
+   one place: a denser, more desktop-web feel instead of the default
+   larger, touch-friendly "Mobile" sizing. */
+:root[data-display-size="web"] {
+  font-size: 87.5%;
+}
+
 /* Brand wordmark — used on the sidebar logo and login screen */
 .gradient-text {
   background: var(--gradient-primary);

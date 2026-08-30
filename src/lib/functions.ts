@@ -33,6 +33,16 @@ export interface PublicSubcontractor {
   scope_of_work: string;
 }
 
+// The planned payment schedule shown on the estimate itself, before an
+// invoice (and its real, payable milestones) exists.
+export interface PublicQuoteMilestone {
+  id: string;
+  title: string;
+  amount_cents: number;
+  due_date: string | null;
+  sequence: number;
+}
+
 export function fetchQuote(token: string) {
   return fetch(`${FUNCTIONS_URL}/quote-response?token=${encodeURIComponent(token)}`, {
     headers: { apikey: ANON_KEY ?? "" },
@@ -52,6 +62,7 @@ export function fetchQuote(token: string) {
       job: { scheduled_at: string; address: string | null } | null;
       visualizations: { id: string; prompt: string; result_url: string; created_at: string }[];
       subcontractors: PublicSubcontractor[];
+      milestones: PublicQuoteMilestone[];
     };
   });
 }
@@ -97,6 +108,7 @@ export interface InvoicePayMilestone {
   title: string;
   amount_cents: number;
   sequence: number;
+  due_date: string | null;
   status: "pending" | "paid";
   paid_at: string | null;
 }
@@ -181,6 +193,7 @@ export interface PortalMilestone {
   title: string;
   amount_cents: number;
   sequence: number;
+  due_date: string | null;
   status: "pending" | "paid";
   paid_at: string | null;
 }
@@ -228,5 +241,37 @@ export function requestAdditionalService(sessionToken: string, message: string) 
   return callFunction<{ ok: true }>("portal-request-service", {
     method: "POST",
     body: JSON.stringify({ sessionToken, message }),
+  });
+}
+
+// --- Subcontractor sign-off -------------------------------------------
+
+export function fetchSubApproval(token: string) {
+  return fetch(`${FUNCTIONS_URL}/subcontractor-response?token=${encodeURIComponent(token)}`, {
+    headers: { apikey: ANON_KEY ?? "" },
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error ?? "Failed to load");
+    return json as {
+      subcontractor: {
+        id: string;
+        name: string;
+        scope_of_work: string;
+        pay_cents: number | null;
+        signed_name: string | null;
+        signed_at: string | null;
+      };
+      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
+      quote: { status: string } | null;
+      milestones: PublicQuoteMilestone[];
+      otherSubs: PublicSubcontractor[];
+    };
+  });
+}
+
+export function signSubApproval(token: string, signedName: string) {
+  return callFunction<{ ok: true }>("subcontractor-response", {
+    method: "POST",
+    body: JSON.stringify({ token, signedName }),
   });
 }
