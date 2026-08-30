@@ -1524,6 +1524,30 @@ No schema migration, no Edge Function. Build-time only:
   iOS Safari's own home-screen behavior)
 - `src/hooks/useInstallPrompt.ts`, `src/components/InstallAppButton.tsx`
 
+### Send a quote by text message
+
+Quotes could already be emailed to a client — now they can also be
+texted. On the Quotes list and the Quote detail page there's a **Text /
+Re-text** button right next to **Send / Resend email**; it sends the
+client a text with a direct link to the same public quote page the
+email links to (`/q/:token`), using the owner's own connected Twilio
+number. The button is disabled with an explanatory tooltip when the
+client has no phone number on file.
+
+This reuses the exact Twilio setup already documented above under
+"Twilio setup" — no new secrets, no new provider. Sending a quote by
+text and sending it by email are independent; a contractor can do
+either, both, or neither, same as before.
+
+**Redeploy the new function:**
+
+```bash
+supabase functions deploy send-quote-sms
+```
+
+No schema migration — this only adds `phone` to a client select that
+was already reading `id, name`.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1605,6 +1629,7 @@ supabase/functions/
   google-oauth-start/    auth required: creates a one-time state row, returns the Google consent URL
   google-oauth-callback/ public (state-token scoped): exchanges the code, saves the connection
   send-quote-email/    emails a quote via the owner's Gmail (auth required)
+  send-quote-sms/      texts a quote link via the owner's Twilio number (auth required)
   quote-response/      public accept/decline + auto-creates the invoice on accept
   available-slots/     public: business hours minus Google Calendar busy times
   book-slot/           public: creates the Job + the real Google Calendar event

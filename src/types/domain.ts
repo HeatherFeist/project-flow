@@ -118,7 +118,7 @@ export interface Quote {
   sent_at: string | null;
   responded_at: string | null;
   created_at: string;
-  client?: Pick<Client, "id" | "name">;
+  client?: Pick<Client, "id" | "name" | "phone">;
   items?: LineItem[];
 }
 

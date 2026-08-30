@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Eye, Kanban, Mail, Plus, Search, Table as TableIcon } from "lucide-react";
+import { Copy, Eye, Kanban, Mail, MessageSquareText, Plus, Search, Table as TableIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
 import { useCreateQuote, useDeleteQuote, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
+import { useSendQuoteSms } from "@/hooks/useTwilio";
 import type { LineItem, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
@@ -44,6 +45,7 @@ export default function Quotes() {
   const createQuote = useCreateQuote();
   const updateStatus = useUpdateQuoteStatus();
   const sendQuoteEmail = useSendQuoteEmail();
+  const sendQuoteSms = useSendQuoteSms();
   const deleteQuote = useDeleteQuote();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
@@ -87,6 +89,15 @@ export default function Quotes() {
       toast.success("Quote emailed to the client");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send quote email");
+    }
+  }
+
+  async function handleSendSms(quoteId: string) {
+    try {
+      await sendQuoteSms.mutateAsync(quoteId);
+      toast.success("Quote texted to the client");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to text the quote");
     }
   }
 
@@ -259,6 +270,15 @@ export default function Quotes() {
                         onClick={() => handleSend(q.id)}
                       >
                         <Mail /> {q.status === "draft" ? "Send" : "Resend"}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title={q.client?.phone ? "Text the quote to the client" : "This client has no phone number on file"}
+                        disabled={sendQuoteSms.isPending || !q.client?.phone || q.status === "accepted" || q.status === "declined"}
+                        onClick={() => handleSendSms(q.id)}
+                      >
+                        <MessageSquareText className="size-4" />
                       </Button>
                       <Button variant="ghost" size="icon" title="Copy client link" onClick={() => copyLink(q.accept_token)}>
                         <Copy className="size-4" />

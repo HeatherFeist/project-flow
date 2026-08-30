@@ -56,6 +56,21 @@ export function useSendJobReminder() {
   });
 }
 
+export function useSendQuoteSms() {
+  return useMutation({
+    mutationFn: async (quoteId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("send-quote-sms", {
+        body: { quoteId },
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+      });
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+  });
+}
+
 export function useSendReviewRequest() {
   return useMutation({
     mutationFn: async (jobId: string) => {
