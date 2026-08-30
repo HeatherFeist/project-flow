@@ -299,3 +299,18 @@ export interface SupportTicketReply {
   body: string;
   created_at: string;
 }
+
+// Full record — GC-only view (Settings/Quote/Invoice detail pages while
+// signed in). The client-facing shape is separate (see lib/functions.ts)
+// and only ever carries name + scope_of_work.
+export interface Subcontractor {
+  id: string;
+  owner_id: string;
+  quote_id: string;
+  name: string;
+  scope_of_work: string;
+  pay_cents: number | null;
+  paypal_handle: string | null;
+  cashapp_handle: string | null;
+  created_at: string;
+}

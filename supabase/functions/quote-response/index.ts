@@ -45,6 +45,15 @@ Deno.serve(async (req) => {
         .eq("quote_id", quote.id)
         .order("created_at", { ascending: false });
 
+      // Client only ever sees who's on the job and what they're doing —
+      // never pay amounts or PayPal/Cash App handles (see
+      // docs/schema_v30_subcontractors.sql).
+      const { data: subcontractors } = await supabase
+        .from("subcontractors")
+        .select("id, name, scope_of_work")
+        .eq("quote_id", quote.id)
+        .order("created_at");
+
       const { owner_id: _owner_id, ...publicQuote } = quote;
       return new Response(
         JSON.stringify({
@@ -52,6 +61,7 @@ Deno.serve(async (req) => {
           business: profile ?? null,
           job: job ?? null,
           visualizations: visualizations ?? [],
+          subcontractors: subcontractors ?? [],
         }),
         { headers: jsonHeaders },
       );

@@ -19,6 +19,7 @@ import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
 import type { InvoiceStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ReceiptItemsReviewDialog } from "@/components/ReceiptItemsReviewDialog";
+import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -318,6 +319,8 @@ export default function InvoiceDetail() {
           ))}
         </CardContent>
       </Card>
+
+      {invoice.quote_id && <SubcontractorsCard quoteId={invoice.quote_id} mode="reference" />}
 
       {review && <ReceiptItemsReviewDialog extracted={review} onClose={() => setReview(null)} />}
     </div>

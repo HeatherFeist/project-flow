@@ -24,6 +24,15 @@ async function callFunction<T>(name: string, init?: RequestInit): Promise<T> {
   return json as T;
 }
 
+// The client never sees pay amounts or PayPal/Cash App handles for
+// subcontractors — only who's on the job and what they're doing (see
+// docs/schema_v30_subcontractors.sql).
+export interface PublicSubcontractor {
+  id: string;
+  name: string;
+  scope_of_work: string;
+}
+
 export function fetchQuote(token: string) {
   return fetch(`${FUNCTIONS_URL}/quote-response?token=${encodeURIComponent(token)}`, {
     headers: { apikey: ANON_KEY ?? "" },
@@ -42,6 +51,7 @@ export function fetchQuote(token: string) {
       business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
       job: { scheduled_at: string; address: string | null } | null;
       visualizations: { id: string; prompt: string; result_url: string; created_at: string }[];
+      subcontractors: PublicSubcontractor[];
     };
   });
 }
@@ -109,6 +119,7 @@ export function fetchInvoicePayInfo(token: string) {
       };
       business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
       milestones: InvoicePayMilestone[];
+      subcontractors: PublicSubcontractor[];
     };
   });
 }

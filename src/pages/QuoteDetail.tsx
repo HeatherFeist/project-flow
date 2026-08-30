@@ -15,6 +15,7 @@ import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import { fileToImageBlobs, blobToBase64 } from "@/lib/estimateMedia";
 import type { QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -189,6 +190,8 @@ export default function QuoteDetail() {
           ))}
         </CardContent>
       </Card>
+
+      {quote.id && <SubcontractorsCard quoteId={quote.id} mode="edit" />}
 
       <Card>
         <CardHeader>

@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const { data: invoice, error } = await supabase
       .from("invoices")
       .select(
-        "id, status, total_cents, amount_paid_cents, due_date, items, created_at, owner_id, client:clients(name, email)",
+        "id, status, total_cents, amount_paid_cents, due_date, items, created_at, owner_id, quote_id, client:clients(name, email)",
       )
       .eq("pay_token", token)
       .single();
@@ -38,9 +38,24 @@ Deno.serve(async (req) => {
       .eq("invoice_id", invoice.id)
       .order("sequence");
 
-    const { owner_id: _owner_id, ...publicInvoice } = invoice;
+    // Same as the public quote page — name + scope of work only, never
+    // pay amounts or PayPal/Cash App handles (docs/schema_v30_subcontractors.sql).
+    const { data: subcontractors } = invoice.quote_id
+      ? await supabase
+          .from("subcontractors")
+          .select("id, name, scope_of_work")
+          .eq("quote_id", invoice.quote_id)
+          .order("created_at")
+      : { data: [] };
+
+    const { owner_id: _owner_id, quote_id: _quote_id, ...publicInvoice } = invoice;
     return new Response(
-      JSON.stringify({ invoice: publicInvoice, business: profile ?? null, milestones: milestones ?? [] }),
+      JSON.stringify({
+        invoice: publicInvoice,
+        business: profile ?? null,
+        milestones: milestones ?? [],
+        subcontractors: subcontractors ?? [],
+      }),
       { headers: jsonHeaders },
     );
   } catch (err) {

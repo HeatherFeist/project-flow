@@ -156,7 +156,7 @@ export default function PayInvoice() {
 
   if (!data) return null;
 
-  const { invoice, business, milestones } = data;
+  const { invoice, business, milestones, subcontractors } = data;
   const businessName = business?.business_name || "your contractor";
   const remainingCents = invoice.total_cents - invoice.amount_paid_cents;
   const fullyPaid = remainingCents <= 0;
@@ -195,6 +195,20 @@ export default function PayInvoice() {
               <p className="text-lg font-semibold">Balance due: {formatCurrency(Math.max(remainingCents, 0))}</p>
             </div>
           </div>
+
+          {subcontractors.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Who's working on your project</p>
+              <div className="divide-y rounded-md border text-sm">
+                {subcontractors.map((sub) => (
+                  <div key={sub.id} className="px-3 py-2">
+                    <p className="font-medium">{sub.name}</p>
+                    <p className="text-muted-foreground">{sub.scope_of_work}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {hasMilestones && (
             <div className="space-y-2">

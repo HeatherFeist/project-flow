@@ -1411,6 +1411,45 @@ supabase functions deploy accept-team-invite
 
 No new secrets.
 
+### Subcontractors on a quote/invoice
+
+The client still only ever pays the general contractor — one lump sum,
+exactly like before. This adds a way to list who else is working on the
+job and be transparent about it, without Project Flow ever touching or
+splitting anyone's money (a real "we hold the payment and redistribute
+it" marketplace model would mean becoming a money transmitter, which is
+a serious legal undertaking deliberately avoided here).
+
+**On the quote** (Quote detail page → Subcontractors), the GC adds each
+subcontractor: name, scope of work, what they're being paid, and their
+PayPal/Cash App handle.
+
+**What the client sees** (the public quote link, and the invoice pay
+page) — only name and scope of work. No pay amounts, no payment
+handles. Just "who's on my project and what are they doing."
+
+**What the GC sees** (signed in, on the Invoice detail page once the
+quote's accepted) — the full picture: name, scope, pay amount, and the
+sub's PayPal/Cash App handle, right there as a reference for after a
+milestone payment lands. Paying each sub is still on the GC, done
+however they normally would (PayPal, Cash App, check, cash) — the app
+just keeps the information organized instead of it living in a text
+thread or a notebook.
+
+**Run the schema migration**
+
+[`docs/schema_v30_subcontractors.sql`](docs/schema_v30_subcontractors.sql)
+— adds the `subcontractors` table.
+
+**Redeploy the two functions that hand subcontractor info to public pages:**
+
+```bash
+supabase functions deploy quote-response
+supabase functions deploy invoice-pay-info
+```
+
+No new secrets.
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1552,4 +1591,5 @@ docs/schema_v26_price_book_calculator.sql Adds optional Material/Labor/Supplies 
 docs/schema_v27_business_logo.sql Adds public business-logos bucket + profiles.logo_url/logo_path
 docs/schema_v28_support_inbox.sql Adds profiles.is_admin, support_tickets, support_ticket_replies
 docs/schema_v29_team_accounts.sql Adds team_members + rewrites RLS across owner-scoped tables (Phase 1)
+docs/schema_v30_subcontractors.sql Adds subcontractors table (name/scope public, pay/PayPal/Cash App GC-only)
 ```

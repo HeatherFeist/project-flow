@@ -110,7 +110,7 @@ export default function PublicQuote() {
 
   if (!data) return null;
 
-  const { quote, business, job, visualizations } = data;
+  const { quote, business, job, visualizations, subcontractors } = data;
   const businessName = business?.business_name || "your contractor";
 
   return (
@@ -141,6 +141,20 @@ export default function PublicQuote() {
             </div>
             <p className="mt-2 text-right text-lg font-semibold">{formatCurrency(quote.total_cents)}</p>
           </div>
+
+          {subcontractors.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Who's working on your project</p>
+              <div className="divide-y rounded-md border text-sm">
+                {subcontractors.map((sub) => (
+                  <div key={sub.id} className="px-3 py-2">
+                    <p className="font-medium">{sub.name}</p>
+                    <p className="text-muted-foreground">{sub.scope_of_work}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {visualizations.length > 0 && (
             <div className="space-y-3">
