@@ -54,6 +54,12 @@ Deno.serve(async (req) => {
         .eq("quote_id", quote.id)
         .order("created_at");
 
+      const { data: milestones } = await supabase
+        .from("quote_milestones")
+        .select("id, title, amount_cents, due_date, sequence")
+        .eq("quote_id", quote.id)
+        .order("sequence");
+
       const { owner_id: _owner_id, ...publicQuote } = quote;
       return new Response(
         JSON.stringify({
@@ -62,6 +68,7 @@ Deno.serve(async (req) => {
           job: job ?? null,
           visualizations: visualizations ?? [],
           subcontractors: subcontractors ?? [],
+          milestones: milestones ?? [],
         }),
         { headers: jsonHeaders },
       );
@@ -98,16 +105,44 @@ Deno.serve(async (req) => {
       if (updateError) throw updateError;
 
       if (newStatus === "accepted") {
-        await supabase.from("invoices").insert({
-          owner_id: quote.owner_id,
-          client_id: quote.client_id,
-          job_id: null,
-          quote_id: quote.id,
-          status: "draft",
-          total_cents: quote.total_cents,
-          items: quote.items,
-          due_date: null,
-        });
+        const { data: invoice } = await supabase
+          .from("invoices")
+          .insert({
+            owner_id: quote.owner_id,
+            client_id: quote.client_id,
+            job_id: null,
+            quote_id: quote.id,
+            status: "draft",
+            total_cents: quote.total_cents,
+            items: quote.items,
+            due_date: null,
+          })
+          .select()
+          .single();
+
+        // Carry the estimate's planned payment timeline over to the
+        // invoice's real (payable) milestones, so nothing has to be
+        // re-entered — same title, amount, sequence, and due date.
+        if (invoice) {
+          const { data: quoteMilestones } = await supabase
+            .from("quote_milestones")
+            .select("title, amount_cents, sequence, due_date")
+            .eq("quote_id", quote.id)
+            .order("sequence");
+
+          if (quoteMilestones && quoteMilestones.length > 0) {
+            await supabase.from("invoice_milestones").insert(
+              quoteMilestones.map((m: { title: string; amount_cents: number; sequence: number; due_date: string | null }) => ({
+                invoice_id: invoice.id,
+                owner_id: quote.owner_id,
+                title: m.title,
+                amount_cents: m.amount_cents,
+                sequence: m.sequence,
+                due_date: m.due_date,
+              })),
+            );
+          }
+        }
       }
 
       return new Response(JSON.stringify({ quote: updatedQuote }), { headers: jsonHeaders });

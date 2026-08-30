@@ -39,6 +39,7 @@ import Home from "@/pages/Home";
 import Privacy from "@/pages/Privacy";
 import SupportInbox from "@/pages/SupportInbox";
 import TeamJoin from "@/pages/TeamJoin";
+import SubApproval from "@/pages/SubApproval";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ function App() {
               <Route path="/team/join/:token" element={<TeamJoin />} />
               <Route path="/q/:token" element={<PublicQuote />} />
               <Route path="/q/:token/:action" element={<PublicQuote />} />
+              <Route path="/sub/:token" element={<SubApproval />} />
               <Route path="/estimate/:ownerId" element={<EstimateChat />} />
               <Route path="/embed-guide/:ownerId" element={<EmbedGuide />} />
               <Route path="/pay/:token" element={<PayInvoice />} />

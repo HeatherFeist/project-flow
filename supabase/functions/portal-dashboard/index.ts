@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const { data: milestones } = invoiceIds.length
       ? await supabase
           .from("invoice_milestones")
-          .select("id, invoice_id, title, amount_cents, sequence, status, paid_at")
+          .select("id, invoice_id, title, amount_cents, sequence, due_date, status, paid_at")
           .in("invoice_id", invoiceIds)
           .order("sequence")
       : { data: [] };

@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
     const { data: milestones } = await supabase
       .from("invoice_milestones")
-      .select("id, title, amount_cents, sequence, status, paid_at")
+      .select("id, title, amount_cents, sequence, due_date, status, paid_at")
       .eq("invoice_id", invoice.id)
       .order("sequence");
 

@@ -1450,6 +1450,58 @@ supabase functions deploy invoice-pay-info
 
 No new secrets.
 
+### Subcontractor sign-off + payment timeline on the estimate
+
+Two additions on top of the subcontractors feature above, both still pure
+information — the client still only ever pays you, one lump sum, exactly
+like before.
+
+**Sign-off, before the client ever sees the estimate.** On the Quote
+detail page, each subcontractor now has a **Send for approval** button.
+It texts and/or emails that sub a link to their own private page
+(`/sub/:token`) showing just their scope of work, their pay, who else is
+on the job (name + scope only), and the payment timeline (see below) —
+nothing about your pricing to the client, nothing about another sub's
+pay. They type their name to agree, and the quote's Subcontractors card
+shows a **Signed** / **Not signed** badge for each one, with who signed
+and when. Signing is never required to send the estimate to the client —
+same "reference, not required" approach as the pay guidelines — it's
+just there so everyone's already agreed before the client sees the plan.
+
+**A payment timeline on the estimate itself.** Payment milestones
+(deposit, progress payments, final) used to only exist once an invoice
+was created — now there's a **Payment timeline** card right on the
+Quote detail page: add each milestone with an amount and an (optional,
+editable) due date. The client sees this timeline on the public quote
+page before they even accept, and any sub reviewing their approval link
+sees it too, so everyone knows the full schedule up front. Once the
+client accepts, the same schedule carries over automatically to the
+invoice's real, payable milestones — nothing has to be re-entered, and
+due dates now show up on the invoice, the client's pay page, and the
+client portal wherever a milestone hasn't been paid yet.
+
+**Run the schema migration**
+
+[`docs/schema_v32_sub_approval_and_milestones.sql`](docs/schema_v32_sub_approval_and_milestones.sql)
+— adds `email`, `phone`, `approve_token`, `signed_name`, `signed_at` to
+`subcontractors`; adds the `quote_milestones` table; adds `due_date` to
+`invoice_milestones`.
+
+**Deploy the new function, and redeploy the ones whose payloads changed:**
+
+```bash
+supabase functions deploy send-sub-approval
+supabase functions deploy subcontractor-response
+supabase functions deploy quote-response
+supabase functions deploy invoice-pay-info
+supabase functions deploy portal-dashboard
+```
+
+No new secrets — sending for approval reuses whichever of Gmail/Twilio
+you've already connected (same as quote emails/texts); if a sub has an
+email but you haven't connected Gmail, or a phone but no Twilio, it just
+sends through whichever channel is actually available and tells you so.
+
 ### Subcontractor pay guidelines (reference calculator, not enforced)
 
 **Settings → Subcontractor Pay Guidelines** — a business sets its own
@@ -1630,7 +1682,9 @@ supabase/functions/
   google-oauth-callback/ public (state-token scoped): exchanges the code, saves the connection
   send-quote-email/    emails a quote via the owner's Gmail (auth required)
   send-quote-sms/      texts a quote link via the owner's Twilio number (auth required)
-  quote-response/      public accept/decline + auto-creates the invoice on accept
+  quote-response/      public accept/decline + auto-creates the invoice (+ its milestones) on accept
+  send-sub-approval/    auth required: sends a subcontractor their own /sub/:token approval link
+  subcontractor-response/ public: a sub's own scope/pay/timeline + typed-name sign-off
   available-slots/     public: business hours minus Google Calendar busy times
   book-slot/           public: creates the Job + the real Google Calendar event
   create-job/          auth required: dashboard/Schedule "New job" — same Calendar sync as book-slot
@@ -1692,4 +1746,5 @@ docs/schema_v28_support_inbox.sql Adds profiles.is_admin, support_tickets, suppo
 docs/schema_v29_team_accounts.sql Adds team_members + rewrites RLS across owner-scoped tables (Phase 1)
 docs/schema_v30_subcontractors.sql Adds subcontractors table (name/scope public, pay/PayPal/Cash App GC-only)
 docs/schema_v31_pay_guidelines.sql Adds pay_guidelines table (reference calculator for subcontractor pay, not enforced)
+docs/schema_v32_sub_approval_and_milestones.sql Adds sub sign-off fields + quote_milestones table + invoice_milestones.due_date
 ```

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 type InvoiceData = Awaited<ReturnType<typeof fetchInvoicePayInfo>>;
 
@@ -229,6 +229,7 @@ export default function PayInvoice() {
                         <p className="text-xs">
                           {formatCurrency(m.amount_cents)}
                           {m.status === "paid" && m.paid_at ? ` · paid` : ""}
+                          {m.status !== "paid" && m.due_date ? ` · due ${formatDate(m.due_date)}` : ""}
                         </p>
                       </div>
                       {m.status === "paid" ? (

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { edgeFunctionErrorMessage } from "@/lib/utils";
 import type { Subcontractor } from "@/types/domain";
 
 // GC-only — full fields, including pay and payment handles. Used on the
@@ -34,12 +35,32 @@ export function useCreateSubcontractor() {
       pay_cents: number | null;
       paypal_handle: string | null;
       cashapp_handle: string | null;
+      email: string | null;
+      phone: string | null;
     }) => {
       const { error } = await supabase.from("subcontractors").insert(input);
       if (error) throw error;
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["subcontractors", variables.quote_id] });
+    },
+  });
+}
+
+// Sends the subcontractor a link to their own approval page (/sub/:token)
+// via whichever of email/phone they have on file — best-effort across
+// both channels, only failing if neither is configured/possible.
+export function useSendSubApproval() {
+  return useMutation({
+    mutationFn: async (subcontractorId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("send-sub-approval", {
+        body: { subcontractorId },
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+      });
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      if (data?.error) throw new Error(data.error);
+      return data as { ok: true; sentVia: string[] };
     },
   });
 }

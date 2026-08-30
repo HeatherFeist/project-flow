@@ -16,6 +16,7 @@ import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { fileToImageBlobs, blobToBase64 } from "@/lib/estimateMedia";
 import type { QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { QuoteMilestonesCard } from "@/components/QuoteMilestonesCard";
 import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -216,6 +217,8 @@ export default function QuoteDetail() {
           ))}
         </CardContent>
       </Card>
+
+      {quote.id && <QuoteMilestonesCard quoteId={quote.id} />}
 
       {quote.id && <SubcontractorsCard quoteId={quote.id} mode="edit" />}
 

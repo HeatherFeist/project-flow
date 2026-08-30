@@ -223,7 +223,12 @@ export default function InvoiceDetail() {
           <CardContent className="divide-y pb-6">
             {milestones.map((m) => (
               <div key={m.id} className="flex items-center justify-between py-2 text-sm">
-                <span>{m.title}</span>
+                <span>
+                  {m.title}
+                  {m.due_date && m.status !== "paid" && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">due {formatDate(m.due_date)}</span>
+                  )}
+                </span>
                 <span className="flex items-center gap-2">
                   {formatCurrency(m.amount_cents)}
                   <Badge variant={m.status === "paid" ? "success" : "outline"}>
