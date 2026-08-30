@@ -18,6 +18,11 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+
+# Supabase CLI's own local cache/scratch folder — machine-specific, never
+# something the project needs tracked.
+supabase/.temp/
+
 *.suo
 *.ntvs*
 *.njsproj
