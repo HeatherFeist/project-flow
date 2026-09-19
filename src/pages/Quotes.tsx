@@ -1,12 +1,25 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Eye, Kanban, Mail, MessageSquareText, Plus, Search, Table as TableIcon } from "lucide-react";
+import {
+  Copy,
+  Eye,
+  Kanban,
+  Loader2,
+  Mail,
+  MessageSquareText,
+  Plus,
+  Search,
+  Sparkles,
+  Table as TableIcon,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
-import { useCreateQuote, useDeleteQuote, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
+import { useCreateQuote, useDeleteQuote, useGenerateQuoteDraft, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import { useSendQuoteSms } from "@/hooks/useTwilio";
+import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
 import type { LineItem, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
@@ -47,12 +60,16 @@ export default function Quotes() {
   const sendQuoteEmail = useSendQuoteEmail();
   const sendQuoteSms = useSendQuoteSms();
   const deleteQuote = useDeleteQuote();
+  const generateDraft = useGenerateQuoteDraft();
   const [open, setOpen] = useState(false);
   const [clientId, setClientId] = useState("");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<LineItem[]>([]);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"list" | "board">("list");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiImages, setAiImages] = useState<{ previewUrl: string; base64: string; mimeType: string }[]>([]);
+  const aiImageInputRef = useRef<HTMLInputElement>(null);
 
   const filteredQuotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -77,9 +94,36 @@ export default function Quotes() {
       setClientId("");
       setNotes("");
       setItems([]);
+      setAiPrompt("");
+      setAiImages([]);
       setOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create quote");
+    }
+  }
+
+  async function handleAiImages(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    for (const file of files) {
+      const [blob] = await fileToImageBlobs(file);
+      const base64 = await blobToBase64(blob);
+      setAiImages((prev) => [...prev, { previewUrl: URL.createObjectURL(blob), base64, mimeType: "image/jpeg" }]);
+    }
+  }
+
+  async function handleGenerateDraft() {
+    if (!aiPrompt.trim()) return;
+    try {
+      const draft = await generateDraft.mutateAsync({
+        prompt: aiPrompt.trim(),
+        images: aiImages.map((img) => ({ base64: img.base64, mediaType: img.mimeType })),
+      });
+      setItems(draft.items);
+      setNotes(draft.notes);
+      toast.success("Draft estimate ready — review and adjust below");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate draft");
     }
   }
 
@@ -122,11 +166,69 @@ export default function Quotes() {
               <Plus /> New quote
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-xl">
+          <DialogContent className="max-h-[85vh] max-w-xl overflow-y-auto">
             <DialogHeader>
               <DialogTitle>New quote</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
+              <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <Sparkles className="size-3.5" /> Draft with AI (optional)
+                </Label>
+                <Textarea
+                  placeholder="Describe the job — e.g. 'Replace two GFCI outlets in the kitchen and patch a small drywall hole in the hallway'"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  className="min-h-16 bg-background"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  {aiImages.map((img, i) => (
+                    <div key={i} className="relative">
+                      <img src={img.previewUrl} alt="" className="size-14 rounded-md border object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setAiImages((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => aiImageInputRef.current?.click()}>
+                    Add photos
+                  </Button>
+                  <input
+                    ref={aiImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleAiImages}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="ml-auto"
+                    disabled={!aiPrompt.trim() || generateDraft.isPending}
+                    onClick={handleGenerateDraft}
+                  >
+                    {generateDraft.isPending ? (
+                      <>
+                        <Loader2 className="animate-spin" /> Drafting…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles /> Generate draft
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pulls from your Price Book where it matches, and estimates the rest — review everything below
+                  before sending.
+                </p>
+              </div>
+
               <div className="space-y-1.5">
                 <Label>Client</Label>
                 <Select value={clientId} onValueChange={setClientId}>

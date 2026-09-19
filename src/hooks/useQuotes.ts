@@ -202,6 +202,34 @@ export function useDeleteQuoteVisualization() {
   });
 }
 
+export interface DraftEstimate {
+  items: LineItem[];
+  notes: string;
+}
+
+// AI-drafted estimate from the owner's own description + any photos —
+// reviewed/edited before ever being saved as a real Quote (see
+// supabase/functions/generate-quote-draft). Not to be confused with the
+// public estimate-chat widget, which talks to customers instead.
+export function useGenerateQuoteDraft() {
+  return useMutation({
+    mutationFn: async (input: { prompt: string; images: { base64: string; mediaType: string }[] }) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("generate-quote-draft", {
+        body: input,
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+      });
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      if (data?.error) throw new Error(data.error);
+      const draft = data as { items: { description: string; quantity: number; unit_price_cents: number }[]; notes: string };
+      return {
+        items: draft.items.map((i) => ({ id: crypto.randomUUID(), ...i })),
+        notes: draft.notes,
+      } as DraftEstimate;
+    },
+  });
+}
+
 export function useDeleteQuote() {
   const queryClient = useQueryClient();
   return useMutation({

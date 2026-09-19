@@ -1623,6 +1623,36 @@ component's sizing to be re-done twice.
 No schema migration, no Edge Function — purely a `src/index.css` rule
 plus `src/hooks/useDisplaySize.ts` / `src/components/DisplaySizeToggle.tsx`.
 
+### AI-drafted estimates (New quote dialog)
+
+Quotes → **New quote** now has a **"Draft with AI"** box at the top,
+above the usual Client/Line items/Notes fields: describe the job in
+plain language, attach any photos of the space/damage/materials, and
+hit **Generate draft**. Claude looks at the description and photos,
+checks the Price Book for a match on each part of the job, and falls
+back to the Unit Cost Method (the same labor-hours × local-rate +
+materials buildup discussed for the estimate chatbot, using Settings →
+Service area to localize it) for anything the Price Book doesn't
+cover — then fills in the Line items and Notes fields with its draft.
+
+Nothing is saved automatically — the draft just pre-fills the same form
+you'd fill in by hand, so you review and adjust every line (add,
+remove, reprice, whatever) before clicking **Create quote** like normal.
+This is a separate tool from the public `/estimate/:ownerId` chatbot —
+that one has a back-and-forth conversation with a customer and can book
+a visit; this one is an internal drafting shortcut for you, and hands
+back structured line items instead of a chat reply.
+
+**Deploy the new function:**
+
+```bash
+supabase functions deploy generate-quote-draft
+```
+
+No schema migration — reuses the existing `price_book_items` table and
+the `ANTHROPIC_API_KEY` secret already set up for the estimate chatbot.
+
+
 ## What's built
 
 - **Auth** — Supabase email/password sign-up & sign-in, protected routes.
@@ -1716,6 +1746,7 @@ supabase/functions/
   send-job-reminder/   texts a client an appointment reminder for a job (auth required)
   send-review-request/ auth required: texts/emails a client a direct link to leave a Google review
   estimate-chat/       public: Claude tool-using agent — price book lookup, slot check, booking
+  generate-quote-draft/ auth required: drafts line items from a prompt + photos for the New quote dialog
   send-invoice-email/  emails an invoice via the owner's Gmail with a Pay Now link (auth required)
   invoice-pay-info/    public: invoice details for the /pay/:token page
   create-invoice-checkout/ public: creates a Stripe Checkout session for a chosen amount
