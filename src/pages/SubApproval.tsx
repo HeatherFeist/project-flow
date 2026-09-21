@@ -81,7 +81,12 @@ export default function SubApproval() {
       <Card className="w-full">
         <CardHeader className="items-center text-center">
           {business?.logo_url ? (
-            <img src={business.logo_url} alt={businessName} className="mb-1 max-h-14 max-w-40 object-contain" />
+            <img
+              src={business.logo_url}
+              alt={businessName}
+              style={{ width: `${business.logo_width_px ?? 160}px` }}
+              className="mb-1 h-auto max-w-full object-contain"
+            />
           ) : (
             <Sparkles className="mb-1 size-6 text-primary" />
           )}

@@ -11,6 +11,7 @@ export interface Profile {
   google_review_link: string | null;
   logo_url: string | null;
   logo_path: string | null;
+  logo_width_px: number;
   gemini_api_key: string | null;
   serpapi_key: string | null;
   is_exempt: boolean;

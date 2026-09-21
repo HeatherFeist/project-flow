@@ -155,6 +155,7 @@ export default function Settings() {
       email: profile.email ?? user.email ?? null,
       service_area: profile.service_area ?? null,
       google_review_link: profile.google_review_link ?? null,
+      logo_width_px: profile.logo_width_px ?? 160,
       gemini_api_key: profile.gemini_api_key ?? null,
       serpapi_key: profile.serpapi_key ?? null,
     });
@@ -323,6 +324,36 @@ export default function Settings() {
               Shown on the quote/invoice pages and emails your clients see, and in the client portal. PNG,
               JPEG, WebP, or SVG — a square or wide logo with a transparent background looks best.
             </p>
+
+            {profile.logo_url && (
+              <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Logo size</Label>
+                  <span className="text-xs text-muted-foreground">{profile.logo_width_px ?? 160}px wide</span>
+                </div>
+                <input
+                  type="range"
+                  min={60}
+                  max={320}
+                  step={10}
+                  value={profile.logo_width_px ?? 160}
+                  onChange={(e) => setProfile({ ...profile, logo_width_px: Number(e.target.value) })}
+                  className="w-full accent-primary"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Preview, as it'll appear on a quote/invoice or in an email:
+                </p>
+                <div className="flex min-h-24 items-center justify-center rounded-md border bg-background p-3">
+                  <img
+                    src={profile.logo_url}
+                    alt="Business logo preview"
+                    style={{ width: `${profile.logo_width_px ?? 160}px` }}
+                    className="h-auto max-w-full object-contain"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Click Save below to keep this size.</p>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSave} className="space-y-4">

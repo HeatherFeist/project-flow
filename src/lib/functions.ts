@@ -58,7 +58,7 @@ export function fetchQuote(token: string) {
         items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
         client: { name: string; email: string | null };
       };
-      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
+      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
       job: { scheduled_at: string; address: string | null } | null;
       visualizations: { id: string; prompt: string; result_url: string; created_at: string }[];
       subcontractors: PublicSubcontractor[];
@@ -129,7 +129,7 @@ export function fetchInvoicePayInfo(token: string) {
         items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
         client: { name: string; email: string | null };
       };
-      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
+      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
       milestones: InvoicePayMilestone[];
       subcontractors: PublicSubcontractor[];
     };
@@ -200,7 +200,7 @@ export interface PortalMilestone {
 
 export interface PortalDashboardData {
   client: { id: string; name: string; email: string | null };
-  business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
+  business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
   jobs: {
     id: string;
     title: string;
@@ -261,7 +261,7 @@ export function fetchSubApproval(token: string) {
         signed_name: string | null;
         signed_at: string | null;
       };
-      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null } | null;
+      business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
       quote: { status: string } | null;
       milestones: PublicQuoteMilestone[];
       otherSubs: PublicSubcontractor[];

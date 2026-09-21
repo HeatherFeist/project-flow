@@ -1315,6 +1315,37 @@ supabase functions deploy send-invoice-email
 
 No new secrets.
 
+### Adjustable logo size
+
+**Settings → Business profile → Business logo** now has a **Logo size**
+slider (60–320px wide) right under the upload button, with a live
+preview, once a logo's uploaded — useful since a very wide or very tall
+logo could look off squeezed into the old one-size-fits-all box. It
+controls the logo everywhere it's shown to a client: the public quote
+page, the invoice pay page, the sub sign-off page, and the
+quote/invoice/sub-approval emails. Defaults to 160px (about what it was
+sized at before) so nothing changes until you actually move the slider
+and hit Save.
+
+**1. Run the schema migration**
+
+[`docs/schema_v33_logo_size.sql`](docs/schema_v33_logo_size.sql) —
+adds `profiles.logo_width_px` (defaults to 160).
+
+**2. Redeploy the functions that hand the logo size to public pages:**
+
+```bash
+supabase functions deploy quote-response
+supabase functions deploy invoice-pay-info
+supabase functions deploy subcontractor-response
+supabase functions deploy portal-dashboard
+supabase functions deploy send-quote-email
+supabase functions deploy send-invoice-email
+supabase functions deploy send-sub-approval
+```
+
+No new secrets.
+
 ### Support chat escalation + admin inbox
 
 The existing in-app Help Assistant (the "Help & Q&A" chat widget every
@@ -1809,4 +1840,5 @@ docs/schema_v29_team_accounts.sql Adds team_members + rewrites RLS across owner-
 docs/schema_v30_subcontractors.sql Adds subcontractors table (name/scope public, pay/PayPal/Cash App GC-only)
 docs/schema_v31_pay_guidelines.sql Adds pay_guidelines table (reference calculator for subcontractor pay, not enforced)
 docs/schema_v32_sub_approval_and_milestones.sql Adds sub sign-off fields + quote_milestones table + invoice_milestones.due_date
+docs/schema_v33_logo_size.sql Adds profiles.logo_width_px (adjustable logo display size)
 ```

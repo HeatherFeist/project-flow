@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("business_name, logo_url")
+      .select("business_name, logo_url, logo_width_px")
       .eq("id", ownerId)
       .maybeSingle();
 
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
           .single();
 
         const logoHtml = profile?.logo_url
-          ? `<img src="${profile.logo_url}" alt="${businessName}" style="max-height:56px;max-width:200px;margin-bottom:12px;" />`
+          ? `<img src="${profile.logo_url}" alt="${businessName}" style="width:${profile.logo_width_px ?? 160}px;max-width:100%;height:auto;margin-bottom:12px;" />`
           : "";
 
         const html = `
