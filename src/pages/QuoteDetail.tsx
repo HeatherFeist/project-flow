@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Copy, Loader2, Mail, MessageSquareText, Sparkles, Trash2, Wand2, X } from "lucide-react";
+import { Copy, Loader2, Mail, MessageSquareText, Pencil, Sparkles, Trash2, Wand2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteQuote,
@@ -9,15 +9,17 @@ import {
   useGenerateQuoteVisualization,
   useQuote,
   useQuoteVisualizations,
+  useUpdateQuoteItems,
   useUpdateQuoteStatus,
 } from "@/hooks/useQuotes";
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { fileToImageBlobs, blobToBase64 } from "@/lib/estimateMedia";
-import type { QuoteStatus } from "@/types/domain";
+import type { LineItem, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { QuoteMilestonesCard } from "@/components/QuoteMilestonesCard";
 import { SubcontractorsCard } from "@/components/SubcontractorsCard";
+import { LineItemsEditor } from "@/components/LineItemsEditor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +55,7 @@ export default function QuoteDetail() {
   const { data: quote, isLoading } = useQuote(id);
   const { data: visualizations } = useQuoteVisualizations(id);
   const updateStatus = useUpdateQuoteStatus();
+  const updateItems = useUpdateQuoteItems();
   const deleteQuote = useDeleteQuote();
   const sendQuoteEmail = useSendQuoteEmail();
   const sendQuoteSms = useSendQuoteSms();
@@ -64,6 +67,24 @@ export default function QuoteDetail() {
   const [prompt, setPrompt] = useState("");
   const baseInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const [editingItems, setEditingItems] = useState(false);
+  const [draftItems, setDraftItems] = useState<LineItem[]>([]);
+
+  function startEditingItems() {
+    setDraftItems(quote?.items ?? []);
+    setEditingItems(true);
+  }
+
+  async function handleSaveItems() {
+    if (!id) return;
+    try {
+      await updateItems.mutateAsync({ id, items: draftItems });
+      toast.success("Line items updated");
+      setEditingItems(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save line items");
+    }
+  }
 
   async function handleSend() {
     if (!id) return;
@@ -203,18 +224,37 @@ export default function QuoteDetail() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-sm">Line items</CardTitle>
+          {!editingItems && quote.status !== "accepted" && quote.status !== "declined" && (
+            <Button variant="ghost" size="sm" onClick={startEditingItems}>
+              <Pencil className="size-3.5" /> Edit
+            </Button>
+          )}
         </CardHeader>
-        <CardContent className="divide-y pb-6">
-          {(quote.items ?? []).map((item) => (
-            <div key={item.id} className="flex items-center justify-between py-2 text-sm">
-              <span>
-                {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
-              </span>
-              <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
+        <CardContent className={editingItems ? "pb-6" : "divide-y pb-6"}>
+          {editingItems ? (
+            <div className="space-y-3">
+              <LineItemsEditor items={draftItems} onChange={setDraftItems} ownerId={user?.id} />
+              <div className="flex items-center gap-2">
+                <Button size="sm" disabled={updateItems.isPending} onClick={handleSaveItems}>
+                  {updateItems.isPending ? "Saving…" : "Save"}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditingItems(false)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
-          ))}
+          ) : (
+            (quote.items ?? []).map((item) => (
+              <div key={item.id} className="flex items-center justify-between py-2 text-sm">
+                <span>
+                  {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
+                </span>
+                <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 

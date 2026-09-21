@@ -91,6 +91,30 @@ export function useUpdateQuoteStatus() {
   });
 }
 
+// Lets a quote's line items be revised after it's already been saved —
+// e.g. cleaning up an AI-drafted estimate, or just a typo caught later.
+// Recomputes total_cents to match, same as when the quote was created.
+export function useUpdateQuoteItems() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, items }: { id: string; items: LineItem[] }) => {
+      const total_cents = items.reduce((sum, item) => sum + item.quantity * item.unit_price_cents, 0);
+      const { data, error } = await supabase
+        .from("quotes")
+        .update({ items, total_cents })
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Quote;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes", variables.id] });
+    },
+  });
+}
+
 export function useImportQuotes() {
   const queryClient = useQueryClient();
   return useMutation({

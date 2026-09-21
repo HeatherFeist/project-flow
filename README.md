@@ -1643,6 +1643,14 @@ that one has a back-and-forth conversation with a customer and can book
 a visit; this one is an internal drafting shortcut for you, and hands
 back structured line items instead of a chat reply.
 
+A quote's line items were previously read-only once saved — there was
+no way to fix a typo or reprice something after creation short of
+deleting and starting over. The Quote detail page now has an **Edit**
+button on the Line items card (hidden once a quote is accepted or
+declined) that opens the same editor as the New quote dialog, with
+Save/Cancel — useful generally, and especially now that an AI draft
+might need a line or two cleaned up after the fact.
+
 **Deploy the new function:**
 
 ```bash
