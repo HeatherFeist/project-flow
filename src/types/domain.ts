@@ -105,6 +105,9 @@ export interface LineItem {
   description: string;
   quantity: number;
   unit_price_cents: number;
+  // Estimated labor hours for this line item — for the contractor's own
+  // scheduling/crew planning, optional, never shown to the client.
+  estimated_hours?: number | null;
 }
 
 export interface Quote {

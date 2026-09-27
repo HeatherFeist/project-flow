@@ -221,6 +221,14 @@ export default function QuoteDetail() {
           </div>
         </div>
         <p className="text-muted-foreground">Total {formatCurrency(quote.total_cents)}</p>
+        {(() => {
+          const totalHours = (quote.items ?? []).reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0);
+          return totalHours > 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Estimated labor: {totalHours} hrs total (internal only, not shown to the client)
+            </p>
+          ) : null;
+        })()}
       </div>
 
       <Card>
@@ -250,6 +258,9 @@ export default function QuoteDetail() {
               <div key={item.id} className="flex items-center justify-between py-2 text-sm">
                 <span>
                   {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
+                  {!!item.estimated_hours && (
+                    <span className="text-muted-foreground"> · {item.estimated_hours} hrs</span>
+                  )}
                 </span>
                 <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
               </div>

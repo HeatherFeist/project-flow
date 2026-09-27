@@ -245,7 +245,10 @@ export function useGenerateQuoteDraft() {
       });
       if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
-      const draft = data as { items: { description: string; quantity: number; unit_price_cents: number }[]; notes: string };
+      const draft = data as {
+        items: { description: string; quantity: number; unit_price_cents: number; estimated_hours: number | null }[];
+        notes: string;
+      };
       return {
         items: draft.items.map((i) => ({ id: crypto.randomUUID(), ...i })),
         notes: draft.notes,

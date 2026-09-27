@@ -36,8 +36,13 @@ const TOOL = {
             },
             quantity: { type: "number", description: "How many units of this line item, e.g. 2" },
             unit_price: { type: "number", description: "Price per unit, in dollars, e.g. 85.00" },
+            estimated_hours: {
+              type: "number",
+              description:
+                "Estimated total labor hours for this whole line item (all units combined) — for the contractor's own crew scheduling, never shown to the client. E.g. 1.5 for a quick caulking job, 6 for a full day of drywall patching.",
+            },
           },
-          required: ["description", "quantity", "unit_price"],
+          required: ["description", "quantity", "unit_price", "estimated_hours"],
         },
       },
       notes: {
@@ -110,7 +115,9 @@ ${fallbackInstructions}
 
 Break the job into a handful of clear, sensible line items rather than one lump sum when it makes sense to (e.g. separate labor from materials, or separate distinct tasks) — but don't over-fragment a simple job into dozens of tiny lines either.
 
-Each line item's description must spell out the actual scope of work — the specific steps and finish, not a generic label. For example, for "caulk around windows," write "Remove existing caulking and tape around window frame, then apply new exterior caulk until edge lines are smooth and even," not just "Caulk windows." This is what the client will read on the quote, so it should make clear exactly what's included in the price. Always call draft_estimate with your result.`;
+Each line item's description must spell out the actual scope of work — the specific steps and finish, not a generic label. For example, for "caulk around windows," write "Remove existing caulking and tape around window frame, then apply new exterior caulk until edge lines are smooth and even," not just "Caulk windows." This is what the client will read on the quote, so it should make clear exactly what's included in the price.
+
+Also estimate the labor hours each line item will actually take — a realistic number for one person doing that specific task, based on its scope (and the photos, if the area's size is visible). This is for the contractor's own crew scheduling and is never shown to the client, so it should be a genuine, practical estimate, not padded or rounded to something generic. Always call draft_estimate with your result.`;
 
     const contentBlocks: Record<string, unknown>[] = attachedImages.map((img) => ({
       type: "image",
@@ -145,7 +152,7 @@ Each line item's description must spell out the actual scope of work — the spe
     if (!toolUse) throw new Error("Claude didn't return a structured estimate.");
 
     const draft = toolUse.input as {
-      items: { description: string; quantity: number; unit_price: number }[];
+      items: { description: string; quantity: number; unit_price: number; estimated_hours: number }[];
       notes: string;
     };
 
@@ -155,6 +162,7 @@ Each line item's description must spell out the actual scope of work — the spe
           description: i.description,
           quantity: i.quantity,
           unit_price_cents: Math.round(i.unit_price * 100),
+          estimated_hours: i.estimated_hours ?? null,
         })),
         notes: draft.notes ?? "",
       }),

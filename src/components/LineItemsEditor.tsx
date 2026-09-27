@@ -17,6 +17,7 @@ interface Props {
 
 export function LineItemsEditor({ items, onChange, ownerId }: Props) {
   const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price_cents, 0);
+  const totalHours = items.reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0);
   const { data: priceBookItems } = usePriceBook(ownerId);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [previewing, setPreviewing] = useState<PriceBookItem | null>(null);
@@ -74,6 +75,18 @@ export function LineItemsEditor({ items, onChange, ownerId }: Props) {
             }
             className="w-28"
           />
+          <Input
+            type="number"
+            min={0}
+            step="0.25"
+            placeholder="Hrs"
+            title="Estimated labor hours (internal only, never shown to the client)"
+            value={item.estimated_hours ?? ""}
+            onChange={(e) =>
+              update(item.id, { estimated_hours: e.target.value === "" ? null : Number(e.target.value) })
+            }
+            className="w-20"
+          />
           <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
             <Trash2 className="size-4" />
           </Button>
@@ -90,7 +103,12 @@ export function LineItemsEditor({ items, onChange, ownerId }: Props) {
             </Button>
           )}
         </div>
-        <p className="text-sm font-medium">Total: {formatCurrency(total)}</p>
+        <div className="text-right">
+          {totalHours > 0 && (
+            <p className="text-xs text-muted-foreground">Estimated labor: {totalHours} hrs (not shown to client)</p>
+          )}
+          <p className="text-sm font-medium">Total: {formatCurrency(total)}</p>
+        </div>
       </div>
 
       {pickerOpen && (
