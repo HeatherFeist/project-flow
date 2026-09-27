@@ -29,7 +29,11 @@ const TOOL = {
         items: {
           type: "object",
           properties: {
-            description: { type: "string", description: "What this line item is, e.g. 'Install 2 GFCI outlets'" },
+            description: {
+              type: "string",
+              description:
+                "The full scope of work for this line item, written as exactly what will be done — not just a short label. E.g. 'Remove existing caulking and tape around window frame, then apply new exterior caulk until edge lines are smooth and even' rather than just 'Caulk windows'.",
+            },
             quantity: { type: "number", description: "How many units of this line item, e.g. 2" },
             unit_price: { type: "number", description: "Price per unit, in dollars, e.g. 85.00" },
           },
@@ -104,7 +108,9 @@ ${priceBookText}
 
 ${fallbackInstructions}
 
-Break the job into a handful of clear, sensible line items rather than one lump sum when it makes sense to (e.g. separate labor from materials, or separate distinct tasks) — but don't over-fragment a simple job into dozens of tiny lines either. Always call draft_estimate with your result.`;
+Break the job into a handful of clear, sensible line items rather than one lump sum when it makes sense to (e.g. separate labor from materials, or separate distinct tasks) — but don't over-fragment a simple job into dozens of tiny lines either.
+
+Each line item's description must spell out the actual scope of work — the specific steps and finish, not a generic label. For example, for "caulk around windows," write "Remove existing caulking and tape around window frame, then apply new exterior caulk until edge lines are smooth and even," not just "Caulk windows." This is what the client will read on the quote, so it should make clear exactly what's included in the price. Always call draft_estimate with your result.`;
 
     const contentBlocks: Record<string, unknown>[] = attachedImages.map((img) => ({
       type: "image",
