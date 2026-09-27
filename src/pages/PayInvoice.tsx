@@ -187,6 +187,9 @@ export default function PayInvoice() {
                 <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span>
                     {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
+                    {!!item.estimated_hours && (
+                      <span className="text-muted-foreground"> · ~{item.estimated_hours} hrs</span>
+                    )}
                   </span>
                   <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
                 </div>

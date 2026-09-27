@@ -1683,17 +1683,20 @@ Save/Cancel — useful generally, and especially now that an AI draft
 might need a line or two cleaned up after the fact.
 
 Every line item also has an optional **Hrs** field — estimated labor
-hours for that specific task, for your own crew scheduling. The AI
-draft fills this in automatically for each line (a realistic per-task
-estimate, not padded), and the Line items editor totals it up. This is
-purely internal — it never appears on the client-facing quote, invoice,
-or portal, only on the New quote dialog, the Line items editor, and the
-Quote detail page you see signed in.
+hours for that specific task. The AI draft fills this in automatically
+for each line (a realistic per-task estimate, not padded), and the Line
+items editor totals it up. It shows on the Quote detail page you see
+signed in, and also on the actual quote/invoice a client sees (the
+public quote page, the invoice pay page, and both emails) — as "~X hrs"
+next to each item, plus a project total, so a client knows roughly how
+long the work will take, not just what it costs.
 
-**Deploy the new function:**
+**Deploy the functions:**
 
 ```bash
 supabase functions deploy generate-quote-draft
+supabase functions deploy send-quote-email
+supabase functions deploy send-invoice-email
 ```
 
 No schema migration — reuses the existing `price_book_items` table and

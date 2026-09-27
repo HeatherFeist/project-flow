@@ -55,7 +55,7 @@ export function fetchQuote(token: string) {
         status: string;
         total_cents: number;
         notes: string | null;
-        items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
+        items: { id: string; description: string; quantity: number; unit_price_cents: number; estimated_hours?: number | null }[];
         client: { name: string; email: string | null };
       };
       business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
@@ -126,7 +126,7 @@ export function fetchInvoicePayInfo(token: string) {
         total_cents: number;
         amount_paid_cents: number;
         due_date: string | null;
-        items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
+        items: { id: string; description: string; quantity: number; unit_price_cents: number; estimated_hours?: number | null }[];
         client: { name: string; email: string | null };
       };
       business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
@@ -214,7 +214,7 @@ export interface PortalDashboardData {
     status: string;
     total_cents: number;
     notes: string | null;
-    items: { id: string; description: string; quantity: number; unit_price_cents: number }[];
+    items: { id: string; description: string; quantity: number; unit_price_cents: number; estimated_hours?: number | null }[];
     accept_token: string;
     created_at: string;
   }[];

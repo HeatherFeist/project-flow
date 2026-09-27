@@ -139,12 +139,23 @@ export default function PublicQuote() {
                 <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
                   <span>
                     {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
+                    {!!item.estimated_hours && (
+                      <span className="text-muted-foreground"> · ~{item.estimated_hours} hrs</span>
+                    )}
                   </span>
                   <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
                 </div>
               ))}
             </div>
             <p className="mt-2 text-right text-lg font-semibold">{formatCurrency(quote.total_cents)}</p>
+            {(() => {
+              const totalHours = quote.items.reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0);
+              return totalHours > 0 ? (
+                <p className="mt-1 text-right text-xs text-muted-foreground">
+                  Estimated time: ~{totalHours} labor hrs
+                </p>
+              ) : null;
+            })()}
           </div>
 
           {subcontractors.length > 0 && (

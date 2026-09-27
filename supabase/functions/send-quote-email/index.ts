@@ -61,9 +61,9 @@ Deno.serve(async (req) => {
 
     const itemsHtml = (quote.items ?? [])
       .map(
-        (item: { description: string; quantity: number; unit_price_cents: number }) => `
+        (item: { description: string; quantity: number; unit_price_cents: number; estimated_hours?: number | null }) => `
           <tr>
-            <td style="padding:8px 0;border-bottom:1px solid #eee;">${item.description}</td>
+            <td style="padding:8px 0;border-bottom:1px solid #eee;">${item.description}${item.estimated_hours ? ` <span style="color:#888;font-size:12px;">(~${item.estimated_hours} hrs)</span>` : ""}</td>
             <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;">${item.quantity}</td>
             <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;">${formatCurrency(item.unit_price_cents)}</td>
           </tr>`,
