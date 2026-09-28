@@ -106,9 +106,17 @@ export default function Quotes() {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     for (const file of files) {
-      const [blob] = await fileToImageBlobs(file);
-      const base64 = await blobToBase64(blob);
-      setAiImages((prev) => [...prev, { previewUrl: URL.createObjectURL(blob), base64, mimeType: "image/jpeg" }]);
+      try {
+        const [blob] = await fileToImageBlobs(file);
+        const base64 = await blobToBase64(blob);
+        setAiImages((prev) => [...prev, { previewUrl: URL.createObjectURL(blob), base64, mimeType: "image/jpeg" }]);
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? `Couldn't process "${file.name}": ${err.message}`
+            : `Couldn't process "${file.name}" — try a different photo.`,
+        );
+      }
     }
   }
 
