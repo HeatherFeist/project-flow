@@ -130,11 +130,15 @@ export default function ClientDetail() {
           <CardContent className="space-y-2 pb-6">
             {clientQuotes.length === 0 && <p className="text-sm text-muted-foreground">None yet.</p>}
             {clientQuotes.map((q) => (
-              <div key={q.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+              <Link
+                key={q.id}
+                to={`/quotes/${q.id}`}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-accent/50"
+              >
                 <span>{formatDate(q.created_at)}</span>
                 <span className="font-medium">{formatCurrency(q.total_cents)}</span>
                 <Badge variant="secondary">{q.status}</Badge>
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>
@@ -145,11 +149,15 @@ export default function ClientDetail() {
           <CardContent className="space-y-2 pb-6">
             {clientInvoices.length === 0 && <p className="text-sm text-muted-foreground">None yet.</p>}
             {clientInvoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+              <Link
+                key={inv.id}
+                to={`/invoices/${inv.id}`}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-accent/50"
+              >
                 <span>{formatDate(inv.created_at)}</span>
                 <span className="font-medium">{formatCurrency(inv.total_cents)}</span>
                 <Badge variant={inv.status === "paid" ? "success" : "secondary"}>{inv.status}</Badge>
-              </div>
+              </Link>
             ))}
           </CardContent>
         </Card>
