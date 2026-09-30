@@ -21,6 +21,8 @@ import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
 import type { LineItem, QuoteStatus } from "@/types/domain";
+import { AiQuoteChatDialog } from "@/components/AiQuoteChatDialog";
+import type { QuoteChatProposal } from "@/hooks/useQuoteChat";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
 import { QuotesPipelineBoard } from "@/components/QuotesPipelineBoard";
@@ -70,6 +72,7 @@ export default function Quotes() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiImages, setAiImages] = useState<{ previewUrl: string; base64: string; mimeType: string }[]>([]);
   const aiImageInputRef = useRef<HTMLInputElement>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const filteredQuotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -135,6 +138,12 @@ export default function Quotes() {
     }
   }
 
+  function handleUseChatDraft(draft: QuoteChatProposal) {
+    setItems(draft.items);
+    setNotes(draft.notes);
+    toast.success("Draft applied — review and adjust below");
+  }
+
   async function handleSend(quoteId: string) {
     try {
       await sendQuoteEmail.mutateAsync(quoteId);
@@ -180,9 +189,14 @@ export default function Quotes() {
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-                <Label className="flex items-center gap-1.5 text-xs">
-                  <Sparkles className="size-3.5" /> Draft with AI (optional)
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-1.5 text-xs">
+                    <Sparkles className="size-3.5" /> Draft with AI (optional)
+                  </Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => setChatOpen(true)}>
+                    Chat with AI instead
+                  </Button>
+                </div>
                 <Textarea
                   placeholder="Describe the job — e.g. 'Replace two GFCI outlets in the kitchen and patch a small drywall hole in the hallway'"
                   value={aiPrompt}
@@ -420,6 +434,8 @@ export default function Quotes() {
         </CardContent>
       </Card>
       )}
+
+      <AiQuoteChatDialog open={chatOpen} onOpenChange={setChatOpen} onUseDraft={handleUseChatDraft} />
     </div>
   );
 }

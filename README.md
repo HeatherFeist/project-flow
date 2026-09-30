@@ -1692,6 +1692,19 @@ that one has a back-and-forth conversation with a customer and can book
 a visit; this one is an internal drafting shortcut for you, and hands
 back structured line items instead of a chat reply.
 
+**"Chat with AI instead"** — right next to the one-shot box is a link
+that opens a full back-and-forth chat instead of a single prompt. Talk
+through the job like you would with a person: describe it, attach
+photos as they come up, answer a clarifying question it asks, or say
+"actually make that two outlets" and it revises. A **Current draft**
+panel next to the chat updates live every time the estimate changes, and
+a **Use this draft** button pulls whatever's showing into the Line
+items/Notes fields — same handoff as the one-shot version, just built up
+over a conversation instead of one message. Same pricing logic under
+the hood (Price Book first, Unit Cost Method fallback, full scope-of-work
+sentences and real hours on every line) — it's the same drafting tool,
+just conversational.
+
 A quote's line items were previously read-only once saved — there was
 no way to fix a typo or reprice something after creation short of
 deleting and starting over. The Quote detail page now has an **Edit**
@@ -1713,6 +1726,7 @@ long the work will take, not just what it costs.
 
 ```bash
 supabase functions deploy generate-quote-draft
+supabase functions deploy quote-chat
 supabase functions deploy send-quote-email
 supabase functions deploy send-invoice-email
 ```
@@ -1815,6 +1829,7 @@ supabase/functions/
   send-review-request/ auth required: texts/emails a client a direct link to leave a Google review
   estimate-chat/       public: Claude tool-using agent — price book lookup, slot check, booking
   generate-quote-draft/ auth required: drafts line items from a prompt + photos for the New quote dialog
+  quote-chat/           auth required: same drafting logic, conversational — chat instead of one prompt
   send-invoice-email/  emails an invoice via the owner's Gmail with a Pay Now link (auth required)
   invoice-pay-info/    public: invoice details for the /pay/:token page
   create-invoice-checkout/ public: creates a Stripe Checkout session for a chosen amount
