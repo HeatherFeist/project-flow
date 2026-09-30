@@ -23,7 +23,10 @@ export function useCreateMaterial() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (
-      input: Pick<Material, "name" | "category" | "supplier" | "sku" | "unit" | "cost_cents" | "product_url" | "notes"> & {
+      input: Pick<
+        Material,
+        "name" | "category" | "supplier" | "sku" | "unit" | "cost_cents" | "product_url" | "image_url" | "notes"
+      > & {
         owner_id: string;
       },
     ) => {

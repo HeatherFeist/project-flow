@@ -830,18 +830,33 @@ and lets you add a result straight into your Materials catalog — real
 current price, product link, and model number, in one click instead of
 typing it in by hand or exporting a CSV.
 
-**"Select all" + "Open on homedepot.com"** — check off several results
-and open all their real product pages on homedepot.com in new tabs at
-once, so adding a whole materials list to your actual Home Depot cart is
-a handful of clicks instead of one search at a time. This is as close as
-the app gets to "add to cart" — there's no way to log into your Home
-Depot account or touch your real cart from inside Project Flow itself
-(no official API supports that, and building around your real password
-would be a security and Terms-of-Service risk not worth taking). Once
-the tabs are open, you're just clicking "Add to Cart" yourself on Home
-Depot's own site, already signed in as you. Browsers sometimes block a
-few of these as popups — a heads-up toast tells you to allow popups for
-the site if that happens.
+**"Select all" + "Add to Materials" / "Copy list" / "Open on homedepot.com"**
+— check off several results, then:
+- **Add to Materials** saves all of them to your catalog in one click (a
+  "bundle" for a job, built inside Project Flow) instead of adding one at
+  a time.
+- **Copy list** copies a plain text list (name, model #, price) to your
+  clipboard — paste it into Home Depot's own search box, or text/share it
+  with whoever's actually doing the shopping.
+- **Open on homedepot.com** opens each selected product's real page in a
+  new tab. There's no way to log into your Home Depot account or add
+  multiple items to your real cart at once from inside Project Flow — no
+  official API supports that, and building around your real password
+  would be a security and Terms-of-Service risk not worth taking.
+  Browsers sometimes block a few tabs as popups — a heads-up toast tells
+  you to allow popups for the site if that happens.
+
+**About "Access Denied" when opening a product link:** that page comes
+from Home Depot's own site, not Project Flow — their bot-detection
+system sometimes blocks links that arrive from an outside search tool,
+which is exactly why there's no clean "add to cart" integration to build
+here. If it happens, **Copy list** is the reliable fallback: paste the
+product name or model number into Home Depot's own search bar instead of
+clicking straight through, and it comes up the same way, no block.
+
+**Product photos** are saved along with the price/link when you add a
+result (either one at a time or with "Add to Materials") and show as a
+small thumbnail next to the item in your Materials list.
 
 **How this actually works:** there's no official Home Depot product API
 open to third parties, so this uses [SerpApi](https://serpapi.com) — a
@@ -865,10 +880,13 @@ supabase functions deploy search-home-depot-products
 
 No platform secret to set — see above.
 
-**2. Run the schema migration**
+**2. Run the schema migrations**
 
 [`docs/schema_v25_home_depot_search.sql`](docs/schema_v25_home_depot_search.sql)
 — adds `profiles.serpapi_key`.
+
+[`docs/schema_v34_material_images.sql`](docs/schema_v34_material_images.sql)
+— adds `materials.image_url`.
 
 **3. Get a SerpApi key** (each owner does this themselves, in Settings)
 — sign up at [serpapi.com](https://serpapi.com), copy the API key from
@@ -1852,4 +1870,5 @@ docs/schema_v30_subcontractors.sql Adds subcontractors table (name/scope public,
 docs/schema_v31_pay_guidelines.sql Adds pay_guidelines table (reference calculator for subcontractor pay, not enforced)
 docs/schema_v32_sub_approval_and_milestones.sql Adds sub sign-off fields + quote_milestones table + invoice_milestones.due_date
 docs/schema_v33_logo_size.sql Adds profiles.logo_width_px (adjustable logo display size)
+docs/schema_v34_material_images.sql Adds materials.image_url (Home Depot product photos)
 ```

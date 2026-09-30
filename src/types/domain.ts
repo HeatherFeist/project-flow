@@ -210,6 +210,7 @@ export interface Material {
   unit: string;
   cost_cents: number;
   product_url: string | null;
+  image_url: string | null;
   notes: string | null;
   created_at: string;
 }

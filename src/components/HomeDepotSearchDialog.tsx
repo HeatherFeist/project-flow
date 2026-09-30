@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Loader2, Plus, Search, SquareArrowOutUpRight, Store } from "lucide-react";
+import { ClipboardCopy, ExternalLink, Loader2, Plus, Search, SquareArrowOutUpRight, Store } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateMaterial } from "@/hooks/useMaterials";
 import { useSearchHomeDepot, type HomeDepotProduct } from "@/hooks/useHomeDepotSearch";
@@ -61,6 +61,56 @@ export function HomeDepotSearchDialog() {
     );
   }
 
+  // Home Depot has no public way for an outside app to add multiple items
+  // to a real homedepot.com cart at once — clicking straight through often
+  // trips their own bot-detection ("Access Denied") anyway. This is the
+  // practical workaround: a plain text list (name, model #, price) copied
+  // to the clipboard, ready to paste into Home Depot's own search box one
+  // at a time (searching from their own site avoids the block entirely),
+  // or to text/share with whoever's actually doing the shopping.
+  function handleCopyList() {
+    const selected = (results ?? []).filter((p) => p.productUrl && selectedUrls.has(p.productUrl));
+    if (selected.length === 0) return;
+    const lines = selected.map((p) => {
+      const price = p.priceCents !== null ? formatCurrency(p.priceCents) : "price unavailable";
+      const model = p.modelNumber ? ` — Model ${p.modelNumber}` : "";
+      return `${p.title}${model} — ${price}`;
+    });
+    navigator.clipboard.writeText(lines.join("\n"));
+    toast.success(`Copied ${selected.length} item${selected.length === 1 ? "" : "s"} to your clipboard`);
+  }
+
+  // Saves every selected result to Materials in one go — a "bundle" you
+  // build in-app, since there's no way to hand a real cart over to Home
+  // Depot's own site.
+  async function handleAddAllSelected() {
+    if (!user) return;
+    const selected = (results ?? []).filter((p) => p.productUrl && selectedUrls.has(p.productUrl));
+    let added = 0;
+    for (const product of selected) {
+      try {
+        await createMaterial.mutateAsync({
+          owner_id: user.id,
+          name: product.title,
+          category: null,
+          supplier: "Home Depot",
+          sku: product.modelNumber ?? product.itemId,
+          unit: "each",
+          cost_cents: product.priceCents ?? 0,
+          product_url: product.productUrl,
+          image_url: product.imageUrl ?? null,
+          notes: null,
+        });
+        if (product.productUrl) setAddedUrls((prev) => new Set(prev).add(product.productUrl!));
+        added++;
+      } catch {
+        // Keep going — report the count that actually succeeded below.
+      }
+    }
+    if (added > 0) toast.success(`Added ${added} item${added === 1 ? "" : "s"} to Materials`);
+    if (added < selected.length) toast.error(`${selected.length - added} item(s) failed to add — try those individually.`);
+  }
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
@@ -86,6 +136,7 @@ export function HomeDepotSearchDialog() {
         unit: "each",
         cost_cents: product.priceCents ?? 0,
         product_url: product.productUrl,
+        image_url: product.imageUrl ?? null,
         notes: null,
       });
       if (product.productUrl) setAddedUrls((prev) => new Set(prev).add(product.productUrl!));
@@ -132,14 +183,22 @@ export function HomeDepotSearchDialog() {
         </form>
 
         {results && results.length > 0 && (
-          <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/30 px-3 py-2 text-sm">
             <label className="flex items-center gap-2">
               <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
               Select all
             </label>
-            <Button size="sm" variant="outline" disabled={selectedUrls.size === 0} onClick={handleOpenSelected}>
-              <SquareArrowOutUpRight /> Open {selectedUrls.size || ""} on homedepot.com
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" disabled={selectedUrls.size === 0} onClick={handleAddAllSelected}>
+                <Plus /> Add {selectedUrls.size || ""} to Materials
+              </Button>
+              <Button size="sm" variant="outline" disabled={selectedUrls.size === 0} onClick={handleCopyList}>
+                <ClipboardCopy /> Copy list
+              </Button>
+              <Button size="sm" variant="outline" disabled={selectedUrls.size === 0} onClick={handleOpenSelected}>
+                <SquareArrowOutUpRight /> Open on homedepot.com
+              </Button>
+            </div>
           </div>
         )}
 

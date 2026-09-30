@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, Loader2, Pencil, Plus, ScanLine, Search } from "lucide-react";
+import { ExternalLink, Loader2, Pencil, Plus, ScanLine, Search, Store } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useCreateMaterial,
@@ -97,6 +97,10 @@ export default function Materials() {
       unit: form.unit || "each",
       cost_cents: Math.round(Number(form.cost) * 100),
       product_url: form.product_url || null,
+      // No manual image field in this form — preserve whatever image an
+      // existing material already has (e.g. from a Home Depot search
+      // result) rather than clearing it out on every edit.
+      image_url: editing?.image_url ?? null,
       notes: form.notes || null,
     };
     try {
@@ -330,19 +334,28 @@ export default function Materials() {
                 <TableRow key={m.id}>
                   <TableCell className="text-muted-foreground">{m.category ?? "—"}</TableCell>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-1.5">
-                      {m.name}
-                      {m.product_url && (
-                        <a
-                          href={m.product_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="Open product page"
-                          className="text-muted-foreground hover:text-foreground"
-                        >
-                          <ExternalLink className="size-3.5" />
-                        </a>
+                    <div className="flex items-center gap-2">
+                      {m.image_url ? (
+                        <img src={m.image_url} alt="" className="size-8 shrink-0 rounded border object-contain" />
+                      ) : (
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded border bg-muted">
+                          <Store className="size-3.5 text-muted-foreground" />
+                        </div>
                       )}
+                      <span className="flex items-center gap-1.5">
+                        {m.name}
+                        {m.product_url && (
+                          <a
+                            href={m.product_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Open product page"
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="size-3.5" />
+                          </a>
+                        )}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>{m.supplier ?? "—"}</TableCell>
