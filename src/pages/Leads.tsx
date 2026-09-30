@@ -6,6 +6,7 @@ import { useMarkServiceRequestReviewed, useServiceRequests } from "@/hooks/useSe
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 import type { ClientSource } from "@/types/domain";
@@ -45,6 +46,13 @@ export default function Leads() {
           and existing clients asking for more work.
         </p>
       </div>
+
+      <PageGuide
+        pageKey="leads"
+        what="Everyone who's reached out but isn't a client/job yet — a missed call, a new text, a chatbot conversation, or an existing client asking for more work."
+        why="Leads go cold fast — this keeps every inquiry in one list instead of scattered across texts and voicemail, so nothing slips through."
+        how="Follow up quickly, then turn a lead into a real client and quote right from here once you've talked to them."
+      />
 
       <Card>
         <CardHeader>

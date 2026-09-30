@@ -1734,6 +1734,20 @@ supabase functions deploy send-invoice-email
 No schema migration — reuses the existing `price_book_items` table and
 the `ANTHROPIC_API_KEY` secret already set up for the estimate chatbot.
 
+### Page guides (what each section is for)
+
+Every main section in the sidebar (Dashboard, Clients, Leads & Requests,
+Schedule, Quotes, Invoices, Price Book, Materials, Expenses, Files &
+Media, Settings) now has a short "What this page is for" card right at
+the top — what it's for, why it's worth using, and what to actually do
+there. Click the **X** to hide it; it collapses to a small **?** button
+in the same spot so it's one click away again, not gone for good. This
+is a per-browser preference (`localStorage`), not saved to the account,
+so it doesn't affect what anyone else sees.
+
+No schema migration, no Edge Function — `src/components/PageGuide.tsx`
+and `src/hooks/usePageGuide.ts`.
+
 
 ## What's built
 

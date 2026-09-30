@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -240,6 +241,13 @@ export default function Invoices() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <PageGuide
+        pageKey="invoices"
+        what="Where you bill a client for completed work and let them pay online — full balance, a partial amount, or milestone by milestone."
+        why="Getting paid faster and more reliably matters as much as doing the job — online payment (card, PayPal, or a scheduled milestone plan) makes it easy for a client to actually pay you."
+        how="An invoice is created automatically when a quote's accepted, or start one here directly — then track its status as it gets paid."
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

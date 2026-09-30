@@ -8,6 +8,7 @@ import { useQuotes } from "@/hooks/useQuotes";
 import { useInvoices } from "@/hooks/useInvoices";
 import { useMarkServiceRequestReviewed, useServiceRequests } from "@/hooks/useServiceRequests";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JobsCalendar } from "@/components/JobsCalendar";
@@ -51,6 +52,13 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold">Dashboard</h1>
         <p className="text-muted-foreground">A snapshot of your business today.</p>
       </div>
+
+      <PageGuide
+        pageKey="dashboard"
+        what="Your home base — a quick snapshot of clients, jobs, quotes, and invoices, plus any new leads waiting on you."
+        why="One glance tells you what actually needs your attention today instead of clicking into every section to check."
+        how="Check the stat cards for anything unusual, then handle new leads or requests first — those are time-sensitive."
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map(({ label, value, icon: Icon, to }) => (

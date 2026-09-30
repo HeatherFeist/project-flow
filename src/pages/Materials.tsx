@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportMaterialsDialog } from "@/components/ImportMaterialsDialog";
 import { HomeDepotSearchDialog } from "@/components/HomeDepotSearchDialog";
@@ -277,6 +278,13 @@ export default function Materials() {
           </Dialog>
         </div>
       </div>
+
+      <PageGuide
+        pageKey="materials"
+        what="What you actually pay for supplies — product name, cost, supplier, and a link to reorder — separate from the Price Book, which is what you charge customers."
+        why="A running catalog of real products means you're not re-searching or re-typing the same item every time it comes up on a job."
+        how="Search Home Depot right from here to add a real product with today's price, or add one by hand for any other supplier."
+      />
 
       {error && (
         <p className="text-sm text-destructive">

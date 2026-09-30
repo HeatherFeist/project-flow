@@ -4,6 +4,7 @@ import { Loader2, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMediaLibrary } from "@/hooks/useMediaLibrary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { Input } from "@/components/ui/input";
 import { formatDate } from "@/lib/utils";
 
@@ -43,6 +44,13 @@ export default function Files() {
           Every job photo, receipt, and AI project visualization in one browsable place.
         </p>
       </div>
+
+      <PageGuide
+        pageKey="files"
+        what="Every job photo, receipt, and AI-generated project visualization, all in one browsable, searchable place instead of scattered across jobs and quotes."
+        why="A visual record of a job — before/after photos, receipts, mockups — is useful on its own for reference, and to show future clients your work."
+        how="Browse or search here; photos/receipts/visualizations still get uploaded from their own job, expense, or quote as normal."
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

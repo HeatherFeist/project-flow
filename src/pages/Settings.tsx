@@ -14,6 +14,7 @@ import { useTeam } from "@/contexts/TeamContext";
 import { TeamSettingsCard } from "@/components/TeamSettingsCard";
 import { PayGuidelinesCard } from "@/components/PayGuidelinesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -279,6 +280,14 @@ export default function Settings() {
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="text-muted-foreground">Your business profile.</p>
       </div>
+
+      <PageGuide
+        pageKey="settings"
+        what="Your business profile, logo, and every outside connection the app uses — Google, Twilio, Stripe, PayPal, and more, each with its own card below."
+        why="These connections are what let the app actually send emails/texts, take payments, and show your branding on what clients see — nothing works until it's connected."
+        how="Fill in your business profile first, then connect whichever services you plan to use (each card explains what it's for and how to set it up)."
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>Business profile</CardTitle>

@@ -26,6 +26,7 @@ import type { QuoteChatProposal } from "@/hooks/useQuoteChat";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
 import { QuotesPipelineBoard } from "@/components/QuotesPipelineBoard";
+import { PageGuide } from "@/components/PageGuide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -284,6 +285,13 @@ export default function Quotes() {
         </Dialog>
         </div>
       </div>
+
+      <PageGuide
+        pageKey="quotes"
+        what="Where you build and send estimates to potential clients — itemized pricing, scope of work, and status tracking all in one place."
+        why="A clear, detailed quote sets expectations up front and looks professional — and once a client accepts it, an invoice is created for you automatically."
+        how="Start a new quote, use the AI draft (or chat) tools to speed up writing it, review the line items, then send it by email or text."
+      />
 
       <div className="flex items-center justify-between gap-3">
         <div className="relative max-w-sm flex-1">

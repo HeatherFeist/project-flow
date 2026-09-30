@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { DeleteButton } from "@/components/DeleteButton";
 import { ImportPriceHistoryDialog } from "@/components/ImportPriceHistoryDialog";
 import { InvoiceScanReviewDialog } from "@/components/InvoiceScanReviewDialog";
@@ -388,6 +389,13 @@ export default function PriceBook() {
           </Dialog>
         </div>
       </div>
+
+      <PageGuide
+        pageKey="price-book"
+        what="Your own reference rates for common job types — what you actually charge for each kind of work, by category."
+        why="This is what the AI drafting tools (New quote, the AI chat, and the customer-facing estimate chatbot) check first before pricing anything, so keeping it accurate means faster, more accurate quotes."
+        how="Add your real going rates here, or use 'Scan old invoice' to pull them from a past invoice automatically."
+      />
 
       {error && (
         <p className="text-sm text-destructive">

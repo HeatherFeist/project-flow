@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 
 export default function Clients() {
   const { user } = useAuth();
@@ -133,6 +134,13 @@ export default function Clients() {
         </Dialog>
         </div>
       </div>
+
+      <PageGuide
+        pageKey="clients"
+        what="Your full contact list — every customer, with their info and a rolled-up view of their jobs, quotes, invoices, and communications."
+        why="Everything about one customer lives in one place, so you're not hunting through texts or old estimates to remember what was agreed to."
+        how="Add a client here first, then create quotes and schedule jobs for them from their detail page or from Quotes/Schedule."
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

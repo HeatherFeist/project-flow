@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import {
   Dialog,
   DialogContent,
@@ -222,6 +223,13 @@ export default function Expenses() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <PageGuide
+        pageKey="expenses"
+        what="Every business cost — tied to a specific job (materials, permits) or general overhead (fuel, insurance, tools)."
+        why="Tracking what you actually spend against what you quoted shows your real profit per job, not just what you billed."
+        how="Log an expense as it happens and tag it to a job when it applies — it'll show up on that job's Job Costing card too."
+      />
 
       <div className="flex items-center justify-between gap-3">
         <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as ExpenseCategory | "all")}>

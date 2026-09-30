@@ -10,6 +10,7 @@ import { NewJobDialog } from "@/components/NewJobDialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageGuide } from "@/components/PageGuide";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDateTime } from "@/lib/utils";
 
@@ -45,6 +46,13 @@ export default function Schedule() {
           <NewJobDialog />
         </div>
       </div>
+
+      <PageGuide
+        pageKey="schedule"
+        what="Your calendar of every job — past and upcoming — whether it came from an accepted quote or was added directly."
+        why="One place to see what's booked, who's where, and when, instead of checking a paper calendar or a separate app."
+        how="Add a job here for work that doesn't need a quote first, or let accepted quotes book themselves in automatically."
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
