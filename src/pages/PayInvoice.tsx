@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineItemsReport } from "@/components/LineItemsReport";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 
 type InvoiceData = Awaited<ReturnType<typeof fetchInvoicePayInfo>>;
@@ -182,18 +183,8 @@ export default function PayInvoice() {
         <CardContent className="space-y-6 pb-6">
           <div>
             <p className="text-sm text-muted-foreground">Hi {invoice.client.name},</p>
-            <div className="mt-3 divide-y rounded-md border">
-              {invoice.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span>
-                    {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
-                    {!!item.estimated_hours && (
-                      <span className="text-muted-foreground"> · ~{item.estimated_hours} hrs</span>
-                    )}
-                  </span>
-                  <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
-                </div>
-              ))}
+            <div className="mt-3">
+              <LineItemsReport items={invoice.items} totalCents={invoice.total_cents} hideTotal />
             </div>
             <div className="mt-2 space-y-1 text-right text-sm">
               <p>Total: {formatCurrency(invoice.total_cents)}</p>

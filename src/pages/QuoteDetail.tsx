@@ -20,6 +20,7 @@ import { DeleteButton } from "@/components/DeleteButton";
 import { QuoteMilestonesCard } from "@/components/QuoteMilestonesCard";
 import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { LineItemsEditor } from "@/components/LineItemsEditor";
+import { LineItemsReport } from "@/components/LineItemsReport";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -221,26 +222,18 @@ export default function QuoteDetail() {
           </div>
         </div>
         <p className="text-muted-foreground">Total {formatCurrency(quote.total_cents)}</p>
-        {(() => {
-          const totalHours = (quote.items ?? []).reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0);
-          return totalHours > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Estimated labor: {totalHours} hrs total (internal only, not shown to the client)
-            </p>
-          ) : null;
-        })()}
       </div>
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-sm">Line items</CardTitle>
+          <CardTitle className="text-sm">Scope of work &amp; pricing</CardTitle>
           {!editingItems && quote.status !== "accepted" && quote.status !== "declined" && (
             <Button variant="ghost" size="sm" onClick={startEditingItems}>
               <Pencil className="size-3.5" /> Edit
             </Button>
           )}
         </CardHeader>
-        <CardContent className={editingItems ? "pb-6" : "divide-y pb-6"}>
+        <CardContent className={editingItems ? "pb-6" : "pb-6"}>
           {editingItems ? (
             <div className="space-y-3">
               <LineItemsEditor items={draftItems} onChange={setDraftItems} ownerId={user?.id} />
@@ -254,17 +247,7 @@ export default function QuoteDetail() {
               </div>
             </div>
           ) : (
-            (quote.items ?? []).map((item) => (
-              <div key={item.id} className="flex items-center justify-between py-2 text-sm">
-                <span>
-                  {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
-                  {!!item.estimated_hours && (
-                    <span className="text-muted-foreground"> · {item.estimated_hours} hrs</span>
-                  )}
-                </span>
-                <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
-              </div>
-            ))
+            <LineItemsReport items={quote.items ?? []} totalCents={quote.total_cents} showHours />
           )}
         </CardContent>
       </Card>

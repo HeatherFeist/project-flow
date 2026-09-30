@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, Sparkles, XCircle } from "lucide-react";
 import { bookSlot, fetchAvailableSlots, fetchQuote, respondToQuote } from "@/lib/functions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LineItemsReport } from "@/components/LineItemsReport";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 type QuoteData = Awaited<ReturnType<typeof fetchQuote>>;
@@ -134,28 +135,9 @@ export default function PublicQuote() {
             <p className="text-sm text-muted-foreground">
               Hi {quote.client.name}, here{"'"}s your quote{quote.notes ? `: ${quote.notes}` : "."}
             </p>
-            <div className="mt-3 divide-y rounded-md border">
-              {quote.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <span>
-                    {item.description} <span className="text-muted-foreground">×{item.quantity}</span>
-                    {!!item.estimated_hours && (
-                      <span className="text-muted-foreground"> · ~{item.estimated_hours} hrs</span>
-                    )}
-                  </span>
-                  <span>{formatCurrency(item.quantity * item.unit_price_cents)}</span>
-                </div>
-              ))}
+            <div className="mt-3">
+              <LineItemsReport items={quote.items} totalCents={quote.total_cents} />
             </div>
-            <p className="mt-2 text-right text-lg font-semibold">{formatCurrency(quote.total_cents)}</p>
-            {(() => {
-              const totalHours = quote.items.reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0);
-              return totalHours > 0 ? (
-                <p className="mt-1 text-right text-xs text-muted-foreground">
-                  Estimated time: ~{totalHours} labor hrs
-                </p>
-              ) : null;
-            })()}
           </div>
 
           {subcontractors.length > 0 && (
