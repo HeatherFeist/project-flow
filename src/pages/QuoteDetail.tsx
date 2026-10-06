@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Copy, Loader2, Mail, MessageSquareText, Pencil, Sparkles, Trash2, Wand2, X } from "lucide-react";
+import { Copy, Loader2, Mail, MessageSquareText, Pencil, Sparkles, Store, Trash2, Wand2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteQuote,
@@ -15,12 +15,13 @@ import {
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { fileToImageBlobs, blobToBase64 } from "@/lib/estimateMedia";
-import type { LineItem, QuoteStatus } from "@/types/domain";
+import type { LineItem, Material, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
 import { QuoteMilestonesCard } from "@/components/QuoteMilestonesCard";
 import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { LineItemsEditor } from "@/components/LineItemsEditor";
 import { LineItemsReport } from "@/components/LineItemsReport";
+import { MaterialPickerDialog } from "@/components/MaterialPickerDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +66,8 @@ export default function QuoteDetail() {
 
   const [baseImage, setBaseImage] = useState<PickedImage | null>(null);
   const [refImages, setRefImages] = useState<PickedImage[]>([]);
+  const [materialRefs, setMaterialRefs] = useState<Material[]>([]);
+  const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const baseInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
@@ -135,10 +138,12 @@ export default function QuoteDetail() {
         prompt: prompt.trim(),
         baseImage: { base64: baseImage.base64, mimeType: baseImage.mimeType },
         referenceImages: refImages.map((img) => ({ base64: img.base64, mimeType: img.mimeType })),
+        referenceImageUrls: materialRefs.map((m) => m.image_url!).filter(Boolean),
       });
       toast.success("Visualization generated");
       setBaseImage(null);
       setRefImages([]);
+      setMaterialRefs([]);
       setPrompt("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate visualization");
@@ -260,8 +265,9 @@ export default function QuoteDetail() {
         <CardHeader>
           <CardTitle className="text-sm">Project visualization</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Upload a photo of the space plus any product/material photos, describe the changes, and
-            generate an "after" image the client sees right on this quote.
+            Upload a photo of the space plus any product/material photos — or pull one straight from your
+            Materials catalog so the exact product shows up — describe the changes, and generate an "after"
+            image the client sees right on this quote.
           </p>
         </CardHeader>
         <CardContent className="space-y-4 pb-6">
@@ -302,8 +308,33 @@ export default function QuoteDetail() {
                     </button>
                   </div>
                 ))}
+                {materialRefs.map((m) => (
+                  <div key={m.id} className="relative">
+                    {m.image_url ? (
+                      <img src={m.image_url} alt={m.name} className="size-16 rounded-md border object-cover" />
+                    ) : (
+                      <div className="flex size-16 items-center justify-center rounded-md border bg-muted">
+                        <Store className="size-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setMaterialRefs((prev) => prev.filter((x) => x.id !== m.id))}
+                      className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1 text-destructive-foreground"
+                      title={m.name}
+                    >
+                      <X className="size-3" />
+                    </button>
+                    <p className="mt-0.5 w-16 truncate text-center text-[10px] text-muted-foreground" title={m.name}>
+                      {m.name}
+                    </p>
+                  </div>
+                ))}
                 <Button variant="outline" size="sm" onClick={() => refInputRef.current?.click()}>
-                  Add
+                  Add photo
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setMaterialPickerOpen(true)}>
+                  <Store className="size-3.5" /> From Materials
                 </Button>
               </div>
               <input
@@ -365,6 +396,15 @@ export default function QuoteDetail() {
           )}
         </CardContent>
       </Card>
+
+      <MaterialPickerDialog
+        ownerId={user?.id}
+        open={materialPickerOpen}
+        onOpenChange={setMaterialPickerOpen}
+        onSelect={(material) =>
+          setMaterialRefs((prev) => (prev.some((m) => m.id === material.id) ? prev : [...prev, material]))
+        }
+      />
     </div>
   );
 }

@@ -966,6 +966,15 @@ changes in a prompt, and generate an "after" image — attached right to
 the quote, so the client sees it alongside the numbers on the same link
 they already get.
 
+**Reference photos can come straight from Materials.** Next to "Add
+photo" there's a **"From Materials"** button that opens your Materials
+catalog and lets you pick an item that already has a saved photo (e.g.
+one added via "Search Home Depot") — so the exact product you're
+planning to actually use shows up in the generated image, not just
+something visually similar. The app fetches that image on the server
+when generating, since most retailers' photo CDNs don't allow a
+browser to re-read an image from another site directly.
+
 **This is a different AI than everything else in the app.** Claude (used
 everywhere else — the estimate chatbot, the help assistant, receipt
 scanning) can *look at* images but can't generate or edit them. This uses

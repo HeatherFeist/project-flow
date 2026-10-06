@@ -191,6 +191,10 @@ export function useGenerateQuoteVisualization() {
       prompt: string;
       baseImage: { base64: string; mimeType: string };
       referenceImages: { base64: string; mimeType: string }[];
+      // Reference photos sourced from an existing Materials catalog entry
+      // (e.g. a real product photo saved from a Home Depot search) rather
+      // than a freshly-uploaded file — fetched server-side.
+      referenceImageUrls?: string[];
     }) => {
       const { data: sessionData } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke<{ visualization: QuoteVisualization }>(
