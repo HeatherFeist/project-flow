@@ -159,6 +159,7 @@ export default function Settings() {
       logo_width_px: profile.logo_width_px ?? 160,
       gemini_api_key: profile.gemini_api_key ?? null,
       serpapi_key: profile.serpapi_key ?? null,
+      google_maps_api_key: profile.google_maps_api_key ?? null,
     });
     setSaving(false);
     if (error) {
@@ -460,6 +461,49 @@ export default function Settings() {
                 — click "Get API key" and paste it here. This is separate from the Google Calendar/Gmail
                 connection below; Google bills a small per-image amount (typically a few cents) directly
                 to this key. Leave blank to keep this feature turned off.
+              </p>
+            </div>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Street View Photos (exterior visualizations)</CardTitle>
+          <CardDescription>
+            Lets a quote's "before" photo for an exterior renovation come from Google's real street-level
+            photo of the client's address, instead of needing an in-person photo first. Billed per request
+            directly by Google to your own key.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-6">
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="google_maps_api_key">Google Maps API key</Label>
+              <Input
+                id="google_maps_api_key"
+                type="password"
+                placeholder="AIza…"
+                value={profile.google_maps_api_key ?? ""}
+                onChange={(e) => setProfile({ ...profile, google_maps_api_key: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Create a key at{" "}
+                <a
+                  href="https://console.cloud.google.com/google/maps-apis/credentials"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  console.cloud.google.com
+                </a>{" "}
+                with the <strong>Street View Static API</strong> enabled, then paste it here. Separate from
+                the Gemini key above and the Calendar/Gmail connection below. Google gives a monthly free
+                credit that comfortably covers typical use; beyond that it's a small per-request cost billed
+                directly to this key. Leave blank to keep this feature turned off.
               </p>
             </div>
             <Button type="submit" disabled={saving}>

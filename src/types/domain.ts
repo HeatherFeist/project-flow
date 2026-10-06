@@ -14,6 +14,7 @@ export interface Profile {
   logo_width_px: number;
   gemini_api_key: string | null;
   serpapi_key: string | null;
+  google_maps_api_key: string | null;
   is_exempt: boolean;
   is_admin: boolean;
   onboarding_completed: boolean;
@@ -122,7 +123,7 @@ export interface Quote {
   sent_at: string | null;
   responded_at: string | null;
   created_at: string;
-  client?: Pick<Client, "id" | "name" | "phone">;
+  client?: Pick<Client, "id" | "name" | "phone" | "address">;
   items?: LineItem[];
 }
 

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Copy, Loader2, Mail, MessageSquareText, Pencil, Sparkles, Store, Trash2, Wand2, X } from "lucide-react";
+import { Copy, Loader2, Mail, MapPin, MessageSquareText, Pencil, Sparkles, Store, Trash2, Wand2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteQuote,
@@ -22,6 +22,7 @@ import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { LineItemsEditor } from "@/components/LineItemsEditor";
 import { LineItemsReport } from "@/components/LineItemsReport";
 import { MaterialPickerDialog } from "@/components/MaterialPickerDialog";
+import { StreetViewDialog } from "@/components/StreetViewDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,7 @@ export default function QuoteDetail() {
   const [refImages, setRefImages] = useState<PickedImage[]>([]);
   const [materialRefs, setMaterialRefs] = useState<Material[]>([]);
   const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
+  const [streetViewOpen, setStreetViewOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const baseInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
@@ -286,9 +288,14 @@ export default function QuoteDetail() {
                   </button>
                 </div>
               ) : (
-                <Button variant="outline" size="sm" onClick={() => baseInputRef.current?.click()}>
-                  Upload photo
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => baseInputRef.current?.click()}>
+                    Upload photo
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setStreetViewOpen(true)}>
+                    <MapPin className="size-3.5" /> Use Street View
+                  </Button>
+                </div>
               )}
               <input ref={baseInputRef} type="file" accept="image/*" className="hidden" onChange={handleBaseImage} />
             </div>
@@ -403,6 +410,20 @@ export default function QuoteDetail() {
         onOpenChange={setMaterialPickerOpen}
         onSelect={(material) =>
           setMaterialRefs((prev) => (prev.some((m) => m.id === material.id) ? prev : [...prev, material]))
+        }
+      />
+
+      <StreetViewDialog
+        open={streetViewOpen}
+        onOpenChange={setStreetViewOpen}
+        defaultAddress={quote.client?.address ?? ""}
+        onUse={(image, previewUrl) =>
+          setBaseImage({
+            file: new File([], "street-view.jpg"),
+            previewUrl,
+            base64: image.base64,
+            mimeType: image.mimeType,
+          })
         }
       />
     </div>

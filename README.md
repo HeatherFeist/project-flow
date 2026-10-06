@@ -1030,6 +1030,49 @@ visualization — not a pixel-perfect CAD rendering. Treat it as "here's a
 strong sense of the direction," not an exact preview of every material
 detail.
 
+### Exterior visualizations from a Street View photo (no site visit needed yet)
+
+The "before" photo for a visualization doesn't have to be one you took —
+next to **"Upload photo"** there's a **"Use Street View"** button that
+pulls a real, eye-level photo of the client's address from Google
+Street View, pre-filled from the quote's client if they have an
+address on file. Preview it, rotate left/right if the default angle
+doesn't show the right side of the building, then **"Use this photo"**
+feeds it into the same generation flow as an uploaded photo — describe
+the change, optionally add reference photos (including straight from
+Materials, see above), and generate.
+
+**This is deliberately Street View, not satellite/aerial imagery.**
+Google's top-down satellite view doesn't show walls, siding, a roofline,
+or a front door — it's useless for a realistic exterior mockup. Google
+also has an "Aerial View" cinematic flyover product, but it's a video,
+not a static image Gemini can edit, and has limited address coverage.
+Street View's ground-level photos are the only Google imagery that
+actually works for this.
+
+**1. Supabase Edge Function**
+
+```bash
+supabase functions deploy fetch-street-view-image
+```
+
+**2. Run the schema migration**
+
+[`docs/schema_v35_street_view.sql`](docs/schema_v35_street_view.sql) —
+adds `profiles.google_maps_api_key`.
+
+**3. Get a Google Maps API key** (each owner does this themselves, in
+Settings) — at
+[console.cloud.google.com/google/maps-apis/credentials](https://console.cloud.google.com/google/maps-apis/credentials),
+create a key with the **Street View Static API** enabled, then paste it
+into **Settings → Street View Photos**. Bring-your-own-key, same
+reasoning as Gemini/SerpApi — billed per request directly to that key
+(Google's monthly free credit comfortably covers typical use).
+
+Not every address has Street View coverage — rural properties and some
+private roads don't. If there's none, the app says so plainly and
+uploading a photo still works exactly as before.
+
 ### Bring-your-own Twilio/Stripe/PayPal (multi-tenant credentials)
 
 Up through schema v21, Twilio (calls/texts), Stripe (invoice payments),
@@ -1875,6 +1918,7 @@ supabase/functions/
   send-scheduled-reminders/ scheduled (pg_cron, not called from the app): auto-texts upcoming appointment reminders
   search-home-depot-products/ auth required: searches Home Depot's catalog via SerpApi (bring-your-own-key)
   generate-quote-visualization/ auth required: Gemini image model generates an "after" visualization
+  fetch-street-view-image/ auth required: Google Street View photo of an address (bring-your-own-key)
 docs/schema.sql                 Supabase schema + RLS policies
 docs/schema_v2_scheduling.sql   Google connections, scheduling hours, quote tokens
 docs/schema_v3_twilio.sql       Twilio number/forwarding settings, client lead source
@@ -1909,4 +1953,5 @@ docs/schema_v31_pay_guidelines.sql Adds pay_guidelines table (reference calculat
 docs/schema_v32_sub_approval_and_milestones.sql Adds sub sign-off fields + quote_milestones table + invoice_milestones.due_date
 docs/schema_v33_logo_size.sql Adds profiles.logo_width_px (adjustable logo display size)
 docs/schema_v34_material_images.sql Adds materials.image_url (Home Depot product photos)
+docs/schema_v35_street_view.sql Adds profiles.google_maps_api_key (Street View exterior photos)
 ```
