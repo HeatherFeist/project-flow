@@ -40,6 +40,24 @@ export function useCreateSubscriptionCheckout() {
   });
 }
 
+// Lets a tester comp their own account with a code from the Subscribe
+// page (see docs/schema_v37_tester_codes.sql + redeem-tester-code) instead
+// of needing profiles.is_exempt set by hand.
+export function useRedeemTesterCode() {
+  return useMutation({
+    mutationFn: async (code: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke("redeem-tester-code", {
+        body: { code },
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+      });
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      if (data?.error) throw new Error(data.error);
+      return data as { ok: true };
+    },
+  });
+}
+
 export function useCreateBillingPortalSession() {
   return useMutation({
     mutationFn: async () => {

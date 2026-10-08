@@ -530,6 +530,45 @@ update profiles set is_exempt = true where id = '<your user id>';
 When ready for real billing, swap the test-mode `PLATFORM_STRIPE_SECRET_KEY`
 for the live key and repeat the webhook step for live mode.
 
+### Free access for testers (self-serve tester codes)
+
+Comping one account at a time with `update profiles set is_exempt = true
+where id = '...'` (above) still works, but for giving a batch of testers
+free access without you running SQL for each one, the Subscribe page now
+has a **"Have a tester code?"** link under the trial button. A tester
+clicks it, types in a code you set up, and their account is instantly
+comped — same `is_exempt` flag, just self-serve.
+
+**1. Run the schema migration**
+
+[`docs/schema_v37_tester_codes.sql`](docs/schema_v37_tester_codes.sql) —
+adds the `tester_codes` table. It has no RLS policies at all on purpose:
+it's only ever read/written by the edge function below, using the service
+role, so a tester can't see other codes or comp themselves by calling the
+database directly.
+
+**2. Deploy the edge function**
+
+```bash
+supabase functions deploy redeem-tester-code
+```
+
+No new secrets.
+
+**3. Create a code**
+
+In the Supabase SQL editor:
+
+```sql
+insert into tester_codes (code, max_redemptions, note)
+values ('BETA2024', 10, 'Early tester batch');
+```
+
+- `max_redemptions` — how many different accounts can use this code
+  before it stops working. Leave it out (or `null`) for unlimited.
+- To shut a code off early: `update tester_codes set active = false where code = 'BETA2024';`
+- Codes aren't case-sensitive — testers can type `beta2024` or `BETA2024`.
+
 ### In-app help chatbot (site navigation + renovation Q&A)
 
 A small chat widget (the ? bubble, bottom-right on every page once you're
@@ -1909,6 +1948,7 @@ supabase/functions/
   capture-paypal-order/ public: captures the order on redirect-back, records the payment
   create-subscription-checkout/    auth required: starts the platform $49/mo subscription checkout
   create-billing-portal-session/   auth required: opens Stripe's Billing Portal for the owner
+  redeem-tester-code/   auth required: comps the caller's own account if the code they entered is valid
   platform-stripe-webhook/         public (Stripe-signature verified): syncs the subscriptions table
   app-help-chat/        auth required: in-app site-navigation + renovation Q&A assistant, escalates to a support ticket when it can't help
   invite-team-member/   auth required (owner/admin): creates a team invite, returns a shareable link
@@ -1960,4 +2000,5 @@ docs/schema_v33_logo_size.sql Adds profiles.logo_width_px (adjustable logo displ
 docs/schema_v34_material_images.sql Adds materials.image_url (Home Depot product photos)
 docs/schema_v35_street_view.sql Adds profiles.google_maps_api_key (Street View exterior photos)
 docs/schema_v36_owner_ticket_creation.sql Adds owner insert policies for support_tickets/support_ticket_replies (New ticket button)
+docs/schema_v37_tester_codes.sql Adds tester_codes table (self-serve free-tester access codes)
 ```
