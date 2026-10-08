@@ -74,6 +74,44 @@ export function useTicketReplies(ticketId: string | undefined) {
   });
 }
 
+// Lets an owner open a ticket directly from the Support tab, instead of
+// only ever getting one via the Help Assistant's escalate_to_support tool
+// (see docs/schema_v36_owner_ticket_creation.sql for the insert policy
+// this needs).
+export function useCreateTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      ownerId,
+      ownerEmail,
+      subject,
+      message,
+    }: {
+      ownerId: string;
+      ownerEmail: string | null;
+      subject: string;
+      message: string;
+    }) => {
+      const { data: ticket, error } = await supabase
+        .from("support_tickets")
+        .insert({ owner_id: ownerId, owner_email: ownerEmail, subject, transcript: [] })
+        .select()
+        .single();
+      if (error) throw error;
+
+      const { error: replyError } = await supabase
+        .from("support_ticket_replies")
+        .insert({ ticket_id: ticket.id, author: "owner", body: message });
+      if (replyError) throw replyError;
+
+      return ticket as SupportTicket;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
+    },
+  });
+}
+
 export function useAddTicketReply() {
   const queryClient = useQueryClient();
   return useMutation({

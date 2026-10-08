@@ -1425,7 +1425,9 @@ outside what it can resolve — an account/billing issue, a bug report, or
 someone explicitly asking for a person — it creates a real support
 ticket and tells the owner so, right in the chat. The owner can check on
 it any time from the widget's new **Support** tab (a second tab next to
-the chat, showing their own tickets and any reply).
+the chat, showing their own tickets and any reply). That tab also has a
+**New ticket** button, so an owner can open one directly — subject +
+message — without having to go through the chatbot first.
 
 **Where you answer these:** a new **Support Inbox** page
 (`/admin/support`), only visible in the sidebar to an account with
@@ -1448,7 +1450,10 @@ reach someone faster than "next time they open the app."
 
 [`docs/schema_v28_support_inbox.sql`](docs/schema_v28_support_inbox.sql)
 — adds `profiles.is_admin`, `support_tickets`, `support_ticket_replies`,
-and their RLS policies.
+and their RLS policies. Also run
+[`docs/schema_v36_owner_ticket_creation.sql`](docs/schema_v36_owner_ticket_creation.sql)
+— v28 only let an owner *read* their own tickets/replies; this adds the
+insert policies the **New ticket** button and owner replies need.
 
 **2. Make your own account an admin**
 
@@ -1954,4 +1959,5 @@ docs/schema_v32_sub_approval_and_milestones.sql Adds sub sign-off fields + quote
 docs/schema_v33_logo_size.sql Adds profiles.logo_width_px (adjustable logo display size)
 docs/schema_v34_material_images.sql Adds materials.image_url (Home Depot product photos)
 docs/schema_v35_street_view.sql Adds profiles.google_maps_api_key (Street View exterior photos)
+docs/schema_v36_owner_ticket_creation.sql Adds owner insert policies for support_tickets/support_ticket_replies (New ticket button)
 ```
