@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Search, Store } from "lucide-react";
 import { useMaterials } from "@/hooks/useMaterials";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/utils";
