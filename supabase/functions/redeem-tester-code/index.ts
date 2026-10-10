@@ -54,10 +54,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // upsert, not update: a brand-new signup has no profiles row yet (one
+    // is only ever created during Onboarding, which sits behind the
+    // subscription check) — an update would silently match zero rows and
+    // report success while changing nothing.
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ is_exempt: true })
-      .eq("id", userData.user.id);
+      .upsert({ id: userData.user.id, is_exempt: true });
     if (profileError) throw profileError;
 
     const { error: incrementError } = await supabase
