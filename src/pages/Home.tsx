@@ -2,19 +2,13 @@ import { Link, Navigate } from "react-router-dom";
 import {
   ArrowRight,
   Banknote,
-  Calendar,
-  Camera,
   Check,
   ClipboardCheck,
-  FileText,
   Inbox,
   MessageSquareText,
-  Receipt,
   Sparkles,
-  Users,
   Wand2,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,18 +19,18 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 // their Dashboard (see the redirect below), so this page only ever has to
 // do one job: explain the product and get someone to start a trial.
 //
-// Visuals are icon-based gradient panels rather than real photography —
-// no stock-photo dependency to keep working or go stale. Swap in real
-// photos of actual jobs/team members whenever you have them; that beats
-// generic stock for a real local business anyway.
+// Photography is optimized WebP in public/marketing/ (hero.webp plus one
+// image per feature section, keyed by section id). The hero photo keeps
+// the floating status chips on top.
+
+type FeatureId = "clients" | "scheduling" | "quotes" | "payments" | "money" | "ai";
 
 interface FeatureSection {
-  id: string;
+  id: FeatureId;
   eyebrow: string;
   title: string;
   description: string;
   bullets: string[];
-  icon: LucideIcon;
 }
 
 const SECTIONS: FeatureSection[] = [
@@ -52,7 +46,6 @@ const SECTIONS: FeatureSection[] = [
       "Online booking straight off an accepted quote, checked against your real calendar",
       "New leads (missed calls, texts, chatbot conversations) and client requests, triaged in one queue",
     ],
-    icon: Users,
   },
   {
     id: "scheduling",
@@ -67,7 +60,6 @@ const SECTIONS: FeatureSection[] = [
       "Two-way texting with a structured conversation log per client",
       "Automatic appointment reminders and missed-call text-back — no manual follow-up",
     ],
-    icon: Calendar,
   },
   {
     id: "quotes",
@@ -81,7 +73,6 @@ const SECTIONS: FeatureSection[] = [
       "A drag-and-drop pipeline view across draft/sent/accepted/declined",
       "Booking a job the moment a quote's accepted — calendar event and invoice included",
     ],
-    icon: FileText,
   },
   {
     id: "payments",
@@ -95,7 +86,6 @@ const SECTIONS: FeatureSection[] = [
       "Snap a photo of a receipt and AI pulls out the line items for you",
       "Each business connects its own Stripe/PayPal — client payments never pass through anyone else's account",
     ],
-    icon: Receipt,
   },
   {
     id: "money",
@@ -110,7 +100,6 @@ const SECTIONS: FeatureSection[] = [
       "Job costing weighs real cost against real revenue for an actual profit/margin number per job",
       "One expense ledger for job-specific costs and general business overhead alike",
     ],
-    icon: Banknote,
   },
   {
     id: "ai",
@@ -124,7 +113,6 @@ const SECTIONS: FeatureSection[] = [
       "Missed calls and new texts feed leads straight into the same chatbot automatically",
       "An in-app help assistant that answers \"how do I...\" questions about Project Flow itself",
     ],
-    icon: Sparkles,
   },
 ];
 
@@ -243,7 +231,7 @@ export default function Home() {
               </ul>
             </div>
             <div className={i % 2 === 1 ? "lg:order-1" : ""}>
-              <FeatureVisual icon={section.icon} />
+              <FeatureVisual id={section.id} />
             </div>
           </section>
         ))}
@@ -310,16 +298,51 @@ export default function Home() {
   );
 }
 
-// Abstract gradient "hero mock" — a big icon plus a couple of floating
-// accent chips, standing in for a product screenshot without needing one.
+// Source photos are 1152×864 (4:3). Width and height are set so the frame
+// reserves the right ratio before the file arrives.
+const PHOTO_WIDTH = 1152;
+const PHOTO_HEIGHT = 864;
+
+const FEATURE_IMAGES: Record<FeatureId, { src: string; alt: string }> = {
+  clients: {
+    src: "/marketing/clients.webp",
+    alt: "Handyman shaking hands with homeowners on the front porch of their house",
+  },
+  scheduling: {
+    src: "/marketing/scheduling.webp",
+    alt: "Contractor checking his schedule on a phone beside a ladder and tool bags on a job site",
+  },
+  quotes: {
+    src: "/marketing/quotes.webp",
+    alt: "Homeowners looking at a kitchen before-and-after visualization on a tablet",
+  },
+  payments: {
+    src: "/marketing/payments.webp",
+    alt: "Person confirming a paid invoice on a phone in front of a work van",
+  },
+  money: {
+    src: "/marketing/money.webp",
+    alt: "Contractor comparing a supplier receipt on his phone while shopping for lumber and materials",
+  },
+  ai: {
+    src: "/marketing/ai.webp",
+    alt: "Homeowner on the couch at night using a laptop to get help with a repair, with job photos on screen",
+  },
+};
+
+// Hero photo with the three status chips overlaid on the corners.
 function HeroVisual() {
   return (
     <div className="relative mx-auto aspect-[4/3] w-full max-w-md lg:max-w-none">
-      <div
-        className="absolute inset-0 rounded-3xl shadow-xl"
-        style={{ background: "var(--gradient-primary)" }}
+      <img
+        src="/marketing/hero.webp"
+        alt="Handyman with a tool belt holding a tablet in a bright renovated kitchen"
+        width={PHOTO_WIDTH}
+        height={PHOTO_HEIGHT}
+        loading="eager"
+        fetchPriority="high"
+        className="absolute inset-0 h-full w-full rounded-3xl object-cover shadow-xl"
       />
-      <Camera className="absolute inset-0 m-auto size-24 text-white/90 xl:size-32" strokeWidth={1.25} />
       <div className="absolute -left-4 top-8 flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-xs shadow-md xl:px-4 xl:py-2.5 xl:text-sm">
         <Check className="size-3.5 text-success" /> Quote accepted
       </div>
@@ -333,11 +356,18 @@ function HeroVisual() {
   );
 }
 
-function FeatureVisual({ icon: Icon }: { icon: LucideIcon }) {
+function FeatureVisual({ id }: { id: FeatureId }) {
+  const image = FEATURE_IMAGES[id];
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border bg-muted/40 shadow-sm">
-      <div className="absolute inset-0 opacity-90" style={{ background: "var(--gradient-primary)" }} />
-      <Icon className="absolute inset-0 m-auto size-20 text-white/90 xl:size-28" strokeWidth={1.25} />
+      <img
+        src={image.src}
+        alt={image.alt}
+        width={PHOTO_WIDTH}
+        height={PHOTO_HEIGHT}
+        loading="lazy"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
     </div>
   );
 }
