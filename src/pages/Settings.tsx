@@ -12,6 +12,7 @@ import { usePaymentSettings, useSavePaymentSettings } from "@/hooks/usePaymentSe
 import { useCreateBillingPortalSession, useSubscription } from "@/hooks/useSubscription";
 import { useTeam } from "@/contexts/TeamContext";
 import { TeamSettingsCard } from "@/components/TeamSettingsCard";
+import { ReminderSettingsCard } from "@/components/ReminderSettingsCard";
 import { PayGuidelinesCard } from "@/components/PayGuidelinesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageGuide } from "@/components/PageGuide";
@@ -973,6 +974,8 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <ReminderSettingsCard />
 
       <Card>
         <CardHeader>
