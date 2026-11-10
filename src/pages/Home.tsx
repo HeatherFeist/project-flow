@@ -326,7 +326,7 @@ const FEATURE_IMAGES: Record<FeatureId, { src: string; alt: string }> = {
   },
   ai: {
     src: "/marketing/ai.webp",
-    alt: "Homeowner on the couch at night using a laptop to get help with a repair, with job photos on screen",
+    alt: "Homeowner photographing a leaking sink pipe while the estimate chatbot shows a price range and a Book a free visit button",
   },
 };
 
