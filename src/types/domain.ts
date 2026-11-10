@@ -74,6 +74,7 @@ export interface Job {
   description: string | null;
   status: JobStatus;
   scheduled_at: string | null;
+  ends_at: string | null;
   address: string | null;
   google_event_id: string | null;
   photo_urls: string[];

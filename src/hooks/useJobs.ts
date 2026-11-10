@@ -92,6 +92,7 @@ export function useCreateJobWithCalendarSync() {
       description: string | null;
       address: string | null;
       scheduled_at: string | null;
+      ends_at: string | null;
     }) => {
       const { data: sessionData } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke<{ job: Job; calendarSynced: boolean }>(
@@ -148,6 +149,29 @@ export function useImportJobs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
+export function useUpdateJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      id: string;
+      title: string;
+      description: string | null;
+      address: string | null;
+      scheduled_at: string | null;
+      ends_at: string | null;
+    }) => {
+      const { id, ...patch } = input;
+      const { data, error } = await supabase.from("jobs").update(patch).eq("id", id).select().single();
+      if (error) throw error;
+      return data as Job;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["jobs", data.id] });
     },
   });
 }

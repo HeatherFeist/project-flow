@@ -41,6 +41,24 @@ export function formatDate(value: string | Date | null | undefined) {
   }).format(d);
 }
 
+export function toDateTimeLocalValue(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function formatJobWhen(job: { scheduled_at: string | null; ends_at?: string | null }) {
+  if (!job.scheduled_at) return "Unscheduled";
+  const start = formatDateTime(job.scheduled_at);
+  if (!job.ends_at) return start;
+  const end = new Date(job.ends_at);
+  if (Number.isNaN(end.getTime())) return start;
+  const endLabel = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(end);
+  return `${start} – ${endLabel}`;
+}
+
 export function formatDateTime(value: string | Date | null | undefined) {
   if (!value) return "—";
   const d = typeof value === "string" ? new Date(value) : value;

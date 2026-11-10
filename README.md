@@ -2001,4 +2001,5 @@ docs/schema_v34_material_images.sql Adds materials.image_url (Home Depot product
 docs/schema_v35_street_view.sql Adds profiles.google_maps_api_key (Street View exterior photos)
 docs/schema_v36_owner_ticket_creation.sql Adds owner insert policies for support_tickets/support_ticket_replies (New ticket button)
 docs/schema_v37_tester_codes.sql Adds tester_codes table (self-serve free-tester access codes)
+docs/schema_v39_job_editing.sql Adds jobs.ends_at so a visit can have an end time
 ```
