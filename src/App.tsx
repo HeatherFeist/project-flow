@@ -24,6 +24,7 @@ import Invoices from "@/pages/Invoices";
 import InvoiceDetail from "@/pages/InvoiceDetail";
 import SettingsPage from "@/pages/Settings";
 import PublicQuote from "@/pages/PublicQuote";
+import ClientHub from "@/pages/ClientHub";
 import PriceBook from "@/pages/PriceBook";
 import Materials from "@/pages/Materials";
 import Expenses from "@/pages/Expenses";
@@ -55,6 +56,7 @@ function App() {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/login" element={<Login />} />
               <Route path="/team/join/:token" element={<TeamJoin />} />
+              <Route path="/hub/:token" element={<ClientHub />} />
               <Route path="/q/:token" element={<PublicQuote />} />
               <Route path="/q/:token/:action" element={<PublicQuote />} />
               <Route path="/sub/:token" element={<SubApproval />} />

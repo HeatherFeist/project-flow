@@ -12,6 +12,7 @@ import { usePaymentSettings, useSavePaymentSettings } from "@/hooks/usePaymentSe
 import { useCreateBillingPortalSession, useSubscription } from "@/hooks/useSubscription";
 import { useTeam } from "@/contexts/TeamContext";
 import { TeamSettingsCard } from "@/components/TeamSettingsCard";
+import { StripeConnectCard } from "@/components/StripeConnectCard";
 import { PayGuidelinesCard } from "@/components/PayGuidelinesCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageGuide } from "@/components/PageGuide";
@@ -735,6 +736,8 @@ export default function Settings() {
           )}
         </CardContent>
       </Card>
+
+      <StripeConnectCard />
 
       <Card>
         <CardHeader>
