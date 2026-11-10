@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     }
     const ownerId = userData.user.id;
 
-    const { client_id, title, description, address, scheduled_at } = await req.json();
+    const { client_id, title, description, address, scheduled_at, ends_at } = await req.json();
     if (!client_id || !title) {
       return new Response(JSON.stringify({ error: "Missing client_id/title" }), { status: 400, headers: jsonHeaders });
     }
@@ -63,7 +63,11 @@ Deno.serve(async (req) => {
           const durationMinutes = settings?.slot_duration_minutes ?? 60;
 
           const start = new Date(scheduled_at);
-          const end = new Date(start.getTime() + durationMinutes * 60_000);
+          const requestedEnd = ends_at ? new Date(ends_at) : null;
+          const end =
+            requestedEnd && !Number.isNaN(requestedEnd.getTime()) && requestedEnd > start
+              ? requestedEnd
+              : new Date(start.getTime() + durationMinutes * 60_000);
 
           const accessToken = await getFreshAccessToken(ownerId);
           googleEventId = await createCalendarEvent({
@@ -92,6 +96,7 @@ Deno.serve(async (req) => {
         description: description || null,
         address: address || null,
         scheduled_at: scheduled_at || null,
+        ends_at: ends_at || null,
         status: "scheduled",
         google_event_id: googleEventId,
       })

@@ -51,6 +51,7 @@ export function NewJobDialog({ open, onOpenChange, initialDate, hideTrigger }: N
     description: "",
     address: "",
     scheduled_at: initialDate ? toLocalDateTimeInput(initialDate) : "",
+    duration_hours: "",
   });
 
   useEffect(() => {
@@ -63,17 +64,24 @@ export function NewJobDialog({ open, onOpenChange, initialDate, hideTrigger }: N
     e.preventDefault();
     if (!user || !form.client_id) return;
     try {
+      const start = form.scheduled_at ? new Date(form.scheduled_at) : null;
+      const hours = Number(form.duration_hours);
+      const endsAt =
+        start && Number.isFinite(hours) && hours > 0
+          ? new Date(start.getTime() + hours * 3_600_000).toISOString()
+          : null;
       const result = await createJob.mutateAsync({
         client_id: form.client_id,
         title: form.title,
         description: form.description || null,
         address: form.address || null,
-        scheduled_at: form.scheduled_at ? new Date(form.scheduled_at).toISOString() : null,
+        scheduled_at: start ? start.toISOString() : null,
+        ends_at: endsAt,
       });
       toast.success(
         result.calendarSynced ? "Job scheduled and added to your Google Calendar" : "Job scheduled",
       );
-      setForm({ client_id: "", title: "", description: "", address: "", scheduled_at: "" });
+      setForm({ client_id: "", title: "", description: "", address: "", scheduled_at: "", duration_hours: "" });
       setOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create job");
@@ -128,9 +136,21 @@ export function NewJobDialog({ open, onOpenChange, initialDate, hideTrigger }: N
               onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
             />
             <p className="text-xs text-muted-foreground">
-              If Google Calendar is connected in Settings, this also creates the event on your
-              calendar with an email reminder.
+              Leave this empty to keep the job unscheduled. If Google Calendar is connected, a start
+              time also creates the event on your calendar.
             </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="duration_hours">Duration (hours)</Label>
+            <Input
+              id="duration_hours"
+              type="number"
+              min="0.25"
+              step="0.25"
+              placeholder="Optional"
+              value={form.duration_hours}
+              onChange={(e) => setForm({ ...form, duration_hours: e.target.value })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="address">Job address</Label>

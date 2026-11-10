@@ -21,9 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PhotoAnnotator } from "@/components/PhotoAnnotator";
+import { EditJobCard } from "@/components/EditJobCard";
+import { InvoiceFromJobButton } from "@/components/InvoiceFromJobButton";
 import { JobChecklistCard } from "@/components/JobChecklistCard";
 import { JobCostingCard } from "@/components/JobCostingCard";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatJobWhen } from "@/lib/utils";
 
 const STATUSES: JobStatus[] = ["scheduled", "in_progress", "completed", "cancelled"];
 
@@ -139,6 +141,7 @@ export default function JobDetail() {
                 ))}
               </SelectContent>
             </Select>
+            <InvoiceFromJobButton job={job} />
             <Button
               variant="outline"
               size="sm"
@@ -180,10 +183,20 @@ export default function JobDetail() {
             </Link>
           )}
           {" · "}
-          {formatDateTime(job.scheduled_at)}
+          {formatJobWhen(job)}
           {job.address ? ` · ${job.address}` : ""}
+          {job.quote_id && (
+            <>
+              {" · "}
+              <Link to={`/quotes/${job.quote_id}`} className="hover:underline">
+                Quote
+              </Link>
+            </>
+          )}
         </p>
       </div>
+
+      <EditJobCard job={job} />
 
       {job.description && (
         <Card>

@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { JobsCalendar } from "@/components/JobsCalendar";
 import { NewJobDialog } from "@/components/NewJobDialog";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDateTime, formatJobWhen } from "@/lib/utils";
 
 export default function Dashboard() {
   const { data: clients } = useClients();
@@ -144,7 +144,7 @@ export default function Dashboard() {
                   <p className="text-muted-foreground">{job.client?.name}</p>
                 </div>
                 <div className="text-right">
-                  <p>{formatDateTime(job.scheduled_at)}</p>
+                  <p>{formatJobWhen(job)}</p>
                   <Badge variant="secondary">{job.status.replace("_", " ")}</Badge>
                 </div>
               </Link>

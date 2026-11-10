@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageGuide } from "@/components/PageGuide";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDateTime } from "@/lib/utils";
+import { formatJobWhen } from "@/lib/utils";
 
 const STATUS_VARIANT: Record<JobStatus, "secondary" | "success" | "warning" | "outline"> = {
   scheduled: "secondary",
@@ -106,7 +106,7 @@ export default function Schedule() {
                     </Link>
                   </TableCell>
                   <TableCell>{job.client?.name ?? "—"}</TableCell>
-                  <TableCell>{formatDateTime(job.scheduled_at)}</TableCell>
+                  <TableCell>{formatJobWhen(job)}</TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[job.status]}>{job.status.replace("_", " ")}</Badge>
                   </TableCell>
