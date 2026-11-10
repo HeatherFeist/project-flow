@@ -214,7 +214,7 @@ export async function createCalendarEvent(params: {
   timezone: string;
   attendeeEmail?: string;
   reminderMinutes?: number[];
-}): Promise<string> {
+}): Promise<{ id: string; htmlLink: string | null }> {
   const reminderMinutes = params.reminderMinutes ?? [60, 1440];
   const res = await fetch(
     "https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=all",
@@ -244,7 +244,51 @@ export async function createCalendarEvent(params: {
   }
 
   const json = await res.json();
-  return json.id as string;
+  return { id: json.id as string, htmlLink: (json.htmlLink as string | undefined) ?? null };
+}
+
+export async function updateCalendarEvent(params: {
+  accessToken: string;
+  eventId: string;
+  summary: string;
+  description?: string;
+  location?: string;
+  start: string;
+  end: string;
+  timezone: string;
+}): Promise<{ htmlLink: string | null }> {
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(params.eventId)}?sendUpdates=all`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${params.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        summary: params.summary,
+        description: params.description,
+        location: params.location,
+        start: { dateTime: params.start, timeZone: params.timezone },
+        end: { dateTime: params.end, timeZone: params.timezone },
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Calendar event update failed (${res.status}): ${await res.text()}`);
+  }
+  const json = await res.json();
+  return { htmlLink: (json.htmlLink as string | undefined) ?? null };
+}
+
+export async function deleteCalendarEvent(params: { accessToken: string; eventId: string }): Promise<void> {
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(params.eventId)}?sendUpdates=all`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${params.accessToken}` } },
+  );
+  if (!res.ok && res.status !== 404 && res.status !== 410) {
+    throw new Error(`Calendar event delete failed (${res.status}): ${await res.text()}`);
+  }
 }
 
 export const CORS_HEADERS = {

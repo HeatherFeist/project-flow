@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DeleteButton } from "@/components/DeleteButton";
 import { PhotoAnnotator } from "@/components/PhotoAnnotator";
+import { CalendarSyncCard } from "@/components/CalendarSyncCard";
 import { EditJobCard } from "@/components/EditJobCard";
 import { InvoiceFromJobButton } from "@/components/InvoiceFromJobButton";
 import { JobChecklistCard } from "@/components/JobChecklistCard";
@@ -197,6 +198,7 @@ export default function JobDetail() {
       </div>
 
       <EditJobCard job={job} />
+      <CalendarSyncCard job={job} />
 
       {job.description && (
         <Card>

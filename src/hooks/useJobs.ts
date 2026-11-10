@@ -153,6 +153,43 @@ export function useImportJobs() {
   });
 }
 
+async function pushJobCalendar(jobId: string) {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const { error } = await supabase.functions.invoke("sync-job-calendar", {
+    body: { jobId, action: "push" },
+    headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+  });
+  if (error) {
+    const message = await edgeFunctionErrorMessage(error);
+    if (!/not found|404|Failed to send/i.test(message)) {
+      // The job row is already saved. The function records failed on the job
+      // when Google rejects the update; a thrown error here is unexpected.
+      console.warn("Calendar sync failed:", message);
+    }
+  }
+}
+
+export function useSyncJobCalendar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (jobId: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke<{ status: string; error?: string }>(
+        "sync-job-calendar",
+        {
+          body: { jobId, action: "push" },
+          headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+        },
+      );
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
 export function useUpdateJob() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -167,6 +204,7 @@ export function useUpdateJob() {
       const { id, ...patch } = input;
       const { data, error } = await supabase.from("jobs").update(patch).eq("id", id).select().single();
       if (error) throw error;
+      await pushJobCalendar(id);
       return data as Job;
     },
     onSuccess: (data) => {
@@ -199,8 +237,17 @@ export function useDeleteJob() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("jobs").delete().eq("id", id);
-      if (error) throw error;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { error } = await supabase.functions.invoke("sync-job-calendar", {
+        body: { jobId: id, action: "delete" },
+        headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+      });
+      if (!error) return;
+      const message = await edgeFunctionErrorMessage(error);
+      const missing = /not found|404|Failed to send/i.test(message);
+      if (!missing) throw new Error(message);
+      const { error: deleteError } = await supabase.from("jobs").delete().eq("id", id);
+      if (deleteError) throw deleteError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
