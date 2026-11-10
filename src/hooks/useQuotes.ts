@@ -87,6 +87,8 @@ export function useUpdateQuoteStatus() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      // Accepting a quote creates a job in the database. Refresh both lists.
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },
   });
 }

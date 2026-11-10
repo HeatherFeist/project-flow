@@ -59,7 +59,7 @@ export function fetchQuote(token: string) {
         client: { name: string; email: string | null };
       };
       business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
-      job: { scheduled_at: string; address: string | null } | null;
+      job: { scheduled_at: string | null; address: string | null } | null;
       visualizations: { id: string; prompt: string; result_url: string; created_at: string }[];
       subcontractors: PublicSubcontractor[];
       milestones: PublicQuoteMilestone[];

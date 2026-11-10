@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useClients } from "@/hooks/useClients";
 import { useCreateQuote, useDeleteQuote, useGenerateQuoteDraft, useQuotes, useUpdateQuoteStatus } from "@/hooks/useQuotes";
+import { useEnsureJobForQuote, useJobs } from "@/hooks/useJobs";
 import { useSendQuoteEmail } from "@/hooks/useScheduling";
 import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { blobToBase64, fileToImageBlobs } from "@/lib/estimateMedia";
@@ -24,6 +25,7 @@ import type { LineItem, QuoteStatus } from "@/types/domain";
 import { AiQuoteChatDialog } from "@/components/AiQuoteChatDialog";
 import type { QuoteChatProposal } from "@/hooks/useQuoteChat";
 import { DeleteButton } from "@/components/DeleteButton";
+import { QuoteJobActions } from "@/components/QuoteJobActions";
 import { ImportQuotesDialog } from "@/components/ImportQuotesDialog";
 import { QuotesPipelineBoard } from "@/components/QuotesPipelineBoard";
 import { PageGuide } from "@/components/PageGuide";
@@ -57,9 +59,11 @@ const STATUS_VARIANT: Record<QuoteStatus, "secondary" | "success" | "warning" | 
 export default function Quotes() {
   const { user } = useAuth();
   const { data: quotes, isLoading } = useQuotes();
+  const { data: jobs, isFetched: jobsLoaded } = useJobs();
   const { data: clients } = useClients();
   const createQuote = useCreateQuote();
   const updateStatus = useUpdateQuoteStatus();
+  const ensureJob = useEnsureJobForQuote();
   const sendQuoteEmail = useSendQuoteEmail();
   const sendQuoteSms = useSendQuoteSms();
   const deleteQuote = useDeleteQuote();
@@ -74,6 +78,17 @@ export default function Quotes() {
   const [aiImages, setAiImages] = useState<{ previewUrl: string; base64: string; mimeType: string }[]>([]);
   const aiImageInputRef = useRef<HTMLInputElement>(null);
   const [chatOpen, setChatOpen] = useState(false);
+  const [creatingQuoteId, setCreatingQuoteId] = useState<string | null>(null);
+
+  const jobByQuoteId = useMemo(() => {
+    const map = new Map<string, { id: string; scheduled_at: string | null }>();
+    for (const job of jobs ?? []) {
+      if (job.quote_id && !map.has(job.quote_id)) {
+        map.set(job.quote_id, { id: job.id, scheduled_at: job.scheduled_at });
+      }
+    }
+    return map;
+  }, [jobs]);
 
   const filteredQuotes = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -160,6 +175,18 @@ export default function Quotes() {
       toast.success("Quote texted to the client");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to text the quote");
+    }
+  }
+
+  async function handleCreateJob(quoteId: string) {
+    setCreatingQuoteId(quoteId);
+    try {
+      await ensureJob.mutateAsync(quoteId);
+      toast.success("Job created");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create job");
+    } finally {
+      setCreatingQuoteId(null);
     }
   }
 
@@ -335,6 +362,7 @@ export default function Quotes() {
                 <TableHead>Date</TableHead>
                 <TableHead>Total</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Job</TableHead>
                 <TableHead>Send</TableHead>
                 <TableHead />
               </TableRow>
@@ -342,21 +370,21 @@ export default function Quotes() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground">
+                  <TableCell colSpan={7} className="text-muted-foreground">
                     Loading…
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (quotes ?? []).length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground">
+                  <TableCell colSpan={7} className="text-muted-foreground">
                     No quotes yet.
                   </TableCell>
                 </TableRow>
               )}
               {!isLoading && (quotes ?? []).length > 0 && filteredQuotes.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground">
+                  <TableCell colSpan={7} className="text-muted-foreground">
                     No quotes match "{search}".
                   </TableCell>
                 </TableRow>
@@ -392,6 +420,16 @@ export default function Quotes() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    <QuoteJobActions
+                      layout="compact"
+                      status={q.status}
+                      job={jobByQuoteId.get(q.id)}
+                      ready={jobsLoaded}
+                      pending={creatingQuoteId === q.id}
+                      onCreate={() => handleCreateJob(q.id)}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">

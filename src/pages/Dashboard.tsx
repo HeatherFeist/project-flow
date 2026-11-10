@@ -144,7 +144,7 @@ export default function Dashboard() {
                   <p className="text-muted-foreground">{job.client?.name}</p>
                 </div>
                 <div className="text-right">
-                  <p>{formatDateTime(job.scheduled_at)}</p>
+                  <p>{job.scheduled_at ? formatDateTime(job.scheduled_at) : "Unscheduled"}</p>
                   <Badge variant="secondary">{job.status.replace("_", " ")}</Badge>
                 </div>
               </Link>

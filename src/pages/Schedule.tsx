@@ -106,7 +106,7 @@ export default function Schedule() {
                     </Link>
                   </TableCell>
                   <TableCell>{job.client?.name ?? "—"}</TableCell>
-                  <TableCell>{formatDateTime(job.scheduled_at)}</TableCell>
+                  <TableCell>{job.scheduled_at ? formatDateTime(job.scheduled_at) : "Unscheduled"}</TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[job.status]}>{job.status.replace("_", " ")}</Badge>
                   </TableCell>

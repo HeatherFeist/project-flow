@@ -1,6 +1,10 @@
 // GET  ?token=<accept_token>              -> public quote details + status
-// POST { token, action: "accept"|"decline" } -> records the response;
-//        on accept, also auto-generates the invoice from the quote's items.
+// POST { token, action: "accept"|"decline" } -> records the response.
+//        Accepting sets quotes.status to 'accepted', which the database
+//        trigger in docs/schema_v38_quote_accepted_job.sql turns into one
+//        job (unscheduled until the client picks a time). This function
+//        still auto-generates the invoice from the quote's items and points
+//        that invoice at the job when the trigger created one.
 // No auth — the token itself is the credential. Uses the service-role key
 // to read/write only the single quote row matching that token.
 
@@ -33,11 +37,16 @@ Deno.serve(async (req) => {
         .eq("id", quote.owner_id)
         .maybeSingle();
 
-      const { data: job } = await supabase
+      // Prefer a job that already has a time. An unscheduled job (created
+      // at accept, before the client picks a slot) is still returned so the
+      // page can offer times instead of saying they're already booked.
+      const { data: jobsForQuote } = await supabase
         .from("jobs")
         .select("scheduled_at, address")
         .eq("quote_id", quote.id)
-        .maybeSingle();
+        .order("scheduled_at", { ascending: false, nullsFirst: false })
+        .limit(1);
+      const job = jobsForQuote?.[0] ?? null;
 
       const { data: visualizations } = await supabase
         .from("quote_visualizations")
@@ -105,12 +114,20 @@ Deno.serve(async (req) => {
       if (updateError) throw updateError;
 
       if (newStatus === "accepted") {
+        const { data: linkedJobs } = await supabase
+          .from("jobs")
+          .select("id")
+          .eq("quote_id", quote.id)
+          .order("created_at", { ascending: true })
+          .limit(1);
+        const linkedJobId = linkedJobs?.[0]?.id ?? null;
+
         const { data: invoice } = await supabase
           .from("invoices")
           .insert({
             owner_id: quote.owner_id,
             client_id: quote.client_id,
-            job_id: null,
+            job_id: linkedJobId,
             quote_id: quote.id,
             status: "draft",
             total_cents: quote.total_cents,
