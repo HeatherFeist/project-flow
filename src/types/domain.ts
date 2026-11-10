@@ -77,6 +77,9 @@ export interface Job {
   ends_at: string | null;
   address: string | null;
   google_event_id: string | null;
+  google_event_url: string | null;
+  calendar_sync_status: "synced" | "failed" | "not_connected" | null;
+  calendar_sync_error: string | null;
   photo_urls: string[];
   photo_share_token: string;
   reminder_sent_at: string | null;

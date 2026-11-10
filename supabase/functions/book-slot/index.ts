@@ -53,6 +53,9 @@ Deno.serve(async (req) => {
     const jobTitle = quote.notes ? quote.notes.slice(0, 80) : `Job for ${quote.client.name}`;
 
     let googleEventId: string | null = null;
+    let googleEventUrl: string | null = null;
+    let calendarSyncStatus: "synced" | "failed" | "not_connected" = "not_connected";
+    let calendarSyncError: string | null = null;
     const { data: connection } = await supabase
       .from("google_connections")
       .select("google_email")
@@ -62,7 +65,7 @@ Deno.serve(async (req) => {
     if (connection) {
       try {
         const accessToken = await getFreshAccessToken(quote.owner_id);
-        googleEventId = await createCalendarEvent({
+        const created = await createCalendarEvent({
           accessToken,
           summary: `${jobTitle} — ${quote.client.name}`,
           description: quote.notes ?? undefined,
@@ -72,8 +75,12 @@ Deno.serve(async (req) => {
           timezone,
           attendeeEmail: quote.client.email ?? undefined,
         });
-      } catch {
-        // Booking still succeeds in Project Flow even if the calendar push fails.
+        googleEventId = created.id;
+        googleEventUrl = created.htmlLink;
+        calendarSyncStatus = "synced";
+      } catch (err) {
+        calendarSyncStatus = "failed";
+        calendarSyncError = err instanceof Error ? err.message.slice(0, 500) : "Calendar sync failed";
       }
     }
 
@@ -89,6 +96,9 @@ Deno.serve(async (req) => {
         scheduled_at: start,
         address: quote.client.address ?? null,
         google_event_id: googleEventId,
+        google_event_url: googleEventUrl,
+        calendar_sync_status: calendarSyncStatus,
+        calendar_sync_error: calendarSyncError,
       })
       .select()
       .single();

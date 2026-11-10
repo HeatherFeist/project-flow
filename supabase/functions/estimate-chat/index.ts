@@ -119,6 +119,9 @@ async function executeTool(
     const timezone = settings?.timezone ?? "America/New_York";
 
     let googleEventId: string | null = null;
+    let googleEventUrl: string | null = null;
+    let calendarSyncStatus: "synced" | "failed" | "not_connected" = "not_connected";
+    let calendarSyncError: string | null = null;
     const { data: connection } = await supabase
       .from("google_connections")
       .select("user_id")
@@ -127,7 +130,7 @@ async function executeTool(
     if (connection) {
       try {
         const accessToken = await getFreshAccessToken(ownerId);
-        googleEventId = await createCalendarEvent({
+        const created = await createCalendarEvent({
           accessToken,
           summary: `Estimate: ${jobDescription}`.slice(0, 120),
           description: jobDescription,
@@ -136,8 +139,12 @@ async function executeTool(
           timezone,
           attendeeEmail: customerEmail ?? undefined,
         });
-      } catch {
-        // Booking still succeeds in Project Flow even if the calendar push fails.
+        googleEventId = created.id;
+        googleEventUrl = created.htmlLink;
+        calendarSyncStatus = "synced";
+      } catch (err) {
+        calendarSyncStatus = "failed";
+        calendarSyncError = err instanceof Error ? err.message.slice(0, 500) : "Calendar sync failed";
       }
     }
 
@@ -149,6 +156,9 @@ async function executeTool(
       status: "scheduled",
       scheduled_at: start,
       google_event_id: googleEventId,
+      google_event_url: googleEventUrl,
+      calendar_sync_status: calendarSyncStatus,
+      calendar_sync_error: calendarSyncError,
       photo_urls: photoUrls,
     });
     if (jobError) throw jobError;

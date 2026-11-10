@@ -44,6 +44,9 @@ Deno.serve(async (req) => {
     }
 
     let googleEventId: string | null = null;
+    let googleEventUrl: string | null = null;
+    let calendarSyncStatus: "synced" | "failed" | "not_connected" | null = null;
+    let calendarSyncError: string | null = null;
 
     if (scheduled_at) {
       const { data: connection } = await supabase
@@ -52,7 +55,9 @@ Deno.serve(async (req) => {
         .eq("user_id", ownerId)
         .maybeSingle();
 
-      if (connection) {
+      if (!connection) {
+        calendarSyncStatus = "not_connected";
+      } else {
         try {
           const { data: settings } = await supabase
             .from("scheduling_settings")
@@ -70,7 +75,7 @@ Deno.serve(async (req) => {
               : new Date(start.getTime() + durationMinutes * 60_000);
 
           const accessToken = await getFreshAccessToken(ownerId);
-          googleEventId = await createCalendarEvent({
+          const created = await createCalendarEvent({
             accessToken,
             summary: `${title} — ${client.name}`,
             description: description || undefined,
@@ -80,11 +85,21 @@ Deno.serve(async (req) => {
             timezone,
             attendeeEmail: client.email ?? undefined,
           });
-        } catch {
-          // The job still gets created in Project Flow even if the
-          // calendar push fails (e.g. Google token needs reconnecting).
+          googleEventId = created.id;
+          googleEventUrl = created.htmlLink;
+          calendarSyncStatus = "synced";
+        } catch (err) {
+          calendarSyncStatus = "failed";
+          calendarSyncError = err instanceof Error ? err.message.slice(0, 500) : "Calendar sync failed";
         }
       }
+    } else {
+      const { data: connection } = await supabase
+        .from("google_connections")
+        .select("google_email")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      calendarSyncStatus = connection ? null : "not_connected";
     }
 
     const { data: job, error: jobError } = await supabase
@@ -99,6 +114,9 @@ Deno.serve(async (req) => {
         ends_at: ends_at || null,
         status: "scheduled",
         google_event_id: googleEventId,
+        google_event_url: googleEventUrl,
+        calendar_sync_status: calendarSyncStatus,
+        calendar_sync_error: calendarSyncError,
       })
       .select("*, client:clients(id, name)")
       .single();
