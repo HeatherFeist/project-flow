@@ -9,6 +9,7 @@ export interface Profile {
   email: string | null;
   service_area: string | null;
   google_review_link: string | null;
+  auto_review_request: boolean;
   logo_url: string | null;
   logo_path: string | null;
   logo_width_px: number;
@@ -79,6 +80,7 @@ export interface Job {
   photo_urls: string[];
   photo_share_token: string;
   reminder_sent_at: string | null;
+  review_requested_at: string | null;
   created_at: string;
   client?: Pick<Client, "id" | "name">;
 }

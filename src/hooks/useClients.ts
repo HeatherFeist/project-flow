@@ -46,6 +46,75 @@ export function useCreateClient() {
   });
 }
 
+export interface ClientProperty {
+  id: string;
+  owner_id: string;
+  client_id: string;
+  label: string;
+  address: string;
+  notes: string | null;
+}
+
+export function useClientProperties(clientId: string | undefined) {
+  return useQuery({
+    queryKey: ["client_properties", clientId],
+    enabled: !!clientId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_properties")
+        .select("*")
+        .eq("client_id", clientId!)
+        .order("created_at");
+      if (error) throw error;
+      return data as ClientProperty[];
+    },
+  });
+}
+
+export function useAddClientProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: Omit<ClientProperty, "id">) => {
+      const { error } = await supabase.from("client_properties").insert(input);
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["client_properties", variables.client_id] });
+    },
+  });
+}
+
+export function useDeleteClientProperty() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, clientId }: { id: string; clientId: string }) => {
+      const { error } = await supabase.from("client_properties").delete().eq("id", id);
+      if (error) throw error;
+      return clientId;
+    },
+    onSuccess: (clientId) => {
+      queryClient.invalidateQueries({ queryKey: ["client_properties", clientId] });
+    },
+  });
+}
+
+export function useClientJobPhotos(jobIds: string[]) {
+  return useQuery({
+    queryKey: ["client_job_photos", jobIds],
+    enabled: jobIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("job_photos")
+        .select("id, url, caption, created_at, job_id")
+        .in("job_id", jobIds)
+        .order("created_at", { ascending: false })
+        .limit(24);
+      if (error) throw error;
+      return data as { id: string; url: string; caption: string | null; created_at: string; job_id: string }[];
+    },
+  });
+}
+
 export function useUpdateClient() {
   const queryClient = useQueryClient();
   return useMutation({
