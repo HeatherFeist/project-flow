@@ -34,6 +34,7 @@ const NAV_ITEMS = [
   { to: "/clients", label: "Clients", icon: Users },
   { to: "/leads", label: "Leads & Requests", icon: Inbox },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
+  { to: "/my-day", label: "My Day", icon: CalendarDays },
   { to: "/quotes", label: "Quotes", icon: FileText },
   { to: "/invoices", label: "Invoices", icon: Receipt },
   { to: "/price-book", label: "Price Book", icon: Tags },

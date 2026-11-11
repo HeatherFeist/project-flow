@@ -157,6 +157,7 @@ export default function Settings() {
       email: profile.email ?? user.email ?? null,
       service_area: profile.service_area ?? null,
       google_review_link: profile.google_review_link ?? null,
+      auto_review_request: profile.auto_review_request ?? false,
       logo_width_px: profile.logo_width_px ?? 160,
       gemini_api_key: profile.gemini_api_key ?? null,
       serpapi_key: profile.serpapi_key ?? null,
@@ -422,6 +423,13 @@ export default function Settings() {
                 customer's own account) — this just makes it one tap for them.
               </p>
             </div>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={profile.auto_review_request ?? false}
+                onCheckedChange={(value) => setProfile({ ...profile, auto_review_request: value === true })}
+              />
+              When a job is marked completed, send this review link automatically
+            </label>
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : "Save"}
             </Button>

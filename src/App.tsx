@@ -17,6 +17,7 @@ import Clients from "@/pages/Clients";
 import ClientDetail from "@/pages/ClientDetail";
 import Leads from "@/pages/Leads";
 import Schedule from "@/pages/Schedule";
+import MyDay from "@/pages/MyDay";
 import JobDetail from "@/pages/JobDetail";
 import Quotes from "@/pages/Quotes";
 import QuoteDetail from "@/pages/QuoteDetail";
@@ -101,6 +102,7 @@ function App() {
                 <Route path="/clients/:id" element={<ClientDetail />} />
                 <Route path="/leads" element={<Leads />} />
                 <Route path="/schedule" element={<Schedule />} />
+                <Route path="/my-day" element={<MyDay />} />
                 <Route path="/schedule/:id" element={<JobDetail />} />
                 <Route path="/quotes" element={<Quotes />} />
                 <Route path="/quotes/:id" element={<QuoteDetail />} />

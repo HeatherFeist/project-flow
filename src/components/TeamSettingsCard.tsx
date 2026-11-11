@@ -51,9 +51,8 @@ export function TeamSettingsCard() {
       <CardHeader>
         <CardTitle>Team</CardTitle>
         <CardDescription>
-          Invite people to work in Project Flow alongside you — an Admin has full access, same as you; a
-          Field Tech sees Clients, Schedule, and job photos/checklists, but not quotes, invoices, payments,
-          or Settings.
+          You are the owner. An admin can do everything you can. Crew (the field role) sees clients,
+          the schedule, My Day, and job photos, but not quotes, invoices, payments, or Settings.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pb-6">
@@ -76,7 +75,7 @@ export function TeamSettingsCard() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="field_tech">Field Tech</SelectItem>
+                <SelectItem value="field_tech">Crew</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
@@ -114,7 +113,7 @@ export function TeamSettingsCard() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="field_tech">Field Tech</SelectItem>
+                      <SelectItem value="field_tech">Crew</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
