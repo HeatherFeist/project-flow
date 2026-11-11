@@ -85,5 +85,8 @@ export function useSendReviewRequest() {
       }
       return data;
     },
+    onSuccess: async (_data, jobId) => {
+      await supabase.from("jobs").update({ review_requested_at: new Date().toISOString() }).eq("id", jobId);
+    },
   });
 }
