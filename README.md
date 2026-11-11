@@ -2002,4 +2002,5 @@ docs/schema_v35_street_view.sql Adds profiles.google_maps_api_key (Street View e
 docs/schema_v36_owner_ticket_creation.sql Adds owner insert policies for support_tickets/support_ticket_replies (New ticket button)
 docs/schema_v37_tester_codes.sql Adds tester_codes table (self-serve free-tester access codes)
 docs/schema_v38_quote_accepted_job.sql Creates one linked job when a quote becomes accepted
+docs/schema_v44_client_properties_reviews.sql Extra client addresses and automatic Google review requests
 ```

@@ -65,19 +65,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const secretKey = await getStripeSecretKey(supabase, invoice.owner_id);
-    if (!secretKey) {
-      return new Response(
-        JSON.stringify({ error: "This business hasn't connected Stripe yet." }),
-        { status: 400, headers: jsonHeaders },
-      );
-    }
-
     const siteUrl = Deno.env.get("SITE_URL") ?? "";
     const businessName = profile?.business_name || "your contractor";
-
-    const session = await createCheckoutSession({
-      secretKey,
+    const checkoutInput = {
       amountCents,
       description: `Invoice payment — ${businessName}`,
       successUrl: `${siteUrl}/pay/${token}?paid=1`,
@@ -88,7 +78,44 @@ Deno.serve(async (req) => {
         pay_token: token,
         ...(milestoneId ? { milestone_id: milestoneId } : {}),
       },
-    });
+    };
+
+    const { data: connect } = await supabase
+      .from("stripe_connect_accounts")
+      .select("stripe_account_id, charges_enabled")
+      .eq("owner_id", invoice.owner_id)
+      .maybeSingle();
+
+    const connectKey = connectTestKey();
+    let session: { url: string };
+    if (connect?.charges_enabled && connect.stripe_account_id && connectKey) {
+      try {
+        session = await createCheckoutSession({
+          ...checkoutInput,
+          secretKey: connectKey,
+          stripeAccountId: connect.stripe_account_id,
+          paymentMethodTypes: ["card", "us_bank_account"],
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "";
+        if (!message.includes("us_bank_account")) throw err;
+        session = await createCheckoutSession({
+          ...checkoutInput,
+          secretKey: connectKey,
+          stripeAccountId: connect.stripe_account_id,
+          paymentMethodTypes: ["card"],
+        });
+      }
+    } else {
+      const secretKey = await getStripeSecretKey(supabase, invoice.owner_id);
+      if (!secretKey) {
+        return new Response(
+          JSON.stringify({ error: "This business hasn't connected Stripe yet." }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+      session = await createCheckoutSession({ ...checkoutInput, secretKey });
+    }
 
     return new Response(JSON.stringify({ url: session.url }), { headers: jsonHeaders });
   } catch (err) {
@@ -98,3 +125,11 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// Connect charges use the platform's Stripe key and a connected account, and
+// only a test key is accepted. A live key is ignored so this can't move real
+// money by accident. STRIPE_CONNECT_SECRET_KEY wins over the shared fallback.
+function connectTestKey(): string | null {
+  const key = Deno.env.get("STRIPE_CONNECT_SECRET_KEY") || Deno.env.get("STRIPE_SECRET_KEY") || "";
+  return key.startsWith("sk_test_") ? key : null;
+}

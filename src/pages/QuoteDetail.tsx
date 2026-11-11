@@ -10,6 +10,7 @@ import {
   useGenerateQuoteVisualization,
   useQuote,
   useQuoteVisualizations,
+  useUpdateQuoteDeposit,
   useUpdateQuoteItems,
   useUpdateQuoteStatus,
 } from "@/hooks/useQuotes";
@@ -27,6 +28,7 @@ import { MaterialPickerDialog } from "@/components/MaterialPickerDialog";
 import { StreetViewDialog } from "@/components/StreetViewDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,6 +64,8 @@ export default function QuoteDetail() {
   const updateStatus = useUpdateQuoteStatus();
   const linkedJob = useJobForQuote(quote?.status === "accepted" ? quote.id : undefined);
   const ensureJob = useEnsureJobForQuote();
+  const updateDeposit = useUpdateQuoteDeposit();
+  const [depositDollars, setDepositDollars] = useState("");
   const updateItems = useUpdateQuoteItems();
   const deleteQuote = useDeleteQuote();
   const sendQuoteEmail = useSendQuoteEmail();
@@ -242,16 +246,46 @@ export default function QuoteDetail() {
             />
           </div>
         </div>
-        <p className="text-muted-foreground">Total {formatCurrency(quote.total_cents)}</p>
-        <div className="mt-3">
-          <QuoteJobActions
-            status={quote.status}
-            job={linkedJob.data}
-            ready={linkedJob.isFetched}
-            pending={ensureJob.isPending}
-            onCreate={handleCreateJob}
-          />
-        </div>
+        <p className="text-muted-foreground">
+          Total {formatCurrency(quote.total_cents)}
+          {quote.deposit_cents ? ` · Deposit ${formatCurrency(quote.deposit_cents)}` : ""}
+        </p>
+        <form
+          className="mt-3 flex flex-wrap items-end gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const dollars = depositDollars.trim();
+            const cents = dollars ? Math.round(Number(dollars) * 100) : null;
+            if (cents !== null && (!Number.isFinite(cents) || cents <= 0 || cents > quote.total_cents)) {
+              toast.error("Deposit has to be more than zero and no more than the quote total.");
+              return;
+            }
+            try {
+              await updateDeposit.mutateAsync({ id: quote.id, deposit_cents: cents });
+              toast.success(cents ? "Deposit saved" : "Deposit cleared");
+              setDepositDollars("");
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Failed to save deposit");
+            }
+          }}
+        >
+          <div className="space-y-1">
+            <label htmlFor="deposit" className="text-xs text-muted-foreground">
+              Optional deposit (dollars). Leave blank to clear it.
+            </label>
+            <Input
+              id="deposit"
+              inputMode="decimal"
+              placeholder={quote.deposit_cents ? (quote.deposit_cents / 100).toFixed(2) : "0.00"}
+              value={depositDollars}
+              onChange={(e) => setDepositDollars(e.target.value)}
+              className="h-8 w-32"
+            />
+          </div>
+          <Button type="submit" size="sm" variant="outline" disabled={updateDeposit.isPending}>
+            Save deposit
+          </Button>
+        </form>
       </div>
 
       <Card>

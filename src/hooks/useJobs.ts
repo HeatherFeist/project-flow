@@ -193,6 +193,22 @@ export function useImportJobs() {
   });
 }
 
+async function maybeSendReviewRequest(jobId: string, ownerId: string) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("auto_review_request, google_review_link")
+    .eq("id", ownerId)
+    .maybeSingle();
+  if (!profile?.auto_review_request || !profile.google_review_link) return;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const { error } = await supabase.functions.invoke("send-review-request", {
+    body: { jobId },
+    headers: { Authorization: `Bearer ${sessionData.session?.access_token}` },
+  });
+  if (error) return;
+  await supabase.from("jobs").update({ review_requested_at: new Date().toISOString() }).eq("id", jobId);
+}
+
 export function useUpdateJobStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -204,7 +220,11 @@ export function useUpdateJobStatus() {
         .select()
         .single();
       if (error) throw error;
-      return data as Job;
+      const job = data as Job;
+      if (status === "completed" && !job.review_requested_at) {
+        await maybeSendReviewRequest(job.id, job.owner_id);
+      }
+      return job;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });

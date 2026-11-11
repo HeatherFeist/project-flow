@@ -66,3 +66,6 @@ verify_jwt = false
 
 [functions.portal-request-service]
 verify_jwt = false
+
+[functions.client-hub]
+verify_jwt = false

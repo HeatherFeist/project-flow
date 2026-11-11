@@ -9,6 +9,7 @@ export interface Profile {
   email: string | null;
   service_area: string | null;
   google_review_link: string | null;
+  auto_review_request: boolean;
   logo_url: string | null;
   logo_path: string | null;
   logo_width_px: number;
@@ -48,6 +49,7 @@ export interface Client {
   phone: string | null;
   address: string | null;
   notes: string | null;
+  hub_token: string;
   source: ClientSource;
   created_at: string;
 }
@@ -74,11 +76,15 @@ export interface Job {
   description: string | null;
   status: JobStatus;
   scheduled_at: string | null;
+  ends_at: string | null;
+  assigned_to: string | null;
+  series_id: string | null;
   address: string | null;
   google_event_id: string | null;
   photo_urls: string[];
   photo_share_token: string;
   reminder_sent_at: string | null;
+  review_requested_at: string | null;
   created_at: string;
   client?: Pick<Client, "id" | "name">;
 }
@@ -118,6 +124,7 @@ export interface Quote {
   job_id: string | null;
   status: QuoteStatus;
   total_cents: number;
+  deposit_cents: number | null;
   notes: string | null;
   accept_token: string;
   sent_at: string | null;

@@ -1,7 +1,16 @@
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Phone, PhoneMissed, MessageSquare, Mail } from "lucide-react";
-import { useClient, useDeleteClient } from "@/hooks/useClients";
+import {
+  useAddClientProperty,
+  useClient,
+  useClientJobPhotos,
+  useClientProperties,
+  useDeleteClient,
+  useDeleteClientProperty,
+  useUpdateClient,
+} from "@/hooks/useClients";
 import { useJobs } from "@/hooks/useJobs";
 import { useQuotes } from "@/hooks/useQuotes";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -10,6 +19,10 @@ import type { ClientMessage } from "@/types/domain";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DeleteButton } from "@/components/DeleteButton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/utils";
 
 const CHANNEL_ICON: Record<ClientMessage["channel"], typeof Phone> = {
@@ -27,8 +40,15 @@ export default function ClientDetail() {
   const { data: invoices } = useInvoices();
   const { data: messages } = useClientMessages(id);
   const deleteClient = useDeleteClient();
+  const updateClient = useUpdateClient();
+  const { data: properties } = useClientProperties(id);
+  const addProperty = useAddClientProperty();
+  const deleteProperty = useDeleteClientProperty();
+  const [notes, setNotes] = useState<string | null>(null);
+  const [propertyForm, setPropertyForm] = useState({ label: "", address: "", notes: "" });
 
   const clientJobs = (jobs ?? []).filter((j) => j.client_id === id);
+  const { data: photos } = useClientJobPhotos(clientJobs.map((job) => job.id));
   const clientQuotes = (quotes ?? []).filter((q) => q.client_id === id);
   const clientInvoices = (invoices ?? []).filter((i) => i.client_id === id);
 
@@ -60,16 +80,143 @@ export default function ClientDetail() {
         <p className="text-muted-foreground">
           {[client.email, client.phone, client.address].filter(Boolean).join(" · ") || "No contact details on file"}
         </p>
+        {client.hub_token && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/hub/${client.hub_token}`);
+              toast.success("Client hub link copied");
+            }}
+          >
+            <Copy className="size-4" /> Copy client hub link
+          </Button>
+        )}
       </div>
 
-      {client.notes && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Notes</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-6 text-sm text-muted-foreground">{client.notes}</CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Notes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 pb-6">
+          <Textarea
+            value={notes ?? client.notes ?? ""}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notes about this client"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={updateClient.isPending}
+            onClick={async () => {
+              try {
+                await updateClient.mutateAsync({ id: client.id, notes: (notes ?? client.notes ?? "").trim() || null });
+                setNotes(null);
+                toast.success("Notes saved");
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to save notes");
+              }
+            }}
+          >
+            Save notes
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Properties</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 pb-6">
+          {(properties ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">No extra addresses yet. The address above is still on the client.</p>
+          )}
+          {(properties ?? []).map((property) => (
+            <div key={property.id} className="flex items-start justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+              <div>
+                <p className="font-medium">{property.label}</p>
+                <p className="text-muted-foreground">{property.address}</p>
+                {property.notes && <p className="text-xs text-muted-foreground">{property.notes}</p>}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => deleteProperty.mutate({ id: property.id, clientId: client.id })}
+              >
+                Remove
+              </Button>
+            </div>
+          ))}
+          <form
+            className="grid gap-2 sm:grid-cols-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!propertyForm.label.trim() || !propertyForm.address.trim()) return;
+              try {
+                await addProperty.mutateAsync({
+                  owner_id: client.owner_id,
+                  client_id: client.id,
+                  label: propertyForm.label.trim(),
+                  address: propertyForm.address.trim(),
+                  notes: propertyForm.notes.trim() || null,
+                });
+                setPropertyForm({ label: "", address: "", notes: "" });
+                toast.success("Property added");
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Failed to add property");
+              }
+            }}
+          >
+            <div className="space-y-1">
+              <Label htmlFor="property-label">Label</Label>
+              <Input
+                id="property-label"
+                placeholder="Rental, shop, mom's house"
+                value={propertyForm.label}
+                onChange={(e) => setPropertyForm({ ...propertyForm, label: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="property-address">Address</Label>
+              <Input
+                id="property-address"
+                value={propertyForm.address}
+                onChange={(e) => setPropertyForm({ ...propertyForm, address: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="property-notes">Notes</Label>
+              <Input
+                id="property-notes"
+                value={propertyForm.notes}
+                onChange={(e) => setPropertyForm({ ...propertyForm, notes: e.target.value })}
+              />
+            </div>
+            <Button type="submit" size="sm" disabled={addProperty.isPending}>
+              Add property
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Photos</CardTitle>
+        </CardHeader>
+        <CardContent className="pb-6">
+          {(photos ?? []).length === 0 && (
+            <p className="text-sm text-muted-foreground">Photos taken on this client's jobs show up here.</p>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            {(photos ?? []).map((photo) => (
+              <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer">
+                <img src={photo.url} alt={photo.caption ?? ""} className="aspect-square w-full rounded-md object-cover" />
+              </a>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

@@ -72,6 +72,19 @@ export function useCreateQuote() {
   });
 }
 
+export function useUpdateQuoteDeposit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, deposit_cents }: { id: string; deposit_cents: number | null }) => {
+      const { error } = await supabase.from("quotes").update({ deposit_cents }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+    },
+  });
+}
+
 export function useUpdateQuoteStatus() {
   const queryClient = useQueryClient();
   return useMutation({
