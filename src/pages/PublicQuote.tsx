@@ -48,7 +48,9 @@ export default function PublicQuote() {
   }, [data, action]);
 
   useEffect(() => {
-    if (data?.quote.status === "accepted" && !data.job && !slots) {
+    // A job with no time was created at accept. The client still picks a slot,
+    // and book-slot writes that time onto the existing job.
+    if (data?.quote.status === "accepted" && !data.job?.scheduled_at && !slots) {
       loadSlots();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,7 +202,7 @@ export default function PublicQuote() {
             </p>
           )}
 
-          {quote.status === "accepted" && job && (
+          {quote.status === "accepted" && job?.scheduled_at && (
             <div className="rounded-md border bg-secondary/50 p-4 text-center">
               <p className="font-medium">You{"'"}re scheduled!</p>
               <p className="text-sm text-muted-foreground">
@@ -216,7 +218,7 @@ export default function PublicQuote() {
             </div>
           )}
 
-          {quote.status === "accepted" && !job && (
+          {quote.status === "accepted" && !job?.scheduled_at && (
             <div>
               <p className="mb-3 text-center text-sm font-medium">Pick a time that works for you</p>
               {slotsLoading && (

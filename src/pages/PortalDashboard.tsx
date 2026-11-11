@@ -131,7 +131,7 @@ export default function PortalDashboard() {
                 <div>
                   <p className="font-medium">{job.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDateTime(job.scheduled_at)}
+                    {job.scheduled_at ? formatDateTime(job.scheduled_at) : "Not scheduled yet"}
                     {job.address ? ` · ${job.address}` : ""}
                   </p>
                 </div>

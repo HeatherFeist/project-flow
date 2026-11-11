@@ -181,8 +181,16 @@ export default function JobDetail() {
             </Link>
           )}
           {" · "}
-          {formatDateTime(job.scheduled_at)}
+          {job.scheduled_at ? formatDateTime(job.scheduled_at) : "Unscheduled"}
           {job.address ? ` · ${job.address}` : ""}
+          {job.quote_id && (
+            <>
+              {" · "}
+              <Link to={`/quotes/${job.quote_id}`} className="hover:underline">
+                Quote
+              </Link>
+            </>
+          )}
         </p>
       </div>
 

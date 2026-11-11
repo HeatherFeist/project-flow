@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Copy, Loader2, Mail, MapPin, MessageSquareText, Pencil, Sparkles, Store, Trash2, Wand2, X } from "lucide-react";
+import { useEnsureJobForQuote, useJobForQuote } from "@/hooks/useJobs";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   useDeleteQuote,
@@ -18,6 +19,7 @@ import { useSendQuoteSms } from "@/hooks/useTwilio";
 import { fileToImageBlobs, blobToBase64 } from "@/lib/estimateMedia";
 import type { LineItem, Material, QuoteStatus } from "@/types/domain";
 import { DeleteButton } from "@/components/DeleteButton";
+import { QuoteJobActions } from "@/components/QuoteJobActions";
 import { QuoteMilestonesCard } from "@/components/QuoteMilestonesCard";
 import { SubcontractorsCard } from "@/components/SubcontractorsCard";
 import { LineItemsEditor } from "@/components/LineItemsEditor";
@@ -60,6 +62,8 @@ export default function QuoteDetail() {
   const { data: quote, isLoading } = useQuote(id);
   const { data: visualizations } = useQuoteVisualizations(id);
   const updateStatus = useUpdateQuoteStatus();
+  const linkedJob = useJobForQuote(quote?.status === "accepted" ? quote.id : undefined);
+  const ensureJob = useEnsureJobForQuote();
   const updateDeposit = useUpdateQuoteDeposit();
   const [depositDollars, setDepositDollars] = useState("");
   const updateItems = useUpdateQuoteItems();
@@ -113,6 +117,16 @@ export default function QuoteDetail() {
       toast.success("Quote texted to the client");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to text the quote");
+    }
+  }
+
+  async function handleCreateJob() {
+    if (!quote) return;
+    try {
+      await ensureJob.mutateAsync(quote.id);
+      toast.success("Job created");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create job");
     }
   }
 

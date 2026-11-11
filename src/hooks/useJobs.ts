@@ -28,6 +28,47 @@ export function useJobs() {
   });
 }
 
+export interface LinkedQuoteJob {
+  id: string;
+  title: string;
+  scheduled_at: string | null;
+  quote_id: string | null;
+}
+
+export function useJobForQuote(quoteId: string | undefined) {
+  return useQuery({
+    queryKey: ["jobs", "for-quote", quoteId],
+    enabled: !!quoteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("id, title, scheduled_at, quote_id")
+        .eq("quote_id", quoteId)
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0] as LinkedQuoteJob | undefined) ?? null;
+    },
+  });
+}
+
+// One job per accepted quote. The database function inserts it when missing
+// and returns the existing id when the quote already has one.
+export function useEnsureJobForQuote() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (quoteId: string) => {
+      const { data, error } = await supabase.rpc("ensure_job_for_quote", { p_quote_id: quoteId });
+      if (error) throw new Error(error.message);
+      return data as string;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+    },
+  });
+}
+
 export function useJob(id: string | undefined) {
   return useQuery({
     queryKey: ["jobs", id],
