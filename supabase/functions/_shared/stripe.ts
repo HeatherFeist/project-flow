@@ -26,6 +26,10 @@ export async function createCheckoutSession(params: {
   cancelUrl: string;
   customerEmail?: string;
   metadata: Record<string, string>;
+  /** Connected account that should receive the payment (Stripe Connect, direct charge). */
+  stripeAccountId?: string;
+  /** Defaults to card + Cash App, the existing invoice checkout methods. */
+  paymentMethodTypes?: string[];
 }): Promise<{ id: string; url: string }> {
   const { secretKey } = params;
 
@@ -42,20 +46,22 @@ export async function createCheckoutSession(params: {
     body.set(`metadata[${key}]`, value);
   }
 
-  // Card + Cash App Pay, deliberately no ACH bank-transfer — ACH settles in
-  // 3-5 business days no matter which processor moves it, which conflicts
-  // with needing deposit funds the same day. Both of these use standard
-  // (card-speed) payout timing, so both work with Stripe's Instant Payout
-  // (to a linked debit card, from the Dashboard); see the README.
-  body.set("payment_method_types[0]", "card");
-  body.set("payment_method_types[1]", "cashapp");
+  // Default stays card + Cash App Pay (no ACH) for the existing bring-your-own-key
+  // checkout. Connect checkouts pass card + us_bank_account explicitly.
+  const paymentMethodTypes = params.paymentMethodTypes ?? ["card", "cashapp"];
+  paymentMethodTypes.forEach((type, index) => {
+    body.set(`payment_method_types[${index}]`, type);
+  });
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${secretKey}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+  if (params.stripeAccountId) headers["Stripe-Account"] = params.stripeAccountId;
 
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers,
     body,
   });
 

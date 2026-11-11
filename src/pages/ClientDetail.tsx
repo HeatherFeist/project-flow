@@ -80,6 +80,19 @@ export default function ClientDetail() {
         <p className="text-muted-foreground">
           {[client.email, client.phone, client.address].filter(Boolean).join(" · ") || "No contact details on file"}
         </p>
+        {client.hub_token && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            onClick={() => {
+              navigator.clipboard.writeText(`${window.location.origin}/hub/${client.hub_token}`);
+              toast.success("Client hub link copied");
+            }}
+          >
+            <Copy className="size-4" /> Copy client hub link
+          </Button>
+        )}
       </div>
 
       <Card>

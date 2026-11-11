@@ -36,6 +36,8 @@ export async function getAllStripeWebhookSecrets(supabase: SupabaseClient): Prom
   const secrets = (data ?? []).map((r: { stripe_webhook_secret: string }) => r.stripe_webhook_secret);
   const platformSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
   if (platformSecret) secrets.push(platformSecret);
+  const connectSecret = Deno.env.get("STRIPE_CONNECT_WEBHOOK_SECRET");
+  if (connectSecret) secrets.push(connectSecret);
   return secrets;
 }
 

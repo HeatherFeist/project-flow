@@ -136,6 +136,56 @@ export function fetchInvoicePayInfo(token: string) {
   });
 }
 
+export interface ClientHubQuote {
+  id: string;
+  status: string;
+  total_cents: number;
+  notes: string | null;
+  items: { id: string; description: string; quantity: number; unit_price_cents: number; estimated_hours?: number | null }[];
+  accept_token: string;
+  deposit_cents: number | null;
+  created_at: string;
+}
+
+export interface ClientHubData {
+  client: { name: string };
+  business: { business_name: string | null; phone: string | null; email: string | null; logo_url: string | null; logo_width_px: number } | null;
+  quotes: ClientHubQuote[];
+  invoices: {
+    id: string;
+    status: string;
+    total_cents: number;
+    amount_paid_cents: number;
+    due_date: string | null;
+    pay_token: string;
+    created_at: string;
+  }[];
+}
+
+export function fetchClientHub(token: string) {
+  return fetch(`${FUNCTIONS_URL}/client-hub?token=${encodeURIComponent(token)}`, {
+    headers: { apikey: ANON_KEY ?? "" },
+  }).then(async (res) => {
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error ?? "Failed to load");
+    return json as ClientHubData;
+  });
+}
+
+export function requestWork(token: string, message: string) {
+  return callFunction<{ ok: true }>("client-hub", {
+    method: "POST",
+    body: JSON.stringify({ token, action: "request_work", message }),
+  });
+}
+
+export function startQuoteDeposit(token: string, quoteId: string) {
+  return callFunction<{ payToken: string; amountCents: number; milestoneId: string }>("client-hub", {
+    method: "POST",
+    body: JSON.stringify({ token, action: "start_deposit", quoteId }),
+  });
+}
+
 export function createInvoiceCheckout(token: string, amountCents: number, milestoneId?: string) {
   return callFunction<{ url: string }>("create-invoice-checkout", {
     method: "POST",

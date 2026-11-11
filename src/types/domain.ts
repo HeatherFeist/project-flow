@@ -49,6 +49,7 @@ export interface Client {
   phone: string | null;
   address: string | null;
   notes: string | null;
+  hub_token: string;
   source: ClientSource;
   created_at: string;
 }
@@ -123,6 +124,7 @@ export interface Quote {
   job_id: string | null;
   status: QuoteStatus;
   total_cents: number;
+  deposit_cents: number | null;
   notes: string | null;
   accept_token: string;
   sent_at: string | null;
